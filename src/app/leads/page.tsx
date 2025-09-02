@@ -22,8 +22,7 @@ import {
   Clock,
   Play,
   Filter,
-  Calendar,
-  Download
+  Calendar
 } from 'lucide-react'
 
 import { format } from 'date-fns'
@@ -176,10 +175,7 @@ export default function DealsPage() {
             <Calendar className="h-4 w-4 mr-2" />
             Период
           </Button>
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Экспорт
-          </Button>
+
         </div>
       </div>
 

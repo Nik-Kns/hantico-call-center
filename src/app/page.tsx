@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Filter, RefreshCw, Download } from 'lucide-react'
+import { Plus, Filter, RefreshCw } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -122,20 +122,7 @@ export default function DashboardPage() {
     router.push('/campaigns/new')
   }
 
-  const handleExportData = () => {
-    // Имитация экспорта данных
-    const data = campaigns.map(campaign => ({
-      name: campaign.name,
-      state: campaign.state,
-      totalLeads: campaign.stats.totalLeads,
-      processed: campaign.stats.processed,
-      successful: campaign.stats.successful,
-      refused: campaign.stats.refused
-    }))
-    
-    console.log('Экспорт данных:', data)
-    // В реальном приложении здесь был бы вызов функции экспорта
-  }
+
 
   return (
     <div className="space-y-6">
@@ -156,10 +143,7 @@ export default function DashboardPage() {
             Обновить
           </Button>
           
-          <Button variant="outline" onClick={handleExportData}>
-            <Download className="h-4 w-4 mr-2" />
-            Экспорт
-          </Button>
+
           
           {canControl && (
             <Button onClick={handleCreateCampaign}>

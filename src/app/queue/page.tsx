@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react'
 import { 
   RefreshCw, 
   Filter, 
-  Download, 
   Phone, 
   Clock, 
   AlertTriangle,
@@ -298,10 +297,7 @@ export default function QueuePage() {
             Обновить
           </Button>
           
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Экспорт
-          </Button>
+
         </div>
       </div>
 
