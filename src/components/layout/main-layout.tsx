@@ -19,7 +19,6 @@ import {
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { 
   Select, 
   SelectContent, 
@@ -113,36 +112,17 @@ const roleLabels: Record<UserRole, string> = {
 export function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname()
   const [currentRole, setCurrentRole] = useState<UserRole>('admin')
-  const [brandEnabled, setBrandEnabled] = useState(true)
-  const [selectedBrand, setSelectedBrand] = useState('AIGAMING.BOT')
-
-  const brands = ['AIGAMING.BOT', 'LuckyWheel', 'GoldenPlay']
 
   // Загрузка настроек из localStorage при монтировании
   useEffect(() => {
     const savedRole = storage.get<UserRole>('currentRole', 'admin')
-    const savedBrandEnabled = storage.get<boolean>('brandEnabled', true)
-    const savedBrand = storage.get<string>('selectedBrand', 'AIGAMING.BOT')
-    
     setCurrentRole(savedRole)
-    setBrandEnabled(savedBrandEnabled)
-    setSelectedBrand(savedBrand)
   }, [])
 
   // Сохранение настроек в localStorage
   const handleRoleChange = (role: UserRole) => {
     setCurrentRole(role)
     storage.set('currentRole', role)
-  }
-
-  const handleBrandEnabledChange = (enabled: boolean) => {
-    setBrandEnabled(enabled)
-    storage.set('brandEnabled', enabled)
-  }
-
-  const handleBrandChange = (brand: string) => {
-    setSelectedBrand(brand)
-    storage.set('selectedBrand', brand)
   }
 
   // Получение текущих прав доступа
@@ -198,31 +178,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                 </Select>
               </div>
 
-              {/* Brand Selection */}
-              <div className="flex items-center space-x-2">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={brandEnabled}
-                    onCheckedChange={handleBrandEnabledChange}
-                  />
-                  <label className="text-sm text-gray-700">Бренд</label>
-                </div>
-                
-                {brandEnabled && (
-                  <Select value={selectedBrand} onValueChange={handleBrandChange}>
-                    <SelectTrigger className="w-36">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {brands.map((brand) => (
-                        <SelectItem key={brand} value={brand}>
-                          {brand}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
+
 
               {/* Notifications */}
               <Button variant="ghost" size="icon" className="relative">
