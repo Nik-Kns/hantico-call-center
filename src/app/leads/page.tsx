@@ -1,451 +1,408 @@
 'use client'
 
-import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { 
-  Search, 
-  Filter, 
-  Download, 
-  Eye, 
-  Phone, 
-  MessageSquare,
-  UserPlus,
-  Ban,
-  Calendar,
-  MoreHorizontal
-} from 'lucide-react'
-
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { mockLeads, mockDataUtils } from '@/lib/mock-data'
-import { Lead, LeadStatus } from '@/lib/types'
-import { 
-  getStatusColor, 
-  getStatusText, 
-  formatPhoneNumber, 
-  formatDate 
-} from '@/lib/utils'
+  ArrowLeft,
+  Download
+} from 'lucide-react'
+
+import { mockLeads } from '@/lib/mock-data'
+import { Lead } from '@/lib/types'
+import { formatPhoneNumber } from '@/lib/utils'
 
 export default function LeadsPage() {
-  const router = useRouter()
-  const [leads, setLeads] = useState<Lead[]>(mockLeads)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<LeadStatus | 'all'>('all')
-  const [segmentFilter, setSegmentFilter] = useState<string>('all')
-
-  // Фильтрация лидов
-  const filteredLeads = leads.filter(lead => {
-    const matchesSearch = lead.phone.includes(searchQuery) ||
-                         lead.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         lead.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-    const matchesStatus = statusFilter === 'all' || lead.status === statusFilter
-    const matchesSegment = segmentFilter === 'all' || lead.segment === segmentFilter
-    
-    return matchesSearch && matchesStatus && matchesSegment
+  const [leads] = useState<Lead[]>(mockLeads)
+  const [showResults, setShowResults] = useState(false)
+  const [showLogs, setShowLogs] = useState(false)
+  const [searchData, setSearchData] = useState({
+    phone: '',
+    lastName: '',
+    firstName: '',
+    middleName: '',
+    passportSeries: '',
+    vin: '',
+    carNumber: ''
   })
 
-  // Действия с лидами
-  const handleLeadAction = (leadId: string, action: string) => {
-    switch (action) {
-      case 'view':
-        router.push(`/leads/${leadId}`)
-        break
-      case 'call':
-        // Имитация запуска звонка
-        setLeads(prev => prev.map(lead => 
-          lead.id === leadId 
-            ? { ...lead, status: 'calling' as LeadStatus, updatedAt: new Date() }
-            : lead
-        ))
-        alert('Звонок запущен!')
-        break
-      case 'sms':
-        // Имитация отправки SMS
-        alert('SMS отправлена!')
-        break
-      case 'task':
-        // Имитация создания задачи
-        mockDataUtils.createTask({
-          leadId,
-          title: 'Ручная задача для лида',
-          reason: 'manual',
-          priority: 'medium',
-          status: 'pending',
-          assigneeRole: 'manager',
-          dueAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // завтра
-        })
-        alert('Задача создана!')
-        break
-      case 'blacklist':
-        if (confirm('Добавить лида в черный список?')) {
-          setLeads(prev => prev.map(lead => 
-            lead.id === leadId 
-              ? { 
-                  ...lead, 
-                  status: 'blacklisted' as LeadStatus, 
-                  blacklist: true,
-                  updatedAt: new Date() 
-                }
-              : lead
-          ))
-        }
-        break
-      case 'schedule':
-        const hours = prompt('Через сколько часов запланировать звонок?', '2')
-        if (hours) {
-          const hoursNum = parseInt(hours)
-          if (!isNaN(hoursNum)) {
-            setLeads(prev => prev.map(lead => 
-              lead.id === leadId 
-                ? { 
-                    ...lead, 
-                    status: 'in_queue' as LeadStatus,
-                    updatedAt: new Date() 
-                  }
-                : lead
-            ))
-            alert(`Звонок запланирован через ${hoursNum} часов`)
-          }
-        }
-        break
-    }
+  const handleSearch = () => {
+    setShowResults(true)
   }
 
-  const getLeadStats = () => {
-    const total = filteredLeads.length
-    const byStatus = filteredLeads.reduce((acc, lead) => {
-      acc[lead.status] = (acc[lead.status] || 0) + 1
-      return acc
-    }, {} as Record<LeadStatus, number>)
-    
-    return { total, byStatus }
+  const handleNewSearch = () => {
+    setShowResults(false)
+    setShowLogs(false)
+    setSearchData({
+      phone: '',
+      lastName: '',
+      firstName: '',
+      middleName: '',
+      passportSeries: '',
+      vin: '',
+      carNumber: ''
+    })
   }
 
-  const stats = getLeadStats()
+  const handleShowLogs = () => {
+    setShowLogs(true)
+  }
 
-  return (
-    <div className="space-y-6">
-      {/* Заголовок */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Лиды</h1>
-          <p className="text-gray-600">
-            Управление базой контактов и история взаимодействий
-          </p>
+  if (showLogs) {
+    return (
+      <div className="bg-white min-h-screen">
+        <div className="border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setShowLogs(false)}
+              className="p-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <h1 className="text-xl font-medium text-gray-900">Лог поиска клиентов</h1>
+            <Button variant="outline" size="sm" className="ml-auto">
+              Лог поиска клиентов
+            </Button>
+          </div>
         </div>
-        
-        <div className="flex space-x-3">
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Экспорт
-          </Button>
+
+        <div className="p-6">
+          <div className="bg-white rounded-lg border border-gray-200">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">ФИО</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Наименование действия</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Действие</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Дата создания</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-gray-100">
+                  <td className="py-3 px-4 text-gray-900">Сергеев Сергей Сергеевич</td>
+                  <td className="py-3 px-4 text-gray-600">Переход на внешнюю страницу</td>
+                  <td className="py-3 px-4">
+                    <a href="https://docs.google.com/document/..." className="text-blue-600 text-sm break-all">
+                      https://docs.google.com/document/d/1P-7ZakqgRVEwcalHqGq8xRChMzuPYlZAulNs2f2bHMGE/edit?tab=t.0
+                    </a>
+                  </td>
+                  <td className="py-3 px-4 text-gray-600">03.05.2023</td>
+                </tr>
+                <tr className="border-b border-gray-100">
+                  <td className="py-3 px-4 text-gray-900">Сергеев Сергей Сергеевич</td>
+                  <td className="py-3 px-4 text-gray-600">Поиск</td>
+                  <td className="py-3 px-4 text-gray-600">Иванов Иван Иванович</td>
+                  <td className="py-3 px-4 text-gray-600">03.05.2023</td>
+                </tr>
+                <tr className="border-b border-gray-100">
+                  <td className="py-3 px-4 text-gray-900">Сергеев Сергей Сергеевич</td>
+                  <td className="py-3 px-4 text-gray-600">Поиск</td>
+                  <td className="py-3 px-4 text-gray-600">+79874635400</td>
+                  <td className="py-3 px-4 text-gray-600">03.05.2023</td>
+                </tr>
+                <tr className="border-b border-gray-100">
+                  <td className="py-3 px-4 text-gray-900">Сергеев Сергей Сергеевич</td>
+                  <td className="py-3 px-4 text-gray-600">Переход на внешнюю страницу</td>
+                  <td className="py-3 px-4">
+                    <a href="https://docs.google.com/document/..." className="text-blue-600 text-sm break-all">
+                      https://docs.google.com/document/d/1P-7ZakqgRVEwcalHqGq8xRChMzuPYlZAulNs2f2bHMGE/edit?tab=t.0
+                    </a>
+                  </td>
+                  <td className="py-3 px-4 text-gray-600">03.05.2023</td>
+                </tr>
+                <tr>
+                  <td className="py-3 px-4 text-gray-900">Сергеев Сергей Сергеевич</td>
+                  <td className="py-3 px-4 text-gray-600">Поиск</td>
+                  <td className="py-3 px-4 text-gray-600">Горький Максим</td>
+                  <td className="py-3 px-4 text-gray-600">03.05.2023</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
           
-          <Button>
-            <UserPlus className="h-4 w-4 mr-2" />
-            Добавить лида
-          </Button>
+          <div className="flex justify-between items-center mt-4">
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <span>1-20 из 1726253</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" className="px-3 py-1">«</Button>
+              <Button variant="ghost" size="sm" className="px-3 py-1">‹</Button>
+              <Button variant="default" size="sm" className="px-3 py-1 bg-orange-400 text-white">1</Button>
+              <Button variant="ghost" size="sm" className="px-3 py-1">2</Button>
+              <Button variant="ghost" size="sm" className="px-3 py-1">3</Button>
+              <Button variant="ghost" size="sm" className="px-3 py-1">...</Button>
+              <Button variant="ghost" size="sm" className="px-3 py-1">100</Button>
+              <Button variant="ghost" size="sm" className="px-3 py-1">›</Button>
+              <Button variant="ghost" size="sm" className="px-3 py-1">»</Button>
+            </div>
+          </div>
         </div>
       </div>
+    )
+  }
 
-      {/* Статистика */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-              <div className="text-sm text-gray-600">Всего</div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{stats.byStatus.success || 0}</div>
-              <div className="text-sm text-gray-600">Успешные</div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{stats.byStatus.in_queue || 0}</div>
-              <div className="text-sm text-gray-600">В очереди</div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-red-600">{stats.byStatus.refused || 0}</div>
-              <div className="text-sm text-gray-600">Отказы</div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">{stats.byStatus.registered || 0}</div>
-              <div className="text-sm text-gray-600">Зарегистрированы</div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900">{stats.byStatus.blacklisted || 0}</div>
-              <div className="text-sm text-gray-600">ЧС</div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+  if (showResults) {
+    return (
+      <div className="bg-white min-h-screen">
+        <div className="border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setShowResults(false)}
+              className="p-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <h1 className="text-xl font-medium text-gray-900">Поиск клиентов</h1>
+            <Button variant="outline" size="sm" className="ml-auto" onClick={handleShowLogs}>
+              Лог поиска клиентов
+            </Button>
+          </div>
+        </div>
 
-      {/* Фильтры и поиск */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <div className="p-6">
+          {/* Search Form */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">Введите данные для поиска</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Номер телефона</label>
                 <input
                   type="text"
-                  placeholder="Поиск по телефону, имени или тегам..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="+7 (___) ___-__-__"
+                  value={searchData.phone}
+                  onChange={(e) => setSearchData({...searchData, phone: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Фамилия</label>
+                <input
+                  type="text"
+                  placeholder="Сергеев"
+                  value={searchData.lastName}
+                  onChange={(e) => setSearchData({...searchData, lastName: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Имя</label>
+                <input
+                  type="text"
+                  placeholder="Сергей"
+                  value={searchData.firstName}
+                  onChange={(e) => setSearchData({...searchData, firstName: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Отчество</label>
+                <input
+                  type="text"
+                  placeholder="Иванович"
+                  value={searchData.middleName}
+                  onChange={(e) => setSearchData({...searchData, middleName: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                {searchData.middleName && (
+                  <p className="text-xs text-red-500 mt-1">Обязательно при поиске по ФИО</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Серия и номер В/У</label>
+                <input
+                  type="text"
+                  placeholder="AA 00 123456"
+                  value={searchData.passportSeries}
+                  onChange={(e) => setSearchData({...searchData, passportSeries: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">VIN номер</label>
+                <input
+                  type="text"
+                  placeholder="4Y1SL65848Z411439"
+                  value={searchData.vin}
+                  onChange={(e) => setSearchData({...searchData, vin: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Номер авто</label>
+                <input
+                  type="text"
+                  placeholder="В 100 ВУ 72"
+                  value={searchData.carNumber}
+                  onChange={(e) => setSearchData({...searchData, carNumber: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
-            
-            <div className="flex gap-2">
-              <Select value={statusFilter} onValueChange={(value: string) => setStatusFilter(value as any)}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Статус" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все статусы</SelectItem>
-                  <SelectItem value="new">Новые</SelectItem>
-                  <SelectItem value="in_queue">В очереди</SelectItem>
-                  <SelectItem value="calling">Звоним</SelectItem>
-                  <SelectItem value="called">Обзвонены</SelectItem>
-                  <SelectItem value="success">Успешные</SelectItem>
-                  <SelectItem value="refused">Отказы</SelectItem>
-                  <SelectItem value="registered">Зарегистрированы</SelectItem>
-                  <SelectItem value="blacklisted">ЧС</SelectItem>
-                </SelectContent>
-              </Select>
 
-              <Select value={segmentFilter} onValueChange={setSegmentFilter}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Сегмент" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все</SelectItem>
-                  <SelectItem value="VIP">VIP</SelectItem>
-                  <SelectItem value="Regular">Regular</SelectItem>
-                  <SelectItem value="New">New</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={handleNewSearch}>
+                Новый поиск
+              </Button>
+              <Button className="bg-orange-400 hover:bg-orange-500 text-white">
+                Найти
+              </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Список лидов */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">
-            Лиды ({filteredLeads.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {filteredLeads.length > 0 ? (
-            <div className="divide-y divide-gray-200">
-              {filteredLeads.map((lead) => {
-                const calls = mockDataUtils.getCallsByLead(lead.id)
-                const tasks = mockDataUtils.getTasksByLead(lead.id)
-                const sms = mockDataUtils.getSmsByLead(lead.id)
-                
-                return (
-                  <div key={lead.id} className="p-4 hover:bg-gray-50">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <span className="font-medium text-gray-900">
-                            {formatPhoneNumber(lead.phone)}
-                          </span>
-                          {lead.name && (
-                            <span className="text-gray-600">({lead.name})</span>
-                          )}
-                          <Badge className={getStatusColor(lead.status)}>
-                            {getStatusText(lead.status)}
-                          </Badge>
-                          {lead.segment && (
-                            <Badge variant="outline">{lead.segment}</Badge>
-                          )}
-                          {lead.consentSms && (
-                            <Badge className="bg-green-100 text-green-800 text-xs">
-                              SMS ✓
-                            </Badge>
-                          )}
-                          {lead.blacklist && (
-                            <Badge className="bg-black text-white text-xs">
-                              ЧС
-                            </Badge>
-                          )}
-                        </div>
-                        
-                        <div className="flex items-center space-x-6 text-sm text-gray-600">
-                          <span>Звонков: {calls.length}</span>
-                          <span>Задач: {tasks.length}</span>
-                          <span>SMS: {sms.length}</span>
-                          {lead.lastCallAt && (
-                            <span>Последний звонок: {formatDate(lead.lastCallAt)}</span>
-                          )}
-                          <span>Создан: {formatDate(lead.createdAt)}</span>
-                        </div>
-                        
-                        {lead.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {lead.tags.map((tag, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">
-                                {tag}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex items-center space-x-2 ml-4">
-                        {/* Быстрые действия */}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleLeadAction(lead.id, 'view')}
-                          title="Просмотр"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        
-                        {!lead.blacklist && lead.status !== 'calling' && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleLeadAction(lead.id, 'call')}
-                            title="Позвонить"
-                          >
-                            <Phone className="h-4 w-4" />
-                          </Button>
-                        )}
-                        
-                        {lead.consentSms && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleLeadAction(lead.id, 'sms')}
-                            title="Отправить SMS"
-                          >
-                            <MessageSquare className="h-4 w-4" />
-                          </Button>
-                        )}
-
-                        {/* Меню действий */}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem 
-                              onClick={() => handleLeadAction(lead.id, 'view')}
-                            >
-                              <Eye className="mr-2 h-4 w-4" />
-                              Карточка лида
-                            </DropdownMenuItem>
-                            
-                            {!lead.blacklist && (
-                              <>
-                                <DropdownMenuItem 
-                                  onClick={() => handleLeadAction(lead.id, 'call')}
-                                >
-                                  <Phone className="mr-2 h-4 w-4" />
-                                  Позвонить сейчас
-                                </DropdownMenuItem>
-                                
-                                <DropdownMenuItem 
-                                  onClick={() => handleLeadAction(lead.id, 'schedule')}
-                                >
-                                  <Calendar className="mr-2 h-4 w-4" />
-                                  Запланировать звонок
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                            
-                            {lead.consentSms && (
-                              <DropdownMenuItem 
-                                onClick={() => handleLeadAction(lead.id, 'sms')}
-                              >
-                                <MessageSquare className="mr-2 h-4 w-4" />
-                                Отправить SMS
-                              </DropdownMenuItem>
-                            )}
-                            
-                            <DropdownMenuItem 
-                              onClick={() => handleLeadAction(lead.id, 'task')}
-                            >
-                              <UserPlus className="mr-2 h-4 w-4" />
-                              Создать задачу
-                            </DropdownMenuItem>
-                            
-                            <DropdownMenuSeparator />
-                            
-                            {!lead.blacklist && (
-                              <DropdownMenuItem 
-                                onClick={() => handleLeadAction(lead.id, 'blacklist')}
-                                className="text-red-600"
-                              >
-                                <Ban className="mr-2 h-4 w-4" />
-                                В черный список
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
+          {/* Results Table */}
+          <div className="bg-white rounded-lg border border-gray-200">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Дата регистрации</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">ФИО</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Телефон</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Парк</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Тип занятости</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">VIN номер</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Номер авто</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Дата последнего заказа</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-gray-100">
+                  <td className="py-3 px-4 text-gray-900">03.05.2023 / 05:50</td>
+                  <td className="py-3 px-4">
+                    <a href="#" className="text-blue-600 hover:underline">Сергеев Сергей Сергеевич</a>
+                  </td>
+                  <td className="py-3 px-4 text-gray-900">+7(999)***-**-99</td>
+                  <td className="py-3 px-4 text-gray-600">Горького</td>
+                  <td className="py-3 px-4">
+                    <Badge className="bg-gray-100 text-gray-700">Парковый исполнитель</Badge>
+                  </td>
+                  <td className="py-3 px-4 text-gray-600">WAUZ**********</td>
+                  <td className="py-3 px-4 text-gray-600">А7**** 199</td>
+                  <td className="py-3 px-4 text-gray-600">03.05.2023 / 05:50</td>
+                </tr>
+                <tr className="border-b border-gray-100">
+                  <td className="py-3 px-4 text-gray-900">03.05.2023 / 05:50</td>
+                  <td className="py-3 px-4">
+                    <a href="#" className="text-blue-600 hover:underline">Сергеев Сергей Сергеевич</a>
+                  </td>
+                  <td className="py-3 px-4 text-gray-900">+7(999)***-**-99</td>
+                  <td className="py-3 px-4 text-gray-600">Горького</td>
+                  <td className="py-3 px-4">
+                    <Badge className="bg-blue-100 text-blue-700">Парковый самозанятый</Badge>
+                  </td>
+                  <td className="py-3 px-4 text-gray-600">1FTF**********</td>
+                  <td className="py-3 px-4 text-gray-600">Е3**** 777</td>
+                  <td className="py-3 px-4 text-gray-600">03.05.2023 / 05:50</td>
+                </tr>
+                <tr className="border-b border-gray-100">
+                  <td className="py-3 px-4 text-gray-900">03.05.2023 / 05:50</td>
+                  <td className="py-3 px-4">
+                    <a href="#" className="text-blue-600 hover:underline">Сергеев Сергей Сергеевич</a>
+                  </td>
+                  <td className="py-3 px-4 text-gray-900">+7(999)***-**-99</td>
+                  <td className="py-3 px-4 text-gray-600">Горького</td>
+                  <td className="py-3 px-4">
+                    <Badge className="bg-purple-100 text-purple-700">Индивидуальный предприниматель</Badge>
+                  </td>
+                  <td className="py-3 px-4 text-gray-600">KL0H**********</td>
+                  <td className="py-3 px-4 text-gray-600">Т5**** 999</td>
+                  <td className="py-3 px-4 text-gray-600">03.05.2023 / 05:50</td>
+                </tr>
+                <tr className="border-b border-gray-100">
+                  <td className="py-3 px-4 text-gray-900">03.05.2023 / 05:50</td>
+                  <td className="py-3 px-4">
+                    <a href="#" className="text-blue-600 hover:underline">Сергеев Сергей Сергеевич</a>
+                  </td>
+                  <td className="py-3 px-4 text-gray-900">+7(999)***-**-99</td>
+                  <td className="py-3 px-4 text-gray-600">Горького</td>
+                  <td className="py-3 px-4">
+                    <Badge className="bg-gray-100 text-gray-700">Парковый исполнитель</Badge>
+                  </td>
+                  <td className="py-3 px-4 text-gray-600">SALV**********</td>
+                  <td className="py-3 px-4 text-gray-600">Е3**** 777</td>
+                  <td className="py-3 px-4 text-gray-600">03.05.2023 / 05:50</td>
+                </tr>
+                <tr>
+                  <td className="py-3 px-4 text-gray-900">03.05.2023 / 05:50</td>
+                  <td className="py-3 px-4">
+                    <a href="#" className="text-blue-600 hover:underline">Сергеев Сергей Сергеевич</a>
+                  </td>
+                  <td className="py-3 px-4 text-gray-900">+7(999)***-**-99</td>
+                  <td className="py-3 px-4 text-gray-600">Горького</td>
+                  <td className="py-3 px-4">
+                    <Badge className="bg-gray-100 text-gray-700">Парковый исполнитель</Badge>
+                  </td>
+                  <td className="py-3 px-4 text-gray-600">JTDB**********</td>
+                  <td className="py-3 px-4 text-gray-600">Т5**** 999</td>
+                  <td className="py-3 px-4 text-gray-600">03.05.2023 / 05:50</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <div className="flex justify-between items-center mt-4">
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <span>1-20 из 1726253</span>
             </div>
-          ) : (
-            <div className="p-8 text-center text-gray-500">
-              {searchQuery || statusFilter !== 'all' || segmentFilter !== 'all' 
-                ? 'Нет лидов, соответствующих выбранным фильтрам'
-                : 'Нет лидов в базе'
-              }
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" className="px-3 py-1">«</Button>
+              <Button variant="ghost" size="sm" className="px-3 py-1">‹</Button>
+              <Button variant="default" size="sm" className="px-3 py-1 bg-orange-400 text-white">1</Button>
+              <Button variant="ghost" size="sm" className="px-3 py-1">2</Button>
+              <Button variant="ghost" size="sm" className="px-3 py-1">3</Button>
+              <Button variant="ghost" size="sm" className="px-3 py-1">...</Button>
+              <Button variant="ghost" size="sm" className="px-3 py-1">100</Button>
+              <Button variant="ghost" size="sm" className="px-3 py-1">›</Button>
+              <Button variant="ghost" size="sm" className="px-3 py-1">»</Button>
+              <select className="ml-2 border border-gray-300 rounded px-2 py-1 text-sm">
+                <option>20</option>
+                <option>50</option>
+                <option>100</option>
+              </select>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-white min-h-screen">
+      <div className="border-b border-gray-200 px-6 py-4">
+        <h1 className="text-xl font-medium text-gray-900">Клиенты</h1>
+      </div>
+
+      <div className="p-6">
+        <div className="max-w-4xl">
+          <div className="mb-8">
+            <div className="space-y-6">
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h2 className="text-lg font-medium text-gray-900 mb-2">Профили клиентов</h2>
+              </div>
+              
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h2 className="text-lg font-medium text-gray-900 mb-2">Аккаунты</h2>
+              </div>
+              
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <button 
+                  onClick={handleSearch}
+                  className="text-lg font-medium text-gray-900 text-left w-full"
+                >
+                  Поиск клиентов
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
