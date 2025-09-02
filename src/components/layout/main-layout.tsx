@@ -65,7 +65,7 @@ const navigation = [
     permissions: ['campaigns.view']
   },
   {
-    name: 'Лиды',
+    name: 'Сделки',
     href: '/leads',
     icon: Users,
     permissions: ['leads.view']
