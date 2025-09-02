@@ -51,7 +51,7 @@ const DEMO_SCENARIO: DemoStep[] = [
   {
     id: 'campaign',
     title: 'Запуск кампании',
-    description: 'Создание и запуск кампании &quot;Регистрация казино&quot;',
+    description: 'Создание и запуск кампании &quot;Привлечение новых клиентов&quot;',
     duration: 1500,
     status: 'pending',
     details: [
@@ -61,7 +61,7 @@ const DEMO_SCENARIO: DemoStep[] = [
       'Активация кампании'
     ],
     metrics: {
-      'Скрипт': 'Casino Registration v2.1',
+      'Скрипт': 'Customer Acquisition v2.1',
       'Параллельность': 5,
       'Макс. попыток': 3,
       'SMS согласие': 'Включено'

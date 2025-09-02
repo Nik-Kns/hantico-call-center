@@ -10,6 +10,7 @@ import {
   Settings, 
   FileText, 
   CheckSquare as Tasks, 
+  CheckSquare,
   Bell,
   User,
   LogOut,
@@ -47,39 +48,57 @@ interface MainLayoutProps {
 
 const navigation = [
   {
-    name: 'Клиенты',
-    href: '/leads',
-    icon: Users,
-    permissions: ['leads.view']
-  },
-  {
-    name: 'История',
-    href: '/queue',
-    icon: Monitor,
+    name: 'Дашборд кампаний',
+    href: '/',
+    icon: BarChart3,
     permissions: ['campaigns.view']
   },
   {
-    name: 'Календарь',
+    name: 'Кампании',
     href: '/campaigns',
     icon: Phone,
     permissions: ['campaigns.view']
   },
   {
-    name: 'Информация',
+    name: 'Очередь звонков',
+    href: '/queue',
+    icon: Monitor,
+    permissions: ['campaigns.view']
+  },
+  {
+    name: 'Лиды',
+    href: '/leads',
+    icon: Users,
+    permissions: ['leads.view']
+  },
+  {
+    name: 'Задачи',
     href: '/tasks',
-    icon: FileText,
+    icon: CheckSquare,
     permissions: ['tasks.view']
   },
   {
-    name: 'Настройки',
-    href: '/settings',
+    name: 'Скрипты',
+    href: '/scripts',
+    icon: FileText,
+    permissions: ['scripts.view']
+  },
+  {
+    name: 'Автоматизация',
+    href: '/automation',
     icon: Settings,
-    permissions: []
+    permissions: ['campaigns.view']
   },
   {
     name: '🎯 Демо-сценарий',
     href: '/demo1',
     icon: Monitor,
+    permissions: []
+  },
+  {
+    name: 'Настройки',
+    href: '/settings',
+    icon: Settings,
     permissions: []
   }
 ]
@@ -307,3 +326,4 @@ export function MainLayout({ children }: MainLayoutProps) {
     </div>
   )
 }
+

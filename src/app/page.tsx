@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CampaignCard } from '@/components/dashboard/campaign-card'
-import { KPISummary } from '@/components/dashboard/kpi-summary'
 import { 
   mockCampaigns, 
   mockCampaignMetrics, 
@@ -144,10 +143,10 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Центр управления кампаниями
+            Дашборд кампаний
           </h1>
           <p className="text-gray-600">
-            Обзор всех кампаний обзвона и ключевых показателей
+            Центр управления кампаниями обзвона
           </p>
         </div>
         
@@ -229,9 +228,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* KPI Summary */}
-      <KPISummary />
 
       {/* Фильтры и управление кампаниями */}
       <div className="flex items-center justify-between">
