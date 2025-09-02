@@ -93,12 +93,25 @@ export const mockLeads: Lead[] = [
   },
 ];
 
+// Функция для генерации названий кампаний
+const generateCampaignName = () => {
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+  const scriptNum = Math.floor(Math.random() * 15) + 1;
+  const baseNum = Math.floor(Math.random() * 9999) + 1000;
+  return `${dateStr}: скрипт №${scriptNum}, база №${baseNum}`;
+};
+
 // Моковые кампании
 export const mockCampaigns: Campaign[] = [
   {
     id: 'campaign-1',
-    name: 'Новогодняя акция VIP',
-    description: 'Привлечение VIP клиентов с новогодними бонусами',
+    name: generateCampaignName(),
+    description: 'Привлечение новых клиентов',
     source: 'segment',
     sourceConfig: {
       segmentId: 'vip-segment',
@@ -148,7 +161,7 @@ export const mockCampaigns: Campaign[] = [
   },
   {
     id: 'campaign-2',
-    name: 'Реактивация неактивных',
+    name: generateCampaignName(),
     description: 'Возврат клиентов, не заходивших более 30 дней',
     source: 'csv',
     sourceConfig: {
@@ -192,7 +205,7 @@ export const mockCampaigns: Campaign[] = [
   },
   {
     id: 'campaign-3',
-    name: 'Тестовая кампания',
+    name: generateCampaignName(),
     description: 'A/B тестирование нового скрипта',
     source: 'manual',
     scriptId: 'script-3',
@@ -247,7 +260,7 @@ export const mockCalls: Call[] = [
       {
         timestamp: 0,
         speaker: 'agent',
-        text: 'Добрый день! Меня зовут Анна, я звоню от AIGAMING.BOT. У нас для вас специальное новогоднее предложение.'
+        text: 'Добрый день! Меня зовут Анна, я звоню от AIGAMING.BOT. У нас для вас специальное предложение.'
       },
       {
         timestamp: 8,
@@ -276,7 +289,7 @@ export const mockCalls: Call[] = [
       }
     ],
     audioUrl: '/demo/call-1-recording.mp3',
-    summary: 'Клиент заинтересован в новогоднем предложении, дал согласие на SMS',
+    summary: 'Клиент заинтересован в специальном предложении, дал согласие на SMS',
     tags: ['interested', 'vip-offer', 'consent-given'],
     attemptNumber: 1,
   },
@@ -352,6 +365,89 @@ export const mockCalls: Call[] = [
     tags: ['timing-issues', 'maybe-later'],
     attemptNumber: 1,
     nextAttemptAt: new Date('2024-01-22T12:45:00Z'),
+  },
+  {
+    id: 'call-4',
+    leadId: 'lead-4',
+    campaignId: 'campaign-2',
+    startedAt: new Date('2024-01-15T11:15:00Z'),
+    endedAt: new Date('2024-01-15T11:18:45Z'),
+    duration: 225,
+    outcome: 'answer_success',
+    consentSms: true,
+    transcript: [
+      {
+        timestamp: 0,
+        speaker: 'agent',
+        text: 'Здравствуйте! Звоню по поводу нашего предложения для клиентов.'
+      },
+      {
+        timestamp: 5,
+        speaker: 'client',
+        text: 'Да, слушаю.'
+      },
+      {
+        timestamp: 8,
+        speaker: 'agent',
+        text: 'У нас есть специальное предложение по возврату бонуса. Интересно?'
+      },
+      {
+        timestamp: 15,
+        speaker: 'client',
+        text: 'Можете отправить детали по SMS.'
+      }
+    ],
+    audioUrl: '/demo/call-4-recording.mp3',
+    summary: 'Клиент согласился получить информацию по SMS',
+    tags: ['interested', 'sms-requested'],
+    attemptNumber: 1,
+  },
+  {
+    id: 'call-5',
+    leadId: 'lead-5',
+    campaignId: 'campaign-1',
+    startedAt: new Date('2024-01-15T13:22:00Z'),
+    endedAt: new Date('2024-01-15T13:24:15Z'),
+    duration: 135,
+    outcome: 'no_answer',
+    consentSms: false,
+    transcript: [],
+    audioUrl: '/demo/call-5-recording.mp3',
+    summary: 'Не ответили на звонок',
+    tags: ['no-answer'],
+    attemptNumber: 1,
+    nextAttemptAt: new Date('2024-01-15T15:22:00Z'),
+  },
+  {
+    id: 'call-6',
+    leadId: 'lead-1',
+    campaignId: 'campaign-3',
+    startedAt: new Date('2024-01-15T16:30:00Z'),
+    endedAt: new Date('2024-01-15T16:35:20Z'),
+    duration: 320,
+    outcome: 'answer_refuse',
+    consentSms: false,
+    transcript: [
+      {
+        timestamp: 0,
+        speaker: 'agent',
+        text: 'Добрый день! Звоню с предложением по нашим услугам.'
+      },
+      {
+        timestamp: 4,
+        speaker: 'client',
+        text: 'Не интересно, спасибо.'
+      },
+      {
+        timestamp: 7,
+        speaker: 'agent',
+        text: 'Понимаю. Хорошего дня!'
+      }
+    ],
+    audioUrl: '/demo/call-6-recording.mp3',
+    summary: 'Клиент отказался от предложения',
+    tags: ['refused', 'quick-refusal'],
+    attemptNumber: 1,
   }
 ];
 
@@ -406,8 +502,8 @@ export const mockTasks: Task[] = [
 export const mockSmsTemplates: SmsTemplate[] = [
   {
     id: 'template-1',
-    name: 'Новогодний бонус VIP',
-    text: 'Привет, {name}! Твой эксклюзивный новогодний бонус 200% ждет активации: {link}. {brand}',
+    name: 'Специальный бонус VIP',
+    text: 'Привет, {name}! Твой эксклюзивный бонус 200% ждет активации: {link}. {brand}',
     variables: ['name', 'link', 'brand'],
     category: 'promotion',
     language: 'ru',
@@ -439,7 +535,7 @@ export const mockSms: Sms[] = [
     id: 'sms-1',
     leadId: 'lead-1',
     templateId: 'template-1',
-    text: 'Привет, Алексей! Твой эксклюзивный новогодний бонус 200% ждет активации: https://aigaming.bot/bonus/ny2024. AIGAMING.BOT',
+    text: 'Привет, Алексей! Твой эксклюзивный бонус 200% ждет активации: https://aigaming.bot/bonus/special2024. AIGAMING.BOT',
     status: 'delivered',
     sentAt: new Date('2024-01-15T14:40:00Z'),
     deliveredAt: new Date('2024-01-15T14:40:30Z'),
@@ -458,7 +554,7 @@ export const mockSms: Sms[] = [
 export const mockScripts: Script[] = [
   {
     id: 'script-1',
-    name: 'Новогодняя акция VIP',
+    name: 'Скрипт привлечения №1',
     description: 'Скрипт для привлечения VIP клиентов',
     version: '1.0',
     isActive: true,
@@ -467,7 +563,7 @@ export const mockScripts: Script[] = [
       {
         id: 'start',
         type: 'message',
-        content: 'Добрый день! Меня зовут {agent_name}, я звоню от {brand}. У нас для вас специальное новогоднее предложение.',
+        content: 'Добрый день! Меня зовут {agent_name}, я звоню от {brand}. У нас для вас специальное предложение.',
         variables: ['agent_name', 'brand'],
         branches: { continue: 'offer' }
       },
