@@ -26,7 +26,6 @@ interface CampaignCardProps {
   onStart?: (campaignId: string) => void
   onPause?: (campaignId: string) => void
   onStop?: (campaignId: string) => void
-  onClick?: (campaignId: string) => void
   canControl?: boolean
 }
 
@@ -36,7 +35,6 @@ export function CampaignCard({
   onStart,
   onPause,
   onStop,
-  onClick,
   canControl = true
 }: CampaignCardProps) {
   const successRate = calculatePercentage(campaign.stats.successful, campaign.stats.processed)
@@ -73,8 +71,7 @@ export function CampaignCard({
 
   return (
     <Card 
-      className="cursor-pointer hover:shadow-lg transition-shadow"
-      onClick={() => onClick?.(campaign.id)}
+      className="hover:shadow-lg transition-shadow"
     >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">

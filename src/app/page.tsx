@@ -1,8 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Plus, Filter, RefreshCw } from 'lucide-react'
+import { Filter, RefreshCw } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,7 +17,6 @@ import { Campaign, CampaignState, QueueStatus } from '@/lib/types'
 import { storage } from '@/lib/utils'
 
 export default function DashboardPage() {
-  const router = useRouter()
   const [campaigns, setCampaigns] = useState<Campaign[]>(mockCampaigns)
   const [queueStatus, setQueueStatus] = useState<QueueStatus>(mockQueueStatus)
   const [filterState, setFilterState] = useState<CampaignState | 'all'>('all')
@@ -114,13 +112,9 @@ export default function DashboardPage() {
     }))
   }
 
-  const handleCampaignClick = (campaignId: string) => {
-    router.push(`/campaigns/${campaignId}`)
-  }
 
-  const handleCreateCampaign = () => {
-    router.push('/campaigns/new')
-  }
+
+
 
 
 
@@ -145,12 +139,7 @@ export default function DashboardPage() {
           
 
           
-          {canControl && (
-            <Button onClick={handleCreateCampaign}>
-              <Plus className="h-4 w-4 mr-2" />
-              Создать кампанию
-            </Button>
-          )}
+
         </div>
       </div>
 
@@ -259,7 +248,6 @@ export default function DashboardPage() {
               onStart={handleCampaignStart}
               onPause={handleCampaignPause}
               onStop={handleCampaignStop}
-              onClick={handleCampaignClick}
               canControl={canControl}
             />
           ))}
@@ -271,12 +259,7 @@ export default function DashboardPage() {
               <p className="text-gray-500 mb-4">
                 Нет кампаний, соответствующих выбранному фильтру
               </p>
-              {canControl && (
-                <Button onClick={handleCreateCampaign}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Создать первую кампанию
-                </Button>
-              )}
+
             </div>
           </CardContent>
         </Card>

@@ -4,18 +4,12 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { 
-  Phone, 
-  Users, 
-  BarChart3, 
-  Settings, 
-  FileText, 
-  CheckSquare as Tasks, 
-  CheckSquare,
+  BarChart3,
   Bell,
   User,
   LogOut,
   Shield,
-  Monitor
+  Settings
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -52,54 +46,7 @@ const navigation = [
     icon: BarChart3,
     permissions: ['campaigns.view']
   },
-  {
-    name: 'Кампании',
-    href: '/campaigns',
-    icon: Phone,
-    permissions: ['campaigns.view']
-  },
-  {
-    name: 'Очередь звонков',
-    href: '/queue',
-    icon: Monitor,
-    permissions: ['campaigns.view']
-  },
-  {
-    name: 'Сделки',
-    href: '/leads',
-    icon: Users,
-    permissions: ['leads.view']
-  },
-  {
-    name: 'Задачи',
-    href: '/tasks',
-    icon: CheckSquare,
-    permissions: ['tasks.view']
-  },
-  {
-    name: 'Скрипты',
-    href: '/scripts',
-    icon: FileText,
-    permissions: ['scripts.view']
-  },
-  {
-    name: 'Автоматизация',
-    href: '/automation',
-    icon: Settings,
-    permissions: ['campaigns.view']
-  },
-  {
-    name: '🎯 Демо-сценарий',
-    href: '/demo1',
-    icon: Monitor,
-    permissions: []
-  },
-  {
-    name: 'Настройки',
-    href: '/settings',
-    icon: Settings,
-    permissions: []
-  }
+
 ]
 
 const roleLabels: Record<UserRole, string> = {
