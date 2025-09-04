@@ -4,7 +4,6 @@ import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   ArrowLeft, 
-  Upload, 
   Users, 
   Mic, 
   FileText, 
@@ -28,7 +27,6 @@ import { Separator } from '@/components/ui/separator'
 interface CampaignForm {
   name: string
   database: string
-  databaseFile: File | null
   agent: string
   script: string
   customScript: string
@@ -51,6 +49,49 @@ const mockAgents = [
   { id: 'dmitry-4', name: 'Дмитрий (голос 4)', description: 'Мужской, энергичный' }
 ]
 
+const mockDatabases = [
+  { 
+    id: 'vip-clients', 
+    name: 'VIP клиенты', 
+    description: 'Клиенты с высокой активностью',
+    count: 1250,
+    lastUpdated: '2 часа назад',
+    segment: 'VIP'
+  },
+  { 
+    id: 'inactive-90', 
+    name: 'Неактивные 90 дней', 
+    description: 'Клиенты без активности более 90 дней',
+    count: 2100,
+    lastUpdated: '1 день назад',
+    segment: 'Реактивация'
+  },
+  { 
+    id: 'new-leads', 
+    name: 'Новые лиды', 
+    description: 'Свежие лиды из рекламных кампаний',
+    count: 850,
+    lastUpdated: '30 минут назад',
+    segment: 'Холодные'
+  },
+  { 
+    id: 'repeat-customers', 
+    name: 'Повторные клиенты', 
+    description: 'Клиенты с повторными покупками',
+    count: 670,
+    lastUpdated: '5 часов назад',
+    segment: 'Лояльные'
+  },
+  { 
+    id: 'birthday-list', 
+    name: 'Именинники января', 
+    description: 'Клиенты с днем рождения в январе',
+    count: 340,
+    lastUpdated: '1 час назад',
+    segment: 'Поздравления'
+  }
+]
+
 const mockScripts = [
   { id: 'welcome', name: 'Приветствие новых клиентов', description: 'Стандартный скрипт знакомства' },
   { id: 'reactivation', name: 'Реактивация неактивных', description: 'Возвращение с бонусным предложением' },
@@ -64,7 +105,6 @@ export default function NewObzvonPage() {
   const [form, setForm] = useState<CampaignForm>({
     name: '',
     database: '',
-    databaseFile: null,
     agent: '',
     script: '',
     customScript: '',
@@ -90,13 +130,12 @@ export default function NewObzvonPage() {
     }))
   }
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
+  const handleDatabaseSelect = (databaseId: string) => {
+    const selectedDb = mockDatabases.find(db => db.id === databaseId)
+    if (selectedDb) {
       setForm(prev => ({
         ...prev,
-        databaseFile: file,
-        database: file.name
+        database: databaseId
       }))
     }
   }
@@ -256,31 +295,47 @@ export default function NewObzvonPage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
-                  <Label>База номеров *</Label>
+                  <Label>Выберите базу номеров *</Label>
                   <div className="mt-2 space-y-3">
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                      <input
-                        type="file"
-                        accept=".csv,.xlsx,.txt"
-                        onChange={handleFileUpload}
-                        className="hidden"
-                        id="database-upload"
-                      />
-                      <label htmlFor="database-upload" className="cursor-pointer">
-                        <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                        <p className="text-sm text-gray-600">
-                          Загрузите файл с номерами телефонов
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          CSV, XLSX или TXT до 10MB
-                        </p>
-                      </label>
-                    </div>
+                    <Select value={form.database} onValueChange={handleDatabaseSelect}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите базу для обзвона" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mockDatabases.map((database) => (
+                          <SelectItem key={database.id} value={database.id}>
+                            <div className="flex items-start justify-between w-full">
+                              <div>
+                                <div className="font-medium">{database.name}</div>
+                                <div className="text-xs text-gray-500">{database.description}</div>
+                                <div className="text-xs text-blue-600">
+                                  {database.count.toLocaleString()} номеров
+                                </div>
+                              </div>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     
                     {form.database && (
-                      <div className="flex items-center p-3 bg-green-50 rounded-lg">
-                        <FileText className="h-5 w-5 text-green-600 mr-2" />
-                        <span className="text-sm text-green-800">{form.database}</span>
+                      <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        {(() => {
+                          const selectedDb = mockDatabases.find(db => db.id === form.database)
+                          return selectedDb ? (
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-medium text-blue-900">{selectedDb.name}</h4>
+                                <Badge className="bg-blue-100 text-blue-800">{selectedDb.segment}</Badge>
+                              </div>
+                              <p className="text-sm text-blue-700">{selectedDb.description}</p>
+                              <div className="flex items-center justify-between text-sm text-blue-600">
+                                <span>📊 {selectedDb.count.toLocaleString()} номеров</span>
+                                <span>🕒 Обновлено: {selectedDb.lastUpdated}</span>
+                              </div>
+                            </div>
+                          ) : null
+                        })()}
                       </div>
                     )}
                   </div>
@@ -504,7 +559,12 @@ export default function NewObzvonPage() {
               {form.database && (
                 <div>
                   <p className="text-sm text-gray-600">База данных</p>
-                  <p className="font-medium">{form.database}</p>
+                  <p className="font-medium">
+                    {mockDatabases.find(db => db.id === form.database)?.name || form.database}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {mockDatabases.find(db => db.id === form.database)?.count.toLocaleString()} номеров
+                  </p>
                 </div>
               )}
 
