@@ -16,7 +16,11 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  AlertTriangle
+  AlertTriangle,
+  Search,
+  Calendar,
+  User,
+  Settings
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -24,6 +28,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { Input } from '@/components/ui/input'
 import { mockCampaigns } from '@/lib/mock-data'
 import { Campaign, CampaignState } from '@/lib/types'
 import { getStatusColor, getStatusText, calculatePercentage } from '@/lib/utils'
@@ -100,6 +105,9 @@ export default function ObzvoniPage() {
   const router = useRouter()
   const [campaigns, setCampaigns] = useState<ObzvonCampaign[]>(mockObzvonCampaigns)
   const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [filterAgent, setFilterAgent] = useState<string>('all')
+  const [filterDate, setFilterDate] = useState<string>('all')
+  const [searchQuery, setSearchQuery] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
 
   // Статистика в реальном времени
@@ -149,9 +157,41 @@ export default function ObzvoniPage() {
     }
   }
 
-  const filteredCampaigns = campaigns.filter(campaign => 
-    filterStatus === 'all' || campaign.status === filterStatus
-  )
+  // Получение уникальных агентов для фильтра
+  const uniqueAgents = Array.from(new Set(campaigns.map(c => c.agent)))
+
+  const filteredCampaigns = campaigns.filter(campaign => {
+    const matchesStatus = filterStatus === 'all' || campaign.status === filterStatus
+    const matchesAgent = filterAgent === 'all' || campaign.agent === filterAgent
+    const matchesSearch = searchQuery === '' || 
+      campaign.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      campaign.database.toLowerCase().includes(searchQuery.toLowerCase())
+    
+    const matchesDate = (() => {
+      if (filterDate === 'all') return true
+      if (!campaign.startTime) return filterDate === 'not_started'
+      
+      const now = new Date()
+      const campaignDate = campaign.startTime
+      
+      switch (filterDate) {
+        case 'today':
+          return campaignDate.toDateString() === now.toDateString()
+        case 'week':
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+          return campaignDate >= weekAgo
+        case 'month':
+          const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+          return campaignDate >= monthAgo
+        case 'not_started':
+          return !campaign.startTime
+        default:
+          return true
+      }
+    })()
+
+    return matchesStatus && matchesAgent && matchesSearch && matchesDate
+  })
 
   return (
     <div className="space-y-6">
@@ -180,6 +220,11 @@ export default function ObzvoniPage() {
           <Button onClick={() => router.push('/obzvoni/analytics')}>
             <BarChart3 className="h-4 w-4 mr-2" />
             Аналитика
+          </Button>
+          
+          <Button variant="outline" onClick={() => router.push('/obzvoni/funnel')}>
+            <Settings className="h-4 w-4 mr-2" />
+            Воронка
           </Button>
           
           <Button onClick={() => router.push('/obzvoni/new')}>
@@ -248,148 +293,257 @@ export default function ObzvoniPage() {
         </Card>
       </div>
 
-      {/* Фильтры */}
-      <div className="flex items-center space-x-4">
-        <div className="flex items-center space-x-2">
-          <Filter className="h-4 w-4 text-gray-500" />
-          <span className="text-sm font-medium text-gray-700">Фильтры:</span>
-        </div>
-        
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Все статусы</SelectItem>
-            <SelectItem value="active">Активные</SelectItem>
-            <SelectItem value="paused">На паузе</SelectItem>
-            <SelectItem value="completed">Завершённые</SelectItem>
-            <SelectItem value="draft">Черновики</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Фильтры и поиск */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex flex-col space-y-4">
+            <div className="flex items-center space-x-2">
+              <Filter className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-medium text-gray-700">Фильтры и поиск:</span>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              {/* Поиск */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Поиск по названию или базе..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
 
-      {/* Список кампаний */}
-      <div className="space-y-4">
-        {filteredCampaigns.map((campaign) => (
-          <Card key={campaign.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <CardTitle className="text-lg">{campaign.name}</CardTitle>
-                  <div className="flex items-center space-x-4 text-sm text-gray-600">
-                    <span>Агент: {campaign.agent}</span>
-                    <span>•</span>
-                    <span>База: {campaign.database}</span>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  {getStatusBadge(campaign.status)}
-                  <div className="flex space-x-1">
-                    {campaign.status === 'draft' && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleCampaignAction(campaign.id, 'start')}
-                      >
-                        <Play className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {campaign.status === 'active' && (
-                      <>
+              {/* Фильтр по статусу */}
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Все статусы" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Все статусы</SelectItem>
+                  <SelectItem value="active">Активные</SelectItem>
+                  <SelectItem value="paused">На паузе</SelectItem>
+                  <SelectItem value="completed">Завершённые</SelectItem>
+                  <SelectItem value="draft">Черновики</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Фильтр по агенту */}
+              <Select value={filterAgent} onValueChange={setFilterAgent}>
+                <SelectTrigger>
+                  <User className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Все агенты" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Все агенты</SelectItem>
+                  {uniqueAgents.map((agent) => (
+                    <SelectItem key={agent} value={agent}>
+                      {agent}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Фильтр по дате */}
+              <Select value={filterDate} onValueChange={setFilterDate}>
+                <SelectTrigger>
+                  <Calendar className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Все периоды" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Все периоды</SelectItem>
+                  <SelectItem value="today">Сегодня</SelectItem>
+                  <SelectItem value="week">За неделю</SelectItem>
+                  <SelectItem value="month">За месяц</SelectItem>
+                  <SelectItem value="not_started">Не запущены</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Кнопка сброса фильтров */}
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setFilterStatus('all')
+                  setFilterAgent('all')
+                  setFilterDate('all')
+                  setSearchQuery('')
+                }}
+                className="whitespace-nowrap"
+              >
+                Сбросить
+              </Button>
+            </div>
+
+            {/* Индикатор активных фильтров */}
+            {(filterStatus !== 'all' || filterAgent !== 'all' || filterDate !== 'all' || searchQuery !== '') && (
+              <div className="flex items-center space-x-2 text-sm text-gray-600">
+                <span>Активные фильтры:</span>
+                {filterStatus !== 'all' && (
+                  <Badge variant="outline">Статус: {filterStatus}</Badge>
+                )}
+                {filterAgent !== 'all' && (
+                  <Badge variant="outline">Агент: {filterAgent}</Badge>
+                )}
+                {filterDate !== 'all' && (
+                  <Badge variant="outline">Период: {filterDate}</Badge>
+                )}
+                {searchQuery !== '' && (
+                  <Badge variant="outline">Поиск: &quot;{searchQuery}&quot;</Badge>
+                )}
+                <span className="text-gray-500">
+                  Показано: {filteredCampaigns.length} из {campaigns.length}
+                </span>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Таблица кампаний */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Кампании ({filteredCampaigns.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Название
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    База номеров
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Кол-во номеров
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Статус
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    % выполнения
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Дата старта
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Действия
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredCampaigns.map((campaign) => (
+                  <tr key={campaign.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {campaign.name}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          Агент: {campaign.agent}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{campaign.database}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {campaign.totalNumbers.toLocaleString()}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Обзвонено: {campaign.calledNumbers.toLocaleString()}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {getStatusBadge(campaign.status)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-1 mr-2">
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-blue-600 h-2 rounded-full" 
+                              style={{ width: `${campaign.progress}%` }}
+                            />
+                          </div>
+                        </div>
+                        <span className="text-sm text-gray-900">{campaign.progress}%</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {campaign.startTime ? (
+                        <div className="text-sm text-gray-900">
+                          {campaign.startTime.toLocaleDateString('ru-RU')}
+                          <div className="text-xs text-gray-500">
+                            {campaign.startTime.toLocaleTimeString('ru-RU', { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-500">—</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex items-center space-x-2">
+                        {campaign.status === 'draft' && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleCampaignAction(campaign.id, 'start')}
+                            title="Запустить"
+                          >
+                            <Play className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {campaign.status === 'active' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleCampaignAction(campaign.id, 'pause')}
+                            title="Пауза"
+                          >
+                            <Pause className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {campaign.status === 'paused' && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleCampaignAction(campaign.id, 'start')}
+                            title="Продолжить"
+                          >
+                            <Play className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {(campaign.status === 'active' || campaign.status === 'paused') && (
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleCampaignAction(campaign.id, 'stop')}
+                            title="Завершить"
+                          >
+                            <Square className="h-4 w-4" />
+                          </Button>
+                        )}
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleCampaignAction(campaign.id, 'pause')}
+                          onClick={() => router.push(`/obzvoni/${campaign.id}`)}
+                          title="Открыть детали"
                         >
-                          <Pause className="h-4 w-4" />
+                          <Monitor className="h-4 w-4" />
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleCampaignAction(campaign.id, 'stop')}
-                        >
-                          <Square className="h-4 w-4" />
-                        </Button>
-                      </>
-                    )}
-                    {campaign.status === 'paused' && (
-                      <>
-                        <Button
-                          size="sm"
-                          onClick={() => handleCampaignAction(campaign.id, 'start')}
-                        >
-                          <Play className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleCampaignAction(campaign.id, 'stop')}
-                        >
-                          <Square className="h-4 w-4" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </CardHeader>
-            
-            <CardContent>
-              <div className="space-y-4">
-                {/* Прогресс */}
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span>Прогресс кампании</span>
-                    <span>{campaign.progress}%</span>
-                  </div>
-                  <Progress value={campaign.progress} className="h-2" />
-                </div>
-
-                {/* Метрики */}
-                <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-sm">
-                  <div>
-                    <p className="text-gray-600">Всего номеров</p>
-                    <p className="font-semibold">{campaign.totalNumbers.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-600">Обзвонено</p>
-                    <p className="font-semibold">{campaign.calledNumbers.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-600">Дозвоны</p>
-                    <p className="font-semibold text-green-600">{campaign.successfulConnections.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-600">SMS согласия</p>
-                    <p className="font-semibold text-blue-600">{campaign.smsAgreements.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-600">Передано</p>
-                    <p className="font-semibold text-purple-600">{campaign.transfers.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-600">Дожимы</p>
-                    <p className="font-semibold text-orange-600">{campaign.retries.toLocaleString()}</p>
-                  </div>
-                </div>
-
-                {/* Время */}
-                {campaign.startTime && (
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Clock className="h-4 w-4 mr-1" />
-                    <span>
-                      Запущена: {campaign.startTime.toLocaleString('ru-RU')}
-                      {campaign.status === 'active' && (
-                        <span className="ml-2 text-green-600">• В работе</span>
-                      )}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
       {filteredCampaigns.length === 0 && (
         <Card>
