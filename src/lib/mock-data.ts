@@ -8,6 +8,9 @@ import {
   SmsTemplate,
   AutomationRule,
   RolePermissions,
+  Agent,
+  Voice,
+  VoiceLibrary,
   CampaignMetrics,
   QueueStatus,
   AppSettings,
@@ -839,4 +842,230 @@ export const mockDataUtils = {
     mockSms.push(newSms);
     return newSms;
   }
+};
+
+// Моковые данные для голосов
+export const mockVoices: Voice[] = [
+  {
+    id: 'voice-anna-1',
+    name: 'Анна (дружелюбная)',
+    gender: 'female',
+    language: 'ru-RU',
+    style: 'friendly',
+    provider: 'elevenlabs',
+    sampleUrl: '/samples/anna-friendly.mp3',
+    settings: {
+      speed: 1.0,
+      pitch: 0,
+      volume: 0.8,
+      stability: 0.75
+    }
+  },
+  {
+    id: 'voice-anna-2',
+    name: 'Анна (деловая)',
+    gender: 'female',
+    language: 'ru-RU',
+    style: 'formal',
+    provider: 'elevenlabs',
+    sampleUrl: '/samples/anna-formal.mp3',
+    settings: {
+      speed: 0.95,
+      pitch: -2,
+      volume: 0.8,
+      stability: 0.8
+    }
+  },
+  {
+    id: 'voice-mikhail-1',
+    name: 'Михаил (деловой)',
+    gender: 'male',
+    language: 'ru-RU',
+    style: 'formal',
+    provider: 'elevenlabs',
+    sampleUrl: '/samples/mikhail-formal.mp3',
+    settings: {
+      speed: 0.9,
+      pitch: -5,
+      volume: 0.85,
+      stability: 0.85
+    }
+  },
+  {
+    id: 'voice-elena-1',
+    name: 'Елена (профессиональная)',
+    gender: 'female',
+    language: 'ru-RU',
+    style: 'formal',
+    provider: 'yandex',
+    sampleUrl: '/samples/elena-professional.mp3',
+    settings: {
+      speed: 1.0,
+      pitch: 0,
+      volume: 0.8,
+      stability: 0.8
+    }
+  },
+  {
+    id: 'voice-dmitry-1',
+    name: 'Дмитрий (энергичный)',
+    gender: 'male',
+    language: 'ru-RU',
+    style: 'energetic',
+    provider: 'elevenlabs',
+    sampleUrl: '/samples/dmitry-energetic.mp3',
+    settings: {
+      speed: 1.1,
+      pitch: 2,
+      volume: 0.9,
+      stability: 0.7
+    }
+  }
+];
+
+// Моковые данные для агентов
+export const mockAgents: Agent[] = [
+  {
+    id: 'agent-1',
+    name: 'Анна - Регистрация',
+    description: 'Агент для регистрации новых пользователей',
+    role: 'registration_agent',
+    voiceId: 'voice-anna-1',
+    status: 'active',
+    campaigns: ['obz-1', 'obz-3'],
+    settings: {
+      responseDelay: 500,
+      maxSilenceDuration: 3,
+      interruptionHandling: true
+    },
+    prompts: [
+      {
+        id: 'prompt-1',
+        stage: 'greeting',
+        title: 'Приветствие',
+        prompt: 'Здравствуйте! Меня зовут Анна, я звоню от компании. У вас есть минутка для разговора?',
+        conditions: [
+          {
+            if: 'время_дня == утро',
+            then: 'Доброе утро! Меня зовут Анна...'
+          },
+          {
+            if: 'время_дня == вечер',
+            then: 'Добрый вечер! Меня зовут Анна...'
+          }
+        ],
+        fallback: 'Здравствуйте! Меня зовут Анна, я звоню от компании.'
+      },
+      {
+        id: 'prompt-2',
+        stage: 'consent_question',
+        title: 'Вопрос о согласии',
+        prompt: 'Мы предлагаем вам зарегистрироваться на нашей платформе. Могу я отправить вам ссылку для регистрации по SMS?',
+        fallback: 'Хотели бы вы получить информацию о регистрации?'
+      },
+      {
+        id: 'prompt-3',
+        stage: 'rejection_response',
+        title: 'Ответ на отказ',
+        prompt: 'Понимаю. Возможно, вас заинтересует в будущем. Хорошего дня!',
+        fallback: 'Спасибо за время. До свидания!'
+      }
+    ],
+    createdAt: new Date('2024-01-10T10:00:00Z'),
+    updatedAt: new Date('2024-01-15T14:30:00Z'),
+    version: 2,
+    createdBy: 'admin'
+  },
+  {
+    id: 'agent-2',
+    name: 'Михаил - Реактивация',
+    description: 'Агент для возврата неактивных клиентов',
+    role: 'reactivation_agent',
+    voiceId: 'voice-mikhail-1',
+    status: 'active',
+    campaigns: ['obz-2'],
+    settings: {
+      responseDelay: 300,
+      maxSilenceDuration: 4,
+      interruptionHandling: true
+    },
+    prompts: [
+      {
+        id: 'prompt-4',
+        stage: 'greeting',
+        title: 'Приветствие',
+        prompt: 'Здравствуйте! Это Михаил из компании. Мы заметили, что вы давно не заходили к нам. Хотел предложить специальное предложение.',
+        fallback: 'Здравствуйте! Это Михаил, у нас есть специальное предложение для вас.'
+      },
+      {
+        id: 'prompt-5',
+        stage: 'offer_presentation',
+        title: 'Презентация предложения',
+        prompt: 'Мы приготовили для вас персональный бонус 100% к депозиту. Интересно?',
+        fallback: 'У нас есть специальный бонус для вас.'
+      }
+    ],
+    createdAt: new Date('2024-01-12T09:00:00Z'),
+    updatedAt: new Date('2024-01-14T16:00:00Z'),
+    version: 1,
+    createdBy: 'admin'
+  },
+  {
+    id: 'agent-3',
+    name: 'Елена - Холодные звонки',
+    description: 'Агент для работы с холодной базой',
+    role: 'cold_calling_agent',
+    voiceId: 'voice-elena-1',
+    status: 'inactive',
+    campaigns: [],
+    settings: {
+      responseDelay: 700,
+      maxSilenceDuration: 2,
+      interruptionHandling: false
+    },
+    prompts: [
+      {
+        id: 'prompt-6',
+        stage: 'greeting',
+        title: 'Приветствие',
+        prompt: 'Добрый день! Меня зовут Елена. Я представляю компанию, которая специализируется на...',
+        fallback: 'Добрый день! Это Елена из компании.'
+      }
+    ],
+    createdAt: new Date('2024-01-05T15:00:00Z'),
+    updatedAt: new Date('2024-01-05T15:00:00Z'),
+    version: 1,
+    createdBy: 'admin'
+  }
+];
+
+// Каталог голосов
+export const mockVoiceLibrary: VoiceLibrary = {
+  voices: mockVoices,
+  categories: [
+    {
+      id: 'female-friendly',
+      name: 'Женские дружелюбные',
+      description: 'Теплые женские голоса для клиентского сервиса',
+      voiceIds: ['voice-anna-1']
+    },
+    {
+      id: 'female-formal',
+      name: 'Женские деловые',
+      description: 'Профессиональные женские голоса',
+      voiceIds: ['voice-anna-2', 'voice-elena-1']
+    },
+    {
+      id: 'male-formal',
+      name: 'Мужские деловые',
+      description: 'Авторитетные мужские голоса',
+      voiceIds: ['voice-mikhail-1']
+    },
+    {
+      id: 'male-energetic',
+      name: 'Мужские энергичные',
+      description: 'Динамичные мужские голоса для активных продаж',
+      voiceIds: ['voice-dmitry-1']
+    }
+  ]
 };

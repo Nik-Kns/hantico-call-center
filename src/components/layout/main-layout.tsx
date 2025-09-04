@@ -7,6 +7,7 @@ import {
   BarChart3,
   Bell,
   User,
+  Users,
   LogOut,
   Shield,
   Settings,
@@ -51,6 +52,12 @@ const navigation = [
     name: 'Обзвоны',
     href: '/obzvoni',
     icon: Phone,
+    permissions: ['campaigns.view']
+  },
+  {
+    name: 'Агенты',
+    href: '/agents',
+    icon: Users,
     permissions: ['campaigns.view']
   }
 ]

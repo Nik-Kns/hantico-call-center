@@ -353,3 +353,72 @@ export interface AppSettings {
   selectedBrand?: string;
   brandEnabled: boolean;
 }
+
+// Агенты и голоса
+export interface Voice {
+  id: string;
+  name: string;
+  gender: 'male' | 'female';
+  language: string;
+  style: 'formal' | 'friendly' | 'energetic' | 'calm';
+  sampleUrl?: string;
+  provider: 'elevenlabs' | 'yandex' | 'custom';
+  settings: {
+    speed: number; // 0.5 - 2.0
+    pitch: number; // -20 - +20
+    volume: number; // 0.0 - 1.0
+    stability: number; // 0.0 - 1.0
+  };
+}
+
+export interface AgentPrompt {
+  id: string;
+  stage: string; // 'greeting', 'consent_question', 'rejection_response', etc.
+  title: string;
+  prompt: string;
+  conditions?: {
+    if: string; // условие
+    then: string; // что говорить
+  }[];
+  fallback?: string; // что говорить если условие не сработало
+}
+
+export interface Agent {
+  id: string;
+  name: string;
+  description: string;
+  role: string; // 'registration_agent', 'reminder_agent', etc.
+  voiceId: string;
+  status: 'active' | 'inactive' | 'archived';
+  prompts: AgentPrompt[];
+  campaigns: string[]; // ID кампаний где используется
+  settings: {
+    responseDelay: number; // задержка ответа в мс
+    maxSilenceDuration: number; // максимальная тишина в сек
+    interruptionHandling: boolean;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+  version: number;
+  createdBy: string;
+}
+
+export interface AgentTest {
+  id: string;
+  agentId: string;
+  userInput: string;
+  agentResponse: string;
+  stage: string;
+  timestamp: Date;
+  audioUrl?: string;
+}
+
+export interface VoiceLibrary {
+  voices: Voice[];
+  categories: {
+    id: string;
+    name: string;
+    description: string;
+    voiceIds: string[];
+  }[];
+}
