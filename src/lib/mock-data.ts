@@ -109,9 +109,9 @@ const generateCampaignName = () => {
 // Моковые кампании
 export const mockCampaigns: Campaign[] = [
   {
-    id: 'campaign-1',
-    name: generateCampaignName(),
-    description: 'Привлечение новых клиентов',
+    id: 'obz-1',
+    name: 'Акция "Новый год 2025"',
+    description: 'VIP клиенты - новогодние поздравления и предложения',
     source: 'segment',
     sourceConfig: {
       segmentId: 'vip-segment',
@@ -152,20 +152,20 @@ export const mockCampaigns: Campaign[] = [
       enableTranscription: true
     },
     stats: {
-      totalLeads: 150,
-      processed: 45,
-      successful: 12,
-      refused: 8,
-      pending: 105
+      totalLeads: 1250,
+      processed: 847,
+      successful: 623,
+      refused: 224,
+      pending: 403
     }
   },
   {
-    id: 'campaign-2',
-    name: generateCampaignName(),
-    description: 'Возврат клиентов, не заходивших более 30 дней',
+    id: 'obz-2',
+    name: 'Реактивация неактивных',
+    description: 'Возврат клиентов, не заходивших более 90 дней',
     source: 'csv',
     sourceConfig: {
-      csvFile: 'inactive_users_jan2024.csv'
+      csvFile: 'inactive_users_90days.csv'
     },
     scriptId: 'script-2',
     scriptVersion: 'B',
@@ -196,17 +196,17 @@ export const mockCampaigns: Campaign[] = [
       enableTranscription: false
     },
     stats: {
-      totalLeads: 200,
-      processed: 85,
-      successful: 15,
-      refused: 25,
-      pending: 115
+      totalLeads: 2100,
+      processed: 456,
+      successful: 298,
+      refused: 158,
+      pending: 1644
     }
   },
   {
-    id: 'campaign-3',
-    name: generateCampaignName(),
-    description: 'A/B тестирование нового скрипта',
+    id: 'obz-3',
+    name: 'Холодная база январь',
+    description: 'Знакомство с продуктом для новых лидов',
     source: 'manual',
     scriptId: 'script-3',
     scriptVersion: 'A',
@@ -236,11 +236,11 @@ export const mockCampaigns: Campaign[] = [
       enableTranscription: true
     },
     stats: {
-      totalLeads: 50,
+      totalLeads: 850,
       processed: 0,
       successful: 0,
       refused: 0,
-      pending: 50
+      pending: 850
     }
   }
 ];
@@ -743,9 +743,9 @@ export const mockCampaignMetrics: Record<string, CampaignMetrics> = {
 // Статус очереди
 export const mockQueueStatus: QueueStatus = {
   active: 8,
-  waiting: 127,
+  waiting: 2047, // 403 + 1644 (из активных и приостановленных кампаний)
   errors: 3,
-  totalProcessed: 245
+  totalProcessed: 1303 // 847 + 456 (обработанные из активных кампаний)
 };
 
 // Настройки приложения по умолчанию
