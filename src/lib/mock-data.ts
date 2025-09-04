@@ -11,6 +11,9 @@ import {
   Agent,
   Voice,
   VoiceLibrary,
+  AgentVersion,
+  ABTest,
+  PromptTemplate,
   CampaignMetrics,
   QueueStatus,
   AppSettings,
@@ -1069,3 +1072,178 @@ export const mockVoiceLibrary: VoiceLibrary = {
     }
   ]
 };
+
+// Шаблоны промтов
+export const mockPromptTemplates: PromptTemplate[] = [
+  {
+    id: 'template-1',
+    name: 'Дружелюбное приветствие',
+    description: 'Теплое приветствие для клиентского сервиса',
+    stage: 'greeting',
+    template: 'Здравствуйте, {client_name}! Меня зовут {agent_name}, я звоню от компании {company_name}. У вас есть минутка для разговора?',
+    variables: ['client_name', 'agent_name', 'company_name'],
+    category: 'greeting',
+    tags: ['friendly', 'personal'],
+    createdAt: new Date('2024-01-10T10:00:00Z'),
+    updatedAt: new Date('2024-01-15T14:30:00Z'),
+    usageCount: 15
+  },
+  {
+    id: 'template-2',
+    name: 'Деловое приветствие',
+    description: 'Формальное приветствие для B2B',
+    stage: 'greeting',
+    template: 'Добрый день! Это {agent_name} из {company_name}. Я звоню по поводу {reason}. Удобно ли сейчас говорить?',
+    variables: ['agent_name', 'company_name', 'reason'],
+    category: 'greeting',
+    tags: ['formal', 'business'],
+    createdAt: new Date('2024-01-12T09:00:00Z'),
+    updatedAt: new Date('2024-01-12T09:00:00Z'),
+    usageCount: 8
+  },
+  {
+    id: 'template-3',
+    name: 'Обработка возражения "нет времени"',
+    description: 'Стандартный ответ на возражение о времени',
+    stage: 'objection_handling',
+    template: 'Понимаю, что у вас мало времени. Это займет буквально минуту. {value_proposition}',
+    variables: ['value_proposition'],
+    category: 'objection_handling',
+    tags: ['time_objection', 'brief'],
+    createdAt: new Date('2024-01-08T15:00:00Z'),
+    updatedAt: new Date('2024-01-10T12:00:00Z'),
+    usageCount: 23
+  }
+];
+
+// Версии агентов
+export const mockAgentVersions: AgentVersion[] = [
+  {
+    id: 'version-1-1',
+    agentId: 'agent-1',
+    version: 1,
+    name: 'Базовая версия',
+    description: 'Первоначальная версия агента регистрации',
+    prompts: mockAgents[0].prompts,
+    settings: mockAgents[0].settings,
+    createdAt: new Date('2024-01-10T10:00:00Z'),
+    createdBy: 'admin',
+    status: 'active',
+    isBaseline: true
+  },
+  {
+    id: 'version-1-2',
+    agentId: 'agent-1',
+    version: 2,
+    name: 'Улучшенная версия',
+    description: 'Более персонализированные промты',
+    prompts: [
+      {
+        id: 'prompt-1-v2',
+        stage: 'greeting',
+        title: 'Персонализированное приветствие',
+        prompt: 'Добрый день! Меня зовут Анна, я звоню от нашей компании специально для вас. Видела, что вы интересовались нашими услугами. У вас есть пара минут?',
+        conditions: [
+          {
+            if: 'время_дня == утро',
+            then: 'Доброе утро! Меня зовут Анна...'
+          },
+          {
+            if: 'время_дня == вечер',
+            then: 'Добрый вечер! Меня зовут Анна...'
+          }
+        ],
+        fallback: 'Здравствуйте! Меня зовут Анна, я звоню специально для вас.'
+      },
+      {
+        id: 'prompt-2-v2',
+        stage: 'consent_question',
+        title: 'Вопрос с выгодой',
+        prompt: 'У нас есть специальное предложение именно для таких клиентов как вы. Могу я отправить детали по SMS, чтобы вы могли изучить их в удобное время?',
+        fallback: 'Хотели бы вы получить персональное предложение?'
+      }
+    ],
+    settings: {
+      responseDelay: 300, // Быстрее отвечает
+      maxSilenceDuration: 2, // Меньше ждет
+      interruptionHandling: true
+    },
+    createdAt: new Date('2024-01-15T14:30:00Z'),
+    createdBy: 'admin',
+    status: 'draft'
+  }
+];
+
+// A/B тесты
+export const mockABTests: ABTest[] = [
+  {
+    id: 'ab-test-1',
+    name: 'Персонализация vs Стандарт',
+    description: 'Тестирование персонализированных промтов против стандартных',
+    agentId: 'agent-1',
+    status: 'running',
+    variants: [
+      {
+        id: 'variant-a',
+        name: 'A (Контроль)',
+        versionId: 'version-1-1',
+        trafficAllocation: 50,
+        isControl: true
+      },
+      {
+        id: 'variant-b',
+        name: 'B (Персонализация)',
+        versionId: 'version-1-2',
+        trafficAllocation: 50
+      }
+    ],
+    settings: {
+      duration: 14,
+      minSampleSize: 1000,
+      confidenceLevel: 95,
+      primaryMetric: 'conversion_rate',
+      secondaryMetrics: ['sms_consent_rate', 'avg_call_duration'],
+      autoStop: true,
+      trafficRampUp: {
+        enabled: true,
+        startPercent: 10,
+        rampUpDays: 3
+      }
+    },
+    metrics: {
+      totalCalls: 847,
+      variantMetrics: {
+        'variant-a': {
+          calls: 423,
+          conversions: 289,
+          conversionRate: 68.3,
+          avgDuration: 145,
+          smsConsents: 201,
+          smsConsentRate: 47.5,
+          successRate: 68.3
+        },
+        'variant-b': {
+          calls: 424,
+          conversions: 318,
+          conversionRate: 75.0,
+          avgDuration: 132,
+          smsConsents: 234,
+          smsConsentRate: 55.2,
+          successRate: 75.0
+        }
+      },
+      statisticalSignificance: {
+        'variant-b': {
+          pValue: 0.032,
+          isSignificant: true,
+          confidenceInterval: [2.1, 11.3],
+          uplift: 9.8
+        }
+      },
+      winner: 'variant-b'
+    },
+    createdAt: new Date('2024-01-15T10:00:00Z'),
+    startedAt: new Date('2024-01-15T12:00:00Z'),
+    createdBy: 'admin'
+  }
+];

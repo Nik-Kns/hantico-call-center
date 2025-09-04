@@ -88,6 +88,14 @@ export default function AgentsPage() {
     router.push(`/agents/${agentId}`)
   }
 
+  const handleEditPrompts = (agentId: string) => {
+    router.push(`/agents/${agentId}/prompts`)
+  }
+
+  const handleABTests = (agentId: string) => {
+    router.push(`/agents/${agentId}/ab-tests`)
+  }
+
   return (
     <div className="space-y-6">
       {/* Заголовок */}
@@ -303,20 +311,31 @@ export default function AgentsPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => handleViewAgent(agent.id)}
+                          title="Просмотр"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleEditAgent(agent.id)}
+                          onClick={() => handleEditPrompts(agent.id)}
+                          title="Промты"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
+                          onClick={() => handleABTests(agent.id)}
+                          title="A/B тесты"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => handleTestAgent(agent.id)}
+                          title="Тестирование"
                         >
                           <Play className="h-4 w-4" />
                         </Button>

@@ -422,3 +422,97 @@ export interface VoiceLibrary {
     voiceIds: string[];
   }[];
 }
+
+// Версионирование и A/B тестирование
+export interface AgentVersion {
+  id: string;
+  agentId: string;
+  version: number;
+  name: string;
+  description?: string;
+  prompts: AgentPrompt[];
+  settings: {
+    responseDelay: number;
+    maxSilenceDuration: number;
+    interruptionHandling: boolean;
+  };
+  createdAt: Date;
+  createdBy: string;
+  status: 'draft' | 'active' | 'archived';
+  isBaseline?: boolean; // Базовая версия для сравнения
+}
+
+export interface ABTest {
+  id: string;
+  name: string;
+  description: string;
+  agentId: string;
+  status: 'draft' | 'running' | 'completed' | 'paused';
+  variants: ABTestVariant[];
+  settings: ABTestSettings;
+  metrics: ABTestMetrics;
+  createdAt: Date;
+  startedAt?: Date;
+  endedAt?: Date;
+  createdBy: string;
+}
+
+export interface ABTestVariant {
+  id: string;
+  name: string; // A, B, C, etc.
+  versionId: string; // Ссылка на версию агента
+  trafficAllocation: number; // Процент трафика (0-100)
+  isControl?: boolean; // Контрольная группа
+}
+
+export interface ABTestSettings {
+  duration: number; // Длительность в днях
+  minSampleSize: number; // Минимальный размер выборки
+  confidenceLevel: number; // Уровень доверия (90, 95, 99)
+  primaryMetric: 'conversion_rate' | 'success_rate' | 'avg_call_duration' | 'sms_consent_rate';
+  secondaryMetrics: string[];
+  autoStop: boolean; // Автоматическая остановка при достижении значимости
+  trafficRampUp: {
+    enabled: boolean;
+    startPercent: number; // Начальный процент трафика
+    rampUpDays: number; // Дни для полного развертывания
+  };
+}
+
+export interface ABTestMetrics {
+  totalCalls: number;
+  variantMetrics: {
+    [variantId: string]: {
+      calls: number;
+      conversions: number;
+      conversionRate: number;
+      avgDuration: number;
+      smsConsents: number;
+      smsConsentRate: number;
+      successRate: number;
+    };
+  };
+  statisticalSignificance: {
+    [variantId: string]: {
+      pValue: number;
+      isSignificant: boolean;
+      confidenceInterval: [number, number];
+      uplift: number; // Процентное улучшение относительно контроля
+    };
+  };
+  winner?: string; // ID выигрывшего варианта
+}
+
+export interface PromptTemplate {
+  id: string;
+  name: string;
+  description: string;
+  stage: string;
+  template: string;
+  variables: string[]; // Переменные в промте {variable_name}
+  category: 'greeting' | 'objection_handling' | 'closing' | 'information_gathering';
+  tags: string[];
+  createdAt: Date;
+  updatedAt: Date;
+  usageCount: number;
+}
