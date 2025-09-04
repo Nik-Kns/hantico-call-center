@@ -58,7 +58,7 @@ const mockActiveCalls: ActiveCall[] = [
   {
     id: 'call-1',
     campaignId: 'obz-1',
-    campaignName: 'Акция "Новый год 2025"',
+    campaignName: 'Тестовый обзвон базы',
     phoneNumber: '+7 (999) 123-45-67',
     agentName: 'Анна',
     status: 'talking',
@@ -69,7 +69,7 @@ const mockActiveCalls: ActiveCall[] = [
   {
     id: 'call-2',
     campaignId: 'obz-1',
-    campaignName: 'Акция "Новый год 2025"',
+    campaignName: 'Тестовый обзвон базы',
     phoneNumber: '+7 (999) 234-56-78',
     agentName: 'Анна',
     status: 'connecting',
@@ -103,7 +103,7 @@ const mockActiveCalls: ActiveCall[] = [
 const mockCampaignMonitors: CampaignMonitor[] = [
   {
     id: 'obz-1',
-    name: 'Акция "Новый год 2025"',
+    name: 'Тестовый обзвон базы',
     status: 'active',
     activeCalls: 2,
     queueSize: 234,
