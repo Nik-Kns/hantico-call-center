@@ -11,7 +11,8 @@ import {
   LogOut,
   Shield,
   Settings,
-  Phone
+  Phone,
+  CheckCircle
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -52,6 +53,12 @@ const navigation = [
     name: 'Обзвоны',
     href: '/obzvoni',
     icon: Phone,
+    permissions: ['campaigns.view']
+  },
+  {
+    name: 'Выполнено',
+    href: '/completed',
+    icon: CheckCircle,
     permissions: ['campaigns.view']
   },
   {
