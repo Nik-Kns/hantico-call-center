@@ -40,6 +40,24 @@ interface CampaignForm {
   smsTemplate: string
   enableBitrix: boolean
   autoStart: boolean
+  // A/B тестирование
+  enableABTest: boolean
+  abTestName: string
+  abTestVariants: Array<{
+    id: string
+    name: string
+    description: string
+    agentId: string
+    trafficAllocation: number
+    isControl?: boolean
+  }>
+  abTestSettings: {
+    duration: number
+    minSampleSize: number
+    confidenceLevel: number
+    primaryMetric: string
+    autoStop: boolean
+  }
 }
 
 const mockAgents = [
@@ -117,7 +135,34 @@ export default function NewObzvonPage() {
     enableSms: true,
     smsTemplate: 'Спасибо за разговор! Ссылка на регистрацию: [LINK]',
     enableBitrix: false,
-    autoStart: false
+    autoStart: false,
+    // A/B тестирование
+    enableABTest: false,
+    abTestName: '',
+    abTestVariants: [
+      {
+        id: 'variant-a',
+        name: 'A (Контроль)',
+        description: 'Основная версия',
+        agentId: '',
+        trafficAllocation: 50,
+        isControl: true
+      },
+      {
+        id: 'variant-b',
+        name: 'B',
+        description: 'Тестовая версия',
+        agentId: '',
+        trafficAllocation: 50
+      }
+    ],
+    abTestSettings: {
+      duration: 14,
+      minSampleSize: 1000,
+      confidenceLevel: 95,
+      primaryMetric: 'conversion_rate',
+      autoStop: true
+    }
   })
 
   const [currentStep, setCurrentStep] = useState(1)
@@ -358,6 +403,193 @@ export default function NewObzvonPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                <Separator />
+
+                {/* A/B тестирование */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <Label className="text-base font-medium">A/B тестирование</Label>
+                      <p className="text-sm text-gray-600">
+                        Сравните эффективность разных агентов или подходов
+                      </p>
+                    </div>
+                    <Switch
+                      checked={form.enableABTest}
+                      onCheckedChange={(checked) => handleInputChange('enableABTest', checked)}
+                    />
+                  </div>
+
+                  {form.enableABTest && (
+                    <div className="space-y-4 p-4 bg-blue-50 rounded-lg border">
+                      <div>
+                        <Label htmlFor="abTestName">Название теста</Label>
+                        <Input
+                          id="abTestName"
+                          placeholder="Например: Тест голосов для VIP клиентов"
+                          value={form.abTestName}
+                          onChange={(e) => handleInputChange('abTestName', e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium">Варианты теста</Label>
+                        <div className="mt-2 space-y-3">
+                          {form.abTestVariants.map((variant, index) => (
+                            <div key={variant.id} className="p-3 bg-white rounded border">
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-medium text-sm">{variant.name}</h4>
+                                {variant.isControl && (
+                                  <Badge className="bg-blue-100 text-blue-800 text-xs">
+                                    Контроль
+                                  </Badge>
+                                )}
+                              </div>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                  <Label className="text-xs">Агент</Label>
+                                  <Select 
+                                    value={variant.agentId} 
+                                    onValueChange={(value) => {
+                                      const newVariants = [...form.abTestVariants]
+                                      newVariants[index].agentId = value
+                                      handleInputChange('abTestVariants', newVariants)
+                                    }}
+                                  >
+                                    <SelectTrigger className="text-sm">
+                                      <SelectValue placeholder="Выберите агента" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {mockAgents.map((agent) => (
+                                        <SelectItem key={agent.id} value={agent.id}>
+                                          {agent.name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                
+                                <div>
+                                  <Label className="text-xs">Доля трафика (%)</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    max="100"
+                                    value={variant.trafficAllocation}
+                                    onChange={(e) => {
+                                      const newVariants = [...form.abTestVariants]
+                                      newVariants[index].trafficAllocation = parseInt(e.target.value) || 0
+                                      handleInputChange('abTestVariants', newVariants)
+                                    }}
+                                    className="text-sm"
+                                  />
+                                </div>
+                              </div>
+                              
+                              <div className="mt-2">
+                                <Label className="text-xs">Описание</Label>
+                                <Input
+                                  placeholder="Краткое описание варианта"
+                                  value={variant.description}
+                                  onChange={(e) => {
+                                    const newVariants = [...form.abTestVariants]
+                                    newVariants[index].description = e.target.value
+                                    handleInputChange('abTestVariants', newVariants)
+                                  }}
+                                  className="text-sm"
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        <div className="mt-3 p-2 bg-gray-50 rounded text-sm">
+                          <div className="flex justify-between">
+                            <span>Общее распределение:</span>
+                            <span className={`font-medium ${
+                              form.abTestVariants.reduce((sum, v) => sum + v.trafficAllocation, 0) === 100 
+                                ? 'text-green-600' 
+                                : 'text-red-600'
+                            }`}>
+                              {form.abTestVariants.reduce((sum, v) => sum + v.trafficAllocation, 0)}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-xs">Длительность (дни)</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            max="90"
+                            value={form.abTestSettings.duration}
+                            onChange={(e) => handleInputChange('abTestSettings', {
+                              ...form.abTestSettings,
+                              duration: parseInt(e.target.value) || 14
+                            })}
+                            className="text-sm"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label className="text-xs">Мин. выборка</Label>
+                          <Input
+                            type="number"
+                            min="100"
+                            value={form.abTestSettings.minSampleSize}
+                            onChange={(e) => handleInputChange('abTestSettings', {
+                              ...form.abTestSettings,
+                              minSampleSize: parseInt(e.target.value) || 1000
+                            })}
+                            className="text-sm"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs">Основная метрика</Label>
+                        <Select 
+                          value={form.abTestSettings.primaryMetric} 
+                          onValueChange={(value) => handleInputChange('abTestSettings', {
+                            ...form.abTestSettings,
+                            primaryMetric: value
+                          })}
+                        >
+                          <SelectTrigger className="text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="conversion_rate">Конверсия</SelectItem>
+                            <SelectItem value="success_rate">Успешность</SelectItem>
+                            <SelectItem value="sms_consent_rate">Согласие на SMS</SelectItem>
+                            <SelectItem value="avg_call_duration">Длительность звонка</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-xs">Автоматическая остановка</Label>
+                          <p className="text-xs text-gray-600">
+                            Остановить при достижении значимости
+                          </p>
+                        </div>
+                        <Switch
+                          checked={form.abTestSettings.autoStop}
+                          onCheckedChange={(checked) => handleInputChange('abTestSettings', {
+                            ...form.abTestSettings,
+                            autoStop: checked
+                          })}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

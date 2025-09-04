@@ -20,7 +20,8 @@ import {
   Search,
   Calendar,
   User,
-  Settings
+  Settings,
+  TrendingUp
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -225,6 +226,11 @@ export default function ObzvoniPage() {
           <Button variant="outline" onClick={() => router.push('/obzvoni/funnel')}>
             <Settings className="h-4 w-4 mr-2" />
             Воронка
+          </Button>
+          
+          <Button variant="outline" onClick={() => router.push('/obzvoni/ab-tests')}>
+            <TrendingUp className="h-4 w-4 mr-2" />
+            A/B тесты
           </Button>
           
           <Button onClick={() => router.push('/obzvoni/new')}>
