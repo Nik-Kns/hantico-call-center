@@ -9,7 +9,8 @@ import {
   User,
   LogOut,
   Shield,
-  Settings
+  Settings,
+  Phone
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -46,7 +47,12 @@ const navigation = [
     icon: BarChart3,
     permissions: ['campaigns.view']
   },
-
+  {
+    name: 'Обзвоны',
+    href: '/obzvoni',
+    icon: Phone,
+    permissions: ['campaigns.view']
+  }
 ]
 
 const roleLabels: Record<UserRole, string> = {
