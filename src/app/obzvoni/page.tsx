@@ -54,10 +54,10 @@ interface ObzvonCampaign {
 const mockObzvonCampaigns: ObzvonCampaign[] = [
   {
     id: 'obz-1',
-    name: 'Акция "Новый год 2025"',
+    name: 'Тестовый обзвон 2',
     agent: 'Анна (голос 1)',
     database: 'VIP клиенты (1,250 номеров)',
-    script: 'Новогодние поздравления + предложение',
+    script: 'Тестовый скрипт обзвона',
     status: 'active',
     totalNumbers: 1250,
     calledNumbers: 847,
