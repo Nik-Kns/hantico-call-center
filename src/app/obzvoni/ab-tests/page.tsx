@@ -97,7 +97,7 @@ const mockCampaignABTests = [
   {
     id: 'campaign-ab-2',
     name: 'Время звонков',
-    description: 'Оптимальное время для обзвона VIP клиентов',
+    description: 'Оптимальное время для обзвона клиентов',
     campaignId: 'obz-1',
     campaignName: 'Тестовый обзвон 2',
     status: 'draft',
