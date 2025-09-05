@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   ArrowLeft,
@@ -63,6 +63,8 @@ export default function NewAgentPage() {
   const [callStatus, setCallStatus] = useState<'idle' | 'calling' | 'ringing' | 'in_call'>('idle')
   const [testInput, setTestInput] = useState('')
   const [testResponse, setTestResponse] = useState('')
+  const [isVoiceCall, setIsVoiceCall] = useState(false)
+  const recognitionRef = useRef<any | null>(null)
 
   const handleInputChange = (field: keyof AgentForm, value: any) => {
     setForm(prev => ({
@@ -104,6 +106,43 @@ export default function NewAgentPage() {
 
   const getRoleById = (roleId: string) => {
     return agentRoles.find(r => r.id === roleId)
+  }
+
+  // Голосовой режим через микрофон (без телефонии)
+  const startVoiceCall = () => {
+    const SR: any = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition
+    if (!SR) {
+      alert('Браузер не поддерживает распознавание речи')
+      return
+    }
+    const rec = new SR()
+    rec.lang = 'ru-RU'
+    rec.continuous = true
+    rec.interimResults = false
+    rec.onresult = (event: any) => {
+      const transcript = Array.from(event.results)
+        .map((r: any) => r[0].transcript)
+        .join(' ')
+      if (transcript) {
+        const response = form.basePrompt
+          ? `Ответ агента (по инструкции): ${form.basePrompt.slice(0, 60)}...`
+          : 'Ответ агента: готов к работе.'
+        setTestResponse(`${transcript} → ${response}`)
+      }
+    }
+    rec.onend = () => {
+      if (isVoiceCall) rec.start()
+    }
+    rec.start()
+    recognitionRef.current = rec
+    setIsVoiceCall(true)
+    setCallStatus('in_call')
+  }
+
+  const stopVoiceCall = () => {
+    try { recognitionRef.current?.stop?.() } catch {}
+    recognitionRef.current = null
+    setIsVoiceCall(false)
   }
 
   const steps = [
@@ -422,6 +461,13 @@ export default function NewAgentPage() {
                         Ответить
                       </Button>
                     )}
+                    <Button
+                      className="mt-6"
+                      variant={isVoiceCall ? 'destructive' : 'outline'}
+                      onClick={() => (isVoiceCall ? stopVoiceCall() : startVoiceCall())}
+                    >
+                      <Phone className="h-4 w-4 mr-2" /> {isVoiceCall ? 'Завершить разговор' : 'Говорить через микрофон'}
+                    </Button>
                   </div>
                 </div>
 
