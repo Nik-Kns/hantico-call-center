@@ -9,7 +9,6 @@ import {
   Square, 
   Filter, 
   RefreshCw,
-  BarChart3,
   Monitor,
   Users,
   Phone,
@@ -21,7 +20,10 @@ import {
   Calendar,
   User,
   Settings,
-  TrendingUp
+  TrendingUp,
+  Activity,
+  MessageSquare,
+  Volume2
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
