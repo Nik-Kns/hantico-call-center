@@ -116,8 +116,8 @@ const generateCampaignName = () => {
 export const mockCampaigns: Campaign[] = [
   {
     id: 'obz-1',
-    name: 'Акция "Новый год 2025"',
-    description: 'VIP клиенты - новогодние поздравления и предложения',
+    name: 'Тестовый запуск №1',
+    description: 'Тестовая кампания для демонстрации',
     source: 'segment',
     sourceConfig: {
       segmentId: 'vip-segment',

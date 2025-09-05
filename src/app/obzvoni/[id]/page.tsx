@@ -63,11 +63,11 @@ interface CallRecord {
 const mockCampaignDetails: { [key: string]: CampaignDetails } = {
   'obz-1': {
     id: 'obz-1',
-    name: 'Акция "Новый год 2025"',
+    name: 'Тестовый запуск',
     status: 'active',
     agent: 'Анна (голос 1)',
     script: '',
-    database: 'VIP клиенты (1,250 номеров)',
+    database: 'Тестовая база №3413 (1,250 номеров)',
     startTime: new Date(Date.now() - 3 * 60 * 60 * 1000),
     progress: 68,
     totalNumbers: 1250,
@@ -466,31 +466,7 @@ export default function CampaignDetailsPage() {
       </div>
 
       {/* Аналитика сверху */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Распределение результатов</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {[
-                { label: 'Успешные', count: campaign.successfulConnections, color: 'bg-green-500' },
-                { label: 'Не ответили', count: Math.round(campaign.calledNumbers * 0.3), color: 'bg-gray-500' },
-                { label: 'Отказы', count: Math.round(campaign.calledNumbers * 0.15), color: 'bg-red-500' },
-                { label: 'Занято', count: Math.round(campaign.calledNumbers * 0.1), color: 'bg-orange-500' }
-              ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-4 h-4 rounded-full ${item.color}`} />
-                    <span className="text-sm">{item.label}</span>
-                  </div>
-                  <span className="text-sm font-medium">{item.count.toLocaleString()}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
         <Card>
           <CardHeader>
             <CardTitle>Воронка звонков (по этапам)</CardTitle>

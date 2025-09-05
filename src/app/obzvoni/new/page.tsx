@@ -69,12 +69,12 @@ const mockAgents = [
 
 const mockDatabases = [
   { 
-    id: 'vip-clients', 
-    name: 'VIP клиенты', 
-    description: 'Клиенты с высокой активностью',
+    id: 'test-3413', 
+    name: 'Тестовая база №3413', 
+    description: 'Тестовый набор номеров для прототипа',
     count: 1250,
     lastUpdated: '2 часа назад',
-    segment: 'VIP'
+    segment: 'test'
   },
   { 
     id: 'inactive-90', 
