@@ -94,48 +94,6 @@ const mockCampaignABTests = [
     createdAt: new Date('2024-01-15T10:00:00Z'),
     startedAt: new Date('2024-01-15T12:00:00Z')
   },
-  {
-    id: 'campaign-ab-2',
-    name: 'Время звонков',
-    description: 'Оптимальное время для обзвона клиентов',
-    campaignId: 'obz-1',
-    campaignName: 'Тестовый обзвон 2',
-    status: 'draft',
-    variants: [
-      {
-        id: 'variant-a',
-        name: 'A (Утро)',
-        description: '9:00-12:00',
-        trafficAllocation: 33,
-        isControl: true
-      },
-      {
-        id: 'variant-b',
-        name: 'B (День)',
-        description: '12:00-16:00',
-        trafficAllocation: 33
-      },
-      {
-        id: 'variant-c',
-        name: 'C (Вечер)',
-        description: '16:00-19:00',
-        trafficAllocation: 34
-      }
-    ],
-    metrics: {
-      totalCalls: 0,
-      variantMetrics: {},
-      statisticalSignificance: {}
-    },
-    settings: {
-      duration: 21,
-      minSampleSize: 1500,
-      confidenceLevel: 95,
-      primaryMetric: 'success_rate',
-      autoStop: false
-    },
-    createdAt: new Date('2024-01-16T14:00:00Z')
-  }
 ]
 
 export default function ObzvoniABTestsPage() {
