@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { 
   ArrowLeft,
@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { mockAgents, mockVoices } from '@/lib/mock-data'
 import { AgentTest } from '@/lib/types'
+import { Phone } from 'lucide-react'
 
 interface TestMessage {
   id: string
@@ -48,6 +49,8 @@ export default function AgentTestPage() {
   const [isListening, setIsListening] = useState(false)
   const [testPhone, setTestPhone] = useState('')
   const [callStatus, setCallStatus] = useState<'idle' | 'calling' | 'ringing' | 'in_call'>('idle')
+  const [isVoiceCall, setIsVoiceCall] = useState(false)
+  const recognitionRef = useRef<any | null>(null)
 
   if (!agent) {
     return (
@@ -60,13 +63,14 @@ export default function AgentTestPage() {
     )
   }
 
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim()) return
+  const handleSendMessage = async (textParam?: string) => {
+    const textToSend = (textParam ?? inputMessage).trim()
+    if (!textToSend) return
 
     const userMessage: TestMessage = {
       id: `msg-${Date.now()}`,
       type: 'user',
-      content: inputMessage,
+      content: textToSend,
       timestamp: new Date()
     }
 
@@ -82,7 +86,7 @@ export default function AgentTestPage() {
     let agentResponse = currentPrompt?.prompt || 'Извините, я не знаю как ответить на это.'
 
     // Простая логика обработки ответов
-    const lowerInput = inputMessage.toLowerCase()
+    const lowerInput = textToSend.toLowerCase()
     if (lowerInput.includes('да') || lowerInput.includes('согласен') || lowerInput.includes('хорошо')) {
       if (currentStage === 'greeting') {
         setCurrentStage('consent_question')
@@ -127,6 +131,42 @@ export default function AgentTestPage() {
   const toggleListening = () => {
     setIsListening(!isListening)
     // Здесь была бы интеграция с Web Speech API
+  }
+
+  // Голосовой режим через микрофон (без телефонии)
+  const startVoiceCall = () => {
+    const SR: any = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition
+    if (!SR) {
+      alert('Браузер не поддерживает распознавание речи')
+      return
+    }
+    const rec = new SR()
+    rec.lang = 'ru-RU'
+    rec.continuous = true
+    rec.interimResults = false
+    rec.onresult = (event: any) => {
+      const transcript = Array.from(event.results)
+        .map((r: any) => r[0].transcript)
+        .join(' ')
+      if (transcript && !isLoading) {
+        handleSendMessage(transcript)
+      }
+    }
+    rec.onend = () => {
+      if (isVoiceCall) rec.start()
+    }
+    rec.start()
+    recognitionRef.current = rec
+    setIsVoiceCall(true)
+    setCallStatus('in_call')
+  }
+
+  const stopVoiceCall = () => {
+    try {
+      recognitionRef.current?.stop?.()
+    } catch {}
+    recognitionRef.current = null
+    setIsVoiceCall(false)
   }
 
   const getStageTitle = (stage: string) => {
@@ -197,6 +237,9 @@ export default function AgentTestPage() {
               {callStatus === 'ringing' && (
                 <Button variant="outline" onClick={() => setCallStatus('in_call')}>Ответить</Button>
               )}
+              <Button variant={isVoiceCall ? 'destructive' : 'outline'} onClick={() => (isVoiceCall ? stopVoiceCall() : startVoiceCall())}>
+                <Phone className="h-4 w-4 mr-2" /> {isVoiceCall ? 'Завершить разговор' : 'Говорить через микрофон'}
+              </Button>
             </div>
           </div>
         </CardContent>
