@@ -37,9 +37,7 @@ interface AgentForm {
 const agentRoles = [
   { id: 'registration_agent', name: 'Агент регистрации', description: 'Помогает новым пользователям зарегистрироваться' },
   { id: 'reactivation_agent', name: 'Агент реактивации', description: 'Возвращает неактивных клиентов' },
-  { id: 'cold_calling_agent', name: 'Агент холодных звонков', description: 'Работает с новыми лидами' },
-  { id: 'support_agent', name: 'Агент поддержки', description: 'Отвечает на вопросы клиентов' },
-  { id: 'sales_agent', name: 'Агент продаж', description: 'Проводит презентации и закрывает сделки' }
+  { id: 'cold_calling_agent', name: 'Агент холодных звонков', description: 'Работает с новыми лидами' }
 ]
 
 export default function NewAgentPage() {
