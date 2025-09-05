@@ -507,20 +507,34 @@ export default function CampaignDetailsPage() {
                 </thead>
                 <tbody>
                   {(() => {
+                    const voicemail = Math.max(0, Math.round(campaign.calledNumbers * 0.1))
+                    const answeredNotRegistered = Math.max(0, campaign.successfulConnections - campaign.smsAgreements)
+                    const perBucket = Math.floor(answeredNotRegistered / 5)
+                    const remainder = answeredNotRegistered % 5
+                    const dataBuckets = Array.from({ length: 5 }).map((_, i) => perBucket + (i < remainder ? 1 : 0))
+
                     const steps = [
                       { step: 'Звонок', total: campaign.calledNumbers },
+                      { step: 'Автоответчик', total: voicemail },
+                      { step: 'Ответил, но не зарегистрировался', total: answeredNotRegistered },
+                      { step: 'Данные 1', total: dataBuckets[0] || 0 },
+                      { step: 'Данные 2', total: dataBuckets[1] || 0 },
+                      { step: 'Данные 3', total: dataBuckets[2] || 0 },
+                      { step: 'Данные 4', total: dataBuckets[3] || 0 },
+                      { step: 'Данные 5', total: dataBuckets[4] || 0 },
                       { step: 'Успешное соединение', total: campaign.successfulConnections },
                       { step: 'Согласие на SMS', total: campaign.smsAgreements },
                       { step: 'Передано в Bitrix24', total: campaign.transfers }
                     ]
+
                     return steps.map((item, idx) => {
                       const prev = idx === 0 ? item.total : steps[idx - 1].total
-                      const rate = prev > 0 ? Math.round((item.total / prev) * 100) : 0
+                      const rate = prev > 0 && item.total <= prev ? Math.round((item.total / prev) * 100) : null
                       return (
-                        <tr key={item.step} className="border-b">
+                        <tr key={`${item.step}-${idx}`} className="border-b">
                           <td className="py-2 px-3 text-sm">{item.step}</td>
                           <td className="py-2 px-3 text-sm font-medium">{item.total.toLocaleString()}</td>
-                          <td className="py-2 px-3 text-sm">{rate}%</td>
+                          <td className="py-2 px-3 text-sm">{rate !== null ? `${rate}%` : '—'}</td>
                         </tr>
                       )
                     })
