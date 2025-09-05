@@ -109,7 +109,7 @@ export default function NewAgentPage() {
   const steps = [
     { id: 1, name: 'Роль/этап', icon: User },
     { id: 2, name: 'Голос (TTS)', icon: Volume2 },
-    { id: 3, name: 'Промптинг', icon: MessageSquare },
+    { id: 3, name: 'Промтинг', icon: MessageSquare },
     { id: 4, name: 'Тест', icon: Phone }
   ]
 
@@ -299,13 +299,13 @@ export default function NewAgentPage() {
             </Card>
           )}
 
-          {/* Шаг 3: Промптинг */}
+          {/* Шаг 3: Промтинг */}
           {currentStep === 3 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <MessageSquare className="h-5 w-5 mr-2" />
-                  Промптинг и знания
+                  Промтинг и знания
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">

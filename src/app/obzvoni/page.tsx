@@ -41,6 +41,7 @@ interface ObzvonCampaign {
   id: string
   name: string
   agent: string
+  agentStage?: string
   database: string
   script: string
   status: 'active' | 'paused' | 'completed' | 'draft'
@@ -60,6 +61,7 @@ const mockObzvonCampaigns: ObzvonCampaign[] = [
     id: 'obz-1',
     name: 'Тестовый обзвон 2',
     agent: 'Анна (голос 1)',
+    agentStage: 'Приветствие',
     database: 'Тестовая база №3413 (1,250 номеров)',
     script: 'Тестовый скрипт обзвона',
     status: 'active',
@@ -76,6 +78,7 @@ const mockObzvonCampaigns: ObzvonCampaign[] = [
     id: 'obz-2',
     name: 'Реактивация неактивных',
     agent: 'Михаил (голос 2)',
+    agentStage: 'Напоминание',
     database: 'Неактивные 90 дней (2,100 номеров)',
     script: 'Возвращение с бонусом',
     status: 'paused',
@@ -92,6 +95,7 @@ const mockObzvonCampaigns: ObzvonCampaign[] = [
     id: 'obz-3',
     name: 'Холодная база январь',
     agent: 'Елена (голос 3)',
+    agentStage: 'Холодный звонок',
     database: 'Новые лиды (850 номеров)',
     script: 'Знакомство с продуктом',
     status: 'draft',
@@ -410,7 +414,7 @@ export default function ObzvoniPage() {
                     База номеров
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Кол-во номеров
+                    Размер базы
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Статус
@@ -419,7 +423,7 @@ export default function ObzvoniPage() {
                     % выполнения
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Дата старта
+                    Этап/Агент
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Действия
@@ -436,6 +440,9 @@ export default function ObzvoniPage() {
                         </div>
                         <div className="text-sm text-gray-500">
                           Агент: {campaign.agent}
+                          {campaign.agentStage && (
+                            <span className="ml-2 text-xs text-gray-400">• Этап: {campaign.agentStage}</span>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -446,39 +453,15 @@ export default function ObzvoniPage() {
                       <div className="text-sm text-gray-900">
                         {campaign.totalNumbers.toLocaleString()}
                       </div>
-                      <div className="text-xs text-gray-500">
-                        Обзвонено: {campaign.calledNumbers.toLocaleString()}
-                      </div>
+                      <div className="text-xs text-gray-500">% исполнения: {campaign.progress}%</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(campaign.status)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-1 mr-2">
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-blue-600 h-2 rounded-full" 
-                              style={{ width: `${campaign.progress}%` }}
-                            />
-                          </div>
-                        </div>
-                        <span className="text-sm text-gray-900">{campaign.progress}%</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {campaign.startTime ? (
-                        <div className="text-sm text-gray-900">
-                          {campaign.startTime.toLocaleDateString('ru-RU')}
-                          <div className="text-xs text-gray-500">
-                            {campaign.startTime.toLocaleTimeString('ru-RU', { 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            })}
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-sm text-gray-500">—</span>
+                      <div className="text-sm text-gray-900">{campaign.agent}</div>
+                      {campaign.agentStage && (
+                        <div className="text-xs text-gray-500">Этап: {campaign.agentStage}</div>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

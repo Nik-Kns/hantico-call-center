@@ -33,7 +33,7 @@ interface CampaignDetails {
   name: string
   status: 'active' | 'paused' | 'completed' | 'draft'
   agent: string
-  // script удален из UI, сценарий внутри агента
+  // script удален, сценарий внутри агента
   script: string
   database: string
   startTime?: Date
