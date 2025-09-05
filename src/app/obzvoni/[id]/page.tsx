@@ -456,7 +456,7 @@ export default function CampaignDetailsPage() {
 
         <Card>
           <CardContent className="p-6 text-center">
-            <BarChart3 className="h-8 w-8 text-gray-600 mx-auto mb-2" />
+            <Clock className="h-8 w-8 text-gray-600 mx-auto mb-2" />
             <p className="text-2xl font-bold text-gray-600">
               {campaign.totalNumbers - campaign.calledNumbers}
             </p>
