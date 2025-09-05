@@ -303,7 +303,7 @@ export default function AgentTestPage() {
                   </div>
                   <div className="flex justify-between">
                     <span>Макс. тишина:</span>
-                    <span>{agent.settings.maxSilenceDuration} сек</span>
+                    <span>—</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Прерывания:</span>

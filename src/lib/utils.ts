@@ -57,6 +57,31 @@ export function formatPhoneNumber(phone: string): string {
   return phone
 }
 
+// Маскировка номера телефона для безопасности
+export function maskPhoneNumber(phone: string): string {
+  // Убираем все символы кроме цифр и +
+  const cleaned = phone.replace(/[^\d+]/g, '')
+  
+  if (cleaned.startsWith('+7') && cleaned.length === 12) {
+    // Российский номер: +7 (XXX) XXX-XX-XX -> +7 (XXX) XXX-**-**
+    const digits = cleaned.slice(2)
+    return `+7 (${digits.slice(0, 3)}) ${digits.slice(3, 6)}-**-**`
+  } else if (cleaned.startsWith('8') && cleaned.length === 11) {
+    // Российский номер с 8: 8 XXX XXX XX XX -> 8 XXX XXX **-**
+    return `8 (${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-**-**`
+  } else if (cleaned.length >= 10) {
+    // Общий случай - показываем первые цифры и маскируем последние 4
+    const visible = cleaned.slice(0, -4)
+    return `${visible}****`
+  }
+  
+  // Если номер слишком короткий, маскируем половину
+  const visibleLength = Math.floor(cleaned.length / 2)
+  const visible = cleaned.slice(0, visibleLength)
+  const masked = '*'.repeat(cleaned.length - visibleLength)
+  return visible + masked
+}
+
 // Получение цвета для статуса
 export function getStatusColor(status: string): string {
   const colors: Record<string, string> = {
@@ -232,7 +257,10 @@ export function exportToCSV(data: any[], filename: string): void {
     headers.join(','),
     ...data.map(row => 
       headers.map(header => {
-        const value = row[header]
+        let value = row[header]
+        if (typeof value === 'string' && /\+?\d[\d\s\-\(\)]{6,}/.test(value)) {
+          value = maskPhoneNumber(value)
+        }
         if (typeof value === 'string' && value.includes(',')) {
           return `"${value}"`
         }

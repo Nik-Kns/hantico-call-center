@@ -203,8 +203,7 @@ export default function NewObzvonPage() {
   const steps = [
     { id: 1, name: 'Основные настройки', icon: Settings },
     { id: 2, name: 'База и агент', icon: Users },
-    { id: 3, name: 'Скрипт', icon: FileText },
-    { id: 4, name: 'Параметры запуска', icon: Play }
+    { id: 3, name: 'Параметры запуска', icon: Play }
   ]
 
   const isStepCompleted = (step: number) => {
@@ -214,8 +213,6 @@ export default function NewObzvonPage() {
       case 2:
         return form.database !== '' && form.agent !== ''
       case 3:
-        return form.script !== '' && (form.script !== 'custom' || form.customScript.trim() !== '')
-      case 4:
         return form.batchSize > 0 && form.maxCalls > 0
       default:
         return false
@@ -595,80 +592,77 @@ export default function NewObzvonPage() {
             </Card>
           )}
 
-          {/* Шаг 3: Скрипт */}
+          {/* Шаг 3: Параметры запуска и этапы кампании */}
           {currentStep === 3 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <FileText className="h-5 w-5 mr-2" />
-                  Скрипт обзвона
+                  <Play className="h-5 w-5 mr-2" />
+                  Параметры запуска и этапы кампании
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div>
-                  <Label>Выберите шаблон скрипта *</Label>
-                  <Select value={form.script} onValueChange={(value) => handleInputChange('script', value)}>
-                    <SelectTrigger className="mt-2">
-                      <SelectValue placeholder="Выберите готовый скрипт или создайте свой" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {mockScripts.map((script) => (
-                        <SelectItem key={script.id} value={script.id}>
-                          <div>
-                            <div className="font-medium">{script.name}</div>
-                            <div className="text-xs text-gray-500">{script.description}</div>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-4">
+                  <h4 className="font-medium">Этапы кампании</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { id: 'cold', label: 'Холодная' },
+                      { id: 'remind_reg', label: 'Напоминание про регистрацию' },
+                      { id: 'remind_incomplete', label: 'Напоминание: не завершил регистрацию (5 типов)' },
+                      { id: 'retry_voicemail', label: 'Повтор при автоответчике' }
+                    ].map((step) => (
+                      <div key={step.id} className="p-4 border rounded-lg">
+                        <div className="text-sm text-gray-700 mb-2">{step.label}</div>
+                        <Label className="text-xs">Агент для шага</Label>
+                        <Select 
+                          value={form.agent}
+                          onValueChange={(value) => handleInputChange('agent', value)}
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Выберите агента" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {mockAgents.map((agent) => (
+                              <SelectItem key={agent.id} value={agent.id}>{agent.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
-                {form.script === 'custom' && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <Label htmlFor="customScript">Собственный скрипт *</Label>
-                    <Textarea
-                      id="customScript"
-                      placeholder="Введите текст скрипта для агента..."
-                      value={form.customScript}
-                      onChange={(e) => handleInputChange('customScript', e.target.value)}
-                      rows={8}
-                      className="mt-2"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Используйте переменные: [ИМЯ], [ТЕЛЕФОН], [ДАТА] для персонализации
-                    </p>
-                  </div>
-                )}
-
-                <Separator />
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>SMS после успешного звонка</Label>
-                      <p className="text-sm text-gray-600">
-                        Отправлять SMS при согласии клиента
-                      </p>
-                    </div>
-                    <Switch
-                      checked={form.enableSms}
-                      onCheckedChange={(checked) => handleInputChange('enableSms', checked)}
+                    <Label className="text-sm">Количество ретраев (недозвон)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={form.retryAttempts}
+                      onChange={(e) => handleInputChange('retryAttempts', parseInt(e.target.value) || 0)}
+                      className="mt-1"
                     />
                   </div>
-
-                  {form.enableSms && (
-                    <div>
-                      <Label htmlFor="smsTemplate">Шаблон SMS</Label>
-                      <Textarea
-                        id="smsTemplate"
-                        value={form.smsTemplate}
-                        onChange={(e) => handleInputChange('smsTemplate', e.target.value)}
-                        rows={3}
-                        className="mt-2"
-                      />
-                    </div>
-                  )}
+                  <div>
+                    <Label className="text-sm">Интервал между повторами (мин)</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={form.retryInterval}
+                      onChange={(e) => handleInputChange('retryInterval', parseInt(e.target.value) || 1)}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm">Автоответчик: количество перезвонов</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={form.retryAttempts}
+                      onChange={(e) => handleInputChange('retryAttempts', parseInt(e.target.value) || 0)}
+                      className="mt-1"
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>

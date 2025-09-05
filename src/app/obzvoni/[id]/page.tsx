@@ -8,7 +8,6 @@ import {
   Pause,
   Square,
   Settings,
-  BarChart3,
   Phone,
   Clock,
   CheckCircle,
@@ -22,6 +21,7 @@ import {
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { maskPhoneNumber } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -33,6 +33,7 @@ interface CampaignDetails {
   name: string
   status: 'active' | 'paused' | 'completed' | 'draft'
   agent: string
+  // script удален из UI, сценарий внутри агента
   script: string
   database: string
   startTime?: Date
@@ -65,7 +66,7 @@ const mockCampaignDetails: { [key: string]: CampaignDetails } = {
     name: 'Акция "Новый год 2025"',
     status: 'active',
     agent: 'Анна (голос 1)',
-    script: 'Новогодние поздравления + предложение',
+    script: '',
     database: 'VIP клиенты (1,250 номеров)',
     startTime: new Date(Date.now() - 3 * 60 * 60 * 1000),
     progress: 68,
@@ -81,7 +82,7 @@ const mockCampaignDetails: { [key: string]: CampaignDetails } = {
     name: 'Реактивация неактивных',
     status: 'paused',
     agent: 'Михаил (голос 2)',
-    script: 'Возвращение с бонусом',
+    script: '',
     database: 'Неактивные 90 дней (2,100 номеров)',
     startTime: new Date(Date.now() - 6 * 60 * 60 * 1000),
     progress: 22,
@@ -97,7 +98,7 @@ const mockCampaignDetails: { [key: string]: CampaignDetails } = {
     name: 'Холодная база январь',
     status: 'draft',
     agent: 'Елена (голос 3)',
-    script: 'Знакомство с продуктом',
+    script: '',
     database: 'Новые лиды (850 номеров)',
     progress: 0,
     totalNumbers: 850,
@@ -386,8 +387,9 @@ export default function CampaignDetailsPage() {
               )}
               
               <div>
-                <p className="text-sm text-gray-600">Скрипт</p>
-                <p className="font-medium">{campaign.script}</p>
+                <p className="text-sm text-gray-600">Агенты</p>
+                <p className="font-medium">{campaign.agent}</p>
+                <p className="text-xs text-gray-500 mt-1">Всего в базе: {campaign.totalNumbers.toLocaleString()}</p>
               </div>
             </div>
           </div>
@@ -513,11 +515,11 @@ export default function CampaignDetailsPage() {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {callRecords.map((call) => (
                       <tr key={call.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
                           {call.id}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {call.phoneNumber}
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
+                          {maskPhoneNumber(call.phoneNumber)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {getResultBadge(call.result)}
@@ -594,48 +596,40 @@ export default function CampaignDetailsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Конверсия по этапам</CardTitle>
+                <CardTitle>Воронка звонков (по этапам)</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Дозвоны</span>
-                      <span>{Math.round((campaign.successfulConnections / campaign.calledNumbers) * 100)}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-500 h-2 rounded-full"
-                        style={{ width: `${(campaign.successfulConnections / campaign.calledNumbers) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Согласия на SMS</span>
-                      <span>{Math.round((campaign.smsAgreements / campaign.successfulConnections) * 100)}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-purple-500 h-2 rounded-full"
-                        style={{ width: `${(campaign.smsAgreements / campaign.successfulConnections) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Передано в Bitrix</span>
-                      <span>{Math.round((campaign.transfers / campaign.smsAgreements) * 100)}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-indigo-500 h-2 rounded-full"
-                        style={{ width: `${(campaign.transfers / campaign.smsAgreements) * 100}%` }}
-                      />
-                    </div>
-                  </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2 px-3 text-sm text-gray-600">Этап</th>
+                        <th className="text-left py-2 px-3 text-sm text-gray-600">Кол-во</th>
+                        <th className="text-left py-2 px-3 text-sm text-gray-600">Конверсия от предыдущего</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const steps = [
+                          { step: 'Звонок', total: campaign.calledNumbers },
+                          { step: 'Успешное соединение', total: campaign.successfulConnections },
+                          { step: 'Согласие на SMS', total: campaign.smsAgreements },
+                          { step: 'Передано в Bitrix24', total: campaign.transfers }
+                        ]
+                        return steps.map((item, idx) => {
+                          const prev = idx === 0 ? item.total : steps[idx - 1].total
+                          const rate = prev > 0 ? Math.round((item.total / prev) * 100) : 0
+                          return (
+                            <tr key={item.step} className="border-b">
+                              <td className="py-2 px-3 text-sm">{item.step}</td>
+                              <td className="py-2 px-3 text-sm font-medium">{item.total.toLocaleString()}</td>
+                              <td className="py-2 px-3 text-sm">{rate}%</td>
+                            </tr>
+                          )
+                        })
+                      })()}
+                    </tbody>
+                  </table>
                 </div>
               </CardContent>
             </Card>

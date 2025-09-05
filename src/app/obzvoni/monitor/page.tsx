@@ -15,17 +15,17 @@ import {
   AlertTriangle,
   Users,
   Activity,
-  Volume2,
   Eye,
-  Zap,
-  TrendingUp
+  Volume2,
+  MessageSquare
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { maskPhoneNumber, formatCallDuration } from '@/lib/utils'
 
 // Типы для мониторинга
 interface ActiveCall {
@@ -34,10 +34,11 @@ interface ActiveCall {
   campaignName: string
   phoneNumber: string
   agentName: string
-  status: 'connecting' | 'talking' | 'processing' | 'completed'
+  status: 'connecting' | 'talking' | 'processing' | 'completed' | 'voicemail'
   startTime: Date
   duration: number
   currentStep?: string
+  isVoicemail?: boolean
 }
 
 interface CampaignMonitor {
@@ -46,10 +47,11 @@ interface CampaignMonitor {
   status: 'active' | 'paused' | 'completed'
   activeCalls: number
   queueSize: number
-  callsPerMinute: number
+  totalNumbers: number
+  processedNumbers: number
   successRate: number
   avgCallDuration: number
-  totalProcessed: number
+  voicemailCount: number
   errors: number
 }
 
@@ -62,41 +64,32 @@ const mockActiveCalls: ActiveCall[] = [
     phoneNumber: '+7 (999) 123-45-67',
     agentName: 'Анна',
     status: 'talking',
-    startTime: new Date(Date.now() - 2 * 60 * 1000), // 2 минуты назад
+    startTime: new Date(Date.now() - 2 * 60 * 1000),
     duration: 120,
     currentStep: 'Презентация предложения'
   },
   {
     id: 'call-2',
-    campaignId: 'obz-1',
-    campaignName: 'Тестовый обзвон базы',
+    campaignId: 'obz-2',
+    campaignName: 'Реактивация неактивных',
     phoneNumber: '+7 (999) 234-56-78',
-    agentName: 'Анна',
-    status: 'connecting',
-    startTime: new Date(Date.now() - 30 * 1000), // 30 секунд назад
-    duration: 30
+    agentName: 'Михаил',
+    status: 'voicemail',
+    startTime: new Date(Date.now() - 1.5 * 60 * 1000),
+    duration: 90,
+    currentStep: 'Автоответчик',
+    isVoicemail: true
   },
   {
     id: 'call-3',
-    campaignId: 'obz-2',
-    campaignName: 'Реактивация неактивных',
+    campaignId: 'obz-1',
+    campaignName: 'Тестовый обзвон базы',
     phoneNumber: '+7 (999) 345-67-89',
-    agentName: 'Михаил',
-    status: 'processing',
-    startTime: new Date(Date.now() - 5 * 60 * 1000), // 5 минут назад
-    duration: 300,
-    currentStep: 'Обработка результата'
-  },
-  {
-    id: 'call-4',
-    campaignId: 'obz-2',
-    campaignName: 'Реактивация неактивных',
-    phoneNumber: '+7 (999) 456-78-90',
-    agentName: 'Михаил',
-    status: 'talking',
-    startTime: new Date(Date.now() - 90 * 1000), // 1.5 минуты назад
-    duration: 90,
-    currentStep: 'Выяснение потребностей'
+    agentName: 'Елена',
+    status: 'connecting',
+    startTime: new Date(Date.now() - 0.5 * 60 * 1000),
+    duration: 30,
+    currentStep: 'Соединение'
   }
 ]
 
@@ -107,22 +100,24 @@ const mockCampaignMonitors: CampaignMonitor[] = [
     status: 'active',
     activeCalls: 2,
     queueSize: 234,
-    callsPerMinute: 12.5,
+    totalNumbers: 1250,
+    processedNumbers: 847,
     successRate: 68.4,
     avgCallDuration: 145,
-    totalProcessed: 847,
+    voicemailCount: 23,
     errors: 3
   },
   {
     id: 'obz-2',
     name: 'Реактивация неактивных',
     status: 'active',
-    activeCalls: 2,
+    activeCalls: 1,
     queueSize: 156,
-    callsPerMinute: 8.3,
+    totalNumbers: 2100,
+    processedNumbers: 456,
     successRate: 72.1,
     avgCallDuration: 178,
-    totalProcessed: 456,
+    voicemailCount: 15,
     errors: 1
   },
   {
@@ -131,10 +126,11 @@ const mockCampaignMonitors: CampaignMonitor[] = [
     status: 'paused',
     activeCalls: 0,
     queueSize: 850,
-    callsPerMinute: 0,
+    totalNumbers: 850,
+    processedNumbers: 0,
     successRate: 0,
     avgCallDuration: 0,
-    totalProcessed: 0,
+    voicemailCount: 0,
     errors: 0
   }
 ]
@@ -144,64 +140,99 @@ export default function ObzvoniMonitorPage() {
   const [activeCalls, setActiveCalls] = useState<ActiveCall[]>(mockActiveCalls)
   const [campaignMonitors, setCampaignMonitors] = useState<CampaignMonitor[]>(mockCampaignMonitors)
   const [isAutoRefresh, setIsAutoRefresh] = useState(true)
+  const [timePeriod, setTimePeriod] = useState('today')
   const [lastUpdate, setLastUpdate] = useState(new Date())
 
-  // Автообновление каждые 2 секунды
+  // Автообновление каждые 5 секунд
   useEffect(() => {
     if (!isAutoRefresh) return
 
     const interval = setInterval(() => {
-      // Имитация обновления данных
+      // Обновляем длительность активных звонков
       setActiveCalls(prev => prev.map(call => ({
         ...call,
-        duration: call.duration + 2
+        duration: Math.floor((Date.now() - call.startTime.getTime()) / 1000)
       })))
       setLastUpdate(new Date())
-    }, 2000)
+    }, 5000)
 
     return () => clearInterval(interval)
   }, [isAutoRefresh])
 
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}`
-  }
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'connecting':
-        return <Badge className="bg-yellow-100 text-yellow-800">Соединение</Badge>
-      case 'talking':
-        return <Badge className="bg-green-100 text-green-800">Разговор</Badge>
-      case 'processing':
-        return <Badge className="bg-blue-100 text-blue-800">Обработка</Badge>
-      case 'completed':
-        return <Badge className="bg-gray-100 text-gray-800">Завершён</Badge>
-      default:
-        return <Badge>Неизвестно</Badge>
-    }
+  const handleRefresh = () => {
+    setLastUpdate(new Date())
   }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'connecting':
-        return <Phone className="h-4 w-4 text-yellow-600 animate-pulse" />
+        return <Phone className="h-4 w-4 text-blue-600" />
       case 'talking':
         return <Volume2 className="h-4 w-4 text-green-600" />
       case 'processing':
-        return <Activity className="h-4 w-4 text-blue-600 animate-spin" />
+        return <Activity className="h-4 w-4 text-orange-600" />
+      case 'voicemail':
+        return <MessageSquare className="h-4 w-4 text-purple-600" />
       case 'completed':
         return <CheckCircle className="h-4 w-4 text-gray-600" />
       default:
-        return <AlertTriangle className="h-4 w-4 text-red-600" />
+        return <Clock className="h-4 w-4 text-gray-600" />
     }
   }
 
-  const totalActiveCalls = campaignMonitors.reduce((sum, c) => sum + c.activeCalls, 0)
-  const totalQueue = campaignMonitors.reduce((sum, c) => sum + c.queueSize, 0)
-  const totalProcessed = campaignMonitors.reduce((sum, c) => sum + c.totalProcessed, 0)
-  const avgSuccessRate = campaignMonitors.reduce((sum, c) => sum + c.successRate, 0) / campaignMonitors.filter(c => c.status === 'active').length
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'connecting':
+        return <Badge className="bg-blue-100 text-blue-800">Соединение</Badge>
+      case 'talking':
+        return <Badge className="bg-green-100 text-green-800">Разговор</Badge>
+      case 'processing':
+        return <Badge className="bg-orange-100 text-orange-800">Обработка</Badge>
+      case 'voicemail':
+        return <Badge className="bg-purple-100 text-purple-800">Автоответчик</Badge>
+      case 'completed':
+        return <Badge className="bg-gray-100 text-gray-800">Завершен</Badge>
+      default:
+        return <Badge>Неизвестно</Badge>
+    }
+  }
+
+  const getCampaignStatusBadge = (status: string) => {
+    switch (status) {
+      case 'active':
+        return <Badge className="bg-green-100 text-green-800">Активна</Badge>
+      case 'paused':
+        return <Badge className="bg-yellow-100 text-yellow-800">Пауза</Badge>
+      case 'completed':
+        return <Badge className="bg-blue-100 text-blue-800">Завершена</Badge>
+      default:
+        return <Badge>Неизвестно</Badge>
+    }
+  }
+
+  const getTimePeriodLabel = () => {
+    switch (timePeriod) {
+      case 'today':
+        return 'за сегодня'
+      case '7d':
+        return 'за 7 дней'
+      case '30d':
+        return 'за 30 дней'
+      case 'custom':
+        return 'за выбранный период'
+      default:
+        return 'за сегодня'
+    }
+  }
+
+  // Подсчет общих метрик
+  const totalActiveCalls = campaignMonitors.reduce((sum, campaign) => sum + campaign.activeCalls, 0)
+  const totalQueue = campaignMonitors.reduce((sum, campaign) => sum + campaign.queueSize, 0)
+  const totalProcessed = campaignMonitors.reduce((sum, campaign) => sum + campaign.processedNumbers, 0)
+  const totalVoicemail = campaignMonitors.reduce((sum, campaign) => sum + campaign.voicemailCount, 0)
+  const avgSuccessRate = campaignMonitors.length > 0 
+    ? campaignMonitors.reduce((sum, campaign) => sum + campaign.successRate, 0) / campaignMonitors.length
+    : 0
 
   return (
     <div className="space-y-6">
@@ -217,28 +248,45 @@ export default function ObzvoniMonitorPage() {
               Мониторинг обзвонов
             </h1>
             <p className="text-gray-600">
-              Отслеживание активных звонков в реальном времени
+              Отслеживание активных звонков и состояния кампаний {getTimePeriodLabel()}
             </p>
           </div>
         </div>
         
         <div className="flex items-center space-x-3">
-          <div className="text-xs text-gray-500">
-            Обновлено: {lastUpdate.toLocaleTimeString('ru-RU')}
-          </div>
-          <Button
+          <Select value={timePeriod} onValueChange={setTimePeriod}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="today">За сегодня</SelectItem>
+              <SelectItem value="7d">За 7 дней</SelectItem>
+              <SelectItem value="30d">За 30 дней</SelectItem>
+              <SelectItem value="custom">Выбрать период</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <Button 
+            variant="outline" 
+            onClick={handleRefresh}
+            className={isAutoRefresh ? 'border-green-300 bg-green-50' : ''}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Обновить
+          </Button>
+          
+          <Button 
             variant={isAutoRefresh ? 'default' : 'outline'}
-            size="sm"
             onClick={() => setIsAutoRefresh(!isAutoRefresh)}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isAutoRefresh ? 'animate-spin' : ''}`} />
-            {isAutoRefresh ? 'Авто' : 'Ручное'}
+            {isAutoRefresh ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+            {isAutoRefresh ? 'Пауза' : 'Авто'}
           </Button>
         </div>
       </div>
 
-      {/* Общая статистика */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Общие метрики */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
@@ -296,51 +344,79 @@ export default function ObzvoniMonitorPage() {
             </div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <MessageSquare className="h-6 w-6 text-purple-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Автоответчики</p>
+                <p className="text-2xl font-bold text-gray-900">{totalVoicemail}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <Tabs defaultValue="live" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="live">Активные звонки</TabsTrigger>
-          <TabsTrigger value="campaigns">По кампаниям</TabsTrigger>
-          <TabsTrigger value="performance">Производительность</TabsTrigger>
-        </TabsList>
-
-        {/* Активные звонки */}
-        <TabsContent value="live" className="space-y-4">
+      {/* Активные звонки - табличный вид */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Активные звонки в реальном времени</CardTitle>
+            <Badge variant="outline">
+              Обновлено: {lastUpdate.toLocaleTimeString('ru-RU')}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
           {activeCalls.length > 0 ? (
-            <div className="space-y-4">
-              {activeCalls.map((call) => (
-                <Card key={call.id} className="hover:shadow-lg transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">Статус</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">Номер</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">Кампания</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">Агент</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">Этап</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">Длительность</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">Начало</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeCalls.map((call) => (
+                    <tr key={call.id} className="border-b hover:bg-gray-50">
+                      <td className="py-3 px-4">
                         <div className="flex items-center space-x-2">
                           {getStatusIcon(call.status)}
                           {getStatusBadge(call.status)}
-                        </div>
-                        <div>
-                          <p className="font-medium">{call.phoneNumber}</p>
-                          <p className="text-sm text-gray-600">
-                            {call.campaignName} • Агент: {call.agentName}
-                          </p>
-                          {call.currentStep && (
-                            <p className="text-xs text-blue-600 mt-1">
-                              {call.currentStep}
-                            </p>
+                          {call.isVoicemail && (
+                            <Badge className="bg-purple-100 text-purple-800 text-xs">
+                              VM
+                            </Badge>
                           )}
                         </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-6">
-                        <div className="text-right">
-                          <p className="text-lg font-bold text-gray-900">
-                            {formatDuration(call.duration)}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {call.startTime.toLocaleTimeString('ru-RU')}
-                          </p>
-                        </div>
-                        
+                      </td>
+                      <td className="py-3 px-4 font-mono text-sm">
+                        {maskPhoneNumber(call.phoneNumber)}
+                      </td>
+                      <td className="py-3 px-4 text-sm">{call.campaignName}</td>
+                      <td className="py-3 px-4 text-sm">{call.agentName}</td>
+                      <td className="py-3 px-4 text-sm">
+                        {call.currentStep && (
+                          <span className="text-blue-600">{call.currentStep}</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-sm font-medium">
+                        {formatCallDuration(call.duration)}
+                      </td>
+                      <td className="py-3 px-4 text-sm text-gray-600">
+                        {call.startTime.toLocaleTimeString('ru-RU')}
+                      </td>
+                      <td className="py-3 px-4">
                         <div className="flex space-x-2">
                           <Button size="sm" variant="outline">
                             <Eye className="h-4 w-4" />
@@ -351,182 +427,130 @@ export default function ObzvoniMonitorPage() {
                             </Button>
                           )}
                         </div>
-                      </div>
-                    </div>
-                    
-                    {call.status === 'talking' && (
-                      <div className="mt-4">
-                        <div className="flex items-center justify-between text-sm mb-1">
-                          <span className="text-gray-600">Прогресс разговора</span>
-                          <span className="text-gray-600">
-                            {Math.min(100, Math.round((call.duration / 300) * 100))}%
-                          </span>
-                        </div>
-                        <Progress 
-                          value={Math.min(100, (call.duration / 300) * 100)} 
-                          className="h-2"
-                        />
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : (
-            <Card>
-              <CardContent className="py-12">
-                <div className="text-center">
-                  <Phone className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">Нет активных звонков</p>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="text-center py-12">
+              <Phone className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Нет активных звонков
+              </h3>
+              <p className="text-gray-500">
+                Все агенты свободны или кампании приостановлены
+              </p>
+            </div>
           )}
-        </TabsContent>
+        </CardContent>
+      </Card>
 
-        {/* По кампаниям */}
-        <TabsContent value="campaigns" className="space-y-4">
-          <div className="space-y-4">
-            {campaignMonitors.map((campaign) => (
-              <Card key={campaign.id}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{campaign.name}</CardTitle>
-                    <div className="flex items-center space-x-2">
-                      {campaign.status === 'active' && (
-                        <Badge className="bg-green-100 text-green-800">
-                          <Zap className="h-3 w-3 mr-1" />
-                          Активна
-                        </Badge>
-                      )}
-                      {campaign.status === 'paused' && (
-                        <Badge className="bg-yellow-100 text-yellow-800">Пауза</Badge>
-                      )}
-                      {campaign.errors > 0 && (
-                        <Badge className="bg-red-100 text-red-800">
-                          {campaign.errors} ошибок
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <p className="text-2xl font-bold text-green-600">
-                        {campaign.activeCalls}
-                      </p>
-                      <p className="text-xs text-gray-600">Активные</p>
-                    </div>
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <p className="text-2xl font-bold text-blue-600">
+      {/* Кампании - табличный вид */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Состояние кампаний</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">Кампания</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">Статус</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">Активные звонки</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">В очереди</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">Прогресс</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">Успешность</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">Автоответчики</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">Ошибки</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {campaignMonitors.map((campaign) => {
+                  const progressPercentage = campaign.totalNumbers > 0 
+                    ? Math.round((campaign.processedNumbers / campaign.totalNumbers) * 100)
+                    : 0
+
+                  return (
+                    <tr key={campaign.id} className="border-b hover:bg-gray-50">
+                      <td className="py-3 px-4">
+                        <div>
+                          <p className="font-medium text-gray-900">{campaign.name}</p>
+                          <p className="text-sm text-gray-600">
+                            {campaign.totalNumbers.toLocaleString()} номеров в базе
+                          </p>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        {getCampaignStatusBadge(campaign.status)}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span className="inline-flex items-center justify-center w-8 h-8 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                          {campaign.activeCalls}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-sm font-medium">
                         {campaign.queueSize.toLocaleString()}
-                      </p>
-                      <p className="text-xs text-gray-600">Очередь</p>
-                    </div>
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <p className="text-2xl font-bold text-purple-600">
-                        {campaign.callsPerMinute.toFixed(1)}
-                      </p>
-                      <p className="text-xs text-gray-600">Зв./мин</p>
-                    </div>
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <p className="text-2xl font-bold text-orange-600">
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center space-x-2">
+                          <Progress value={progressPercentage} className="flex-1" />
+                          <span className="text-sm font-medium text-gray-600 min-w-[3rem]">
+                            {progressPercentage}%
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {campaign.processedNumbers.toLocaleString()} / {campaign.totalNumbers.toLocaleString()}
+                        </p>
+                      </td>
+                      <td className="py-3 px-4 text-sm font-medium">
                         {campaign.successRate.toFixed(1)}%
-                      </p>
-                      <p className="text-xs text-gray-600">Успешность</p>
-                    </div>
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <p className="text-2xl font-bold text-gray-700">
-                        {formatDuration(campaign.avgCallDuration)}
-                      </p>
-                      <p className="text-xs text-gray-600">Ср. длит.</p>
-                    </div>
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <p className="text-2xl font-bold text-gray-900">
-                        {campaign.totalProcessed.toLocaleString()}
-                      </p>
-                      <p className="text-xs text-gray-600">Обработано</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        {campaign.voicemailCount > 0 ? (
+                          <Badge className="bg-purple-100 text-purple-800 text-xs">
+                            {campaign.voicemailCount}
+                          </Badge>
+                        ) : (
+                          <span className="text-gray-400">0</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        {campaign.errors > 0 ? (
+                          <Badge className="bg-red-100 text-red-800 text-xs">
+                            {campaign.errors}
+                          </Badge>
+                        ) : (
+                          <span className="text-gray-400">0</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex space-x-2">
+                          {campaign.status === 'active' ? (
+                            <Button size="sm" variant="outline">
+                              <Pause className="h-4 w-4" />
+                            </Button>
+                          ) : campaign.status === 'paused' ? (
+                            <Button size="sm" variant="outline">
+                              <Play className="h-4 w-4" />
+                            </Button>
+                          ) : null}
+                          <Button size="sm" variant="outline">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
-        </TabsContent>
-
-        {/* Производительность */}
-        <TabsContent value="performance" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Нагрузка системы</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span>Использование каналов</span>
-                    <span>{totalActiveCalls}/50</span>
-                  </div>
-                  <Progress value={(totalActiveCalls / 50) * 100} className="h-3" />
-                </div>
-                
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span>Очередь звонков</span>
-                    <span>{totalQueue.toLocaleString()}</span>
-                  </div>
-                  <Progress value={Math.min(100, (totalQueue / 5000) * 100)} className="h-3" />
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span>Производительность</span>
-                    <span>Отлично</span>
-                  </div>
-                  <Progress value={85} className="h-3" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Статистика за час</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-4 border rounded-lg">
-                    <p className="text-2xl font-bold text-blue-600">1,247</p>
-                    <p className="text-sm text-gray-600">Звонков</p>
-                  </div>
-                  <div className="text-center p-4 border rounded-lg">
-                    <p className="text-2xl font-bold text-green-600">856</p>
-                    <p className="text-sm text-gray-600">Дозвонов</p>
-                  </div>
-                  <div className="text-center p-4 border rounded-lg">
-                    <p className="text-2xl font-bold text-purple-600">623</p>
-                    <p className="text-sm text-gray-600">Согласий</p>
-                  </div>
-                  <div className="text-center p-4 border rounded-lg">
-                    <p className="text-2xl font-bold text-orange-600">134</p>
-                    <p className="text-sm text-gray-600">Конверсий</p>
-                  </div>
-                </div>
-                
-                <div className="pt-4">
-                  <p className="text-sm text-gray-600 mb-2">Тенденция</p>
-                  <div className="flex items-center space-x-2">
-                    <TrendingUp className="h-4 w-4 text-green-500" />
-                    <span className="text-sm text-green-600">
-                      +12.5% к прошлому часу
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -31,7 +31,6 @@ interface AgentForm {
   role: string
   voiceId: string
   responseDelay: number
-  maxSilenceDuration: number
   interruptionHandling: boolean
 }
 
@@ -51,7 +50,6 @@ export default function NewAgentPage() {
     role: '',
     voiceId: '',
     responseDelay: 500,
-    maxSilenceDuration: 3,
     interruptionHandling: true
   })
   const [isLoading, setIsLoading] = useState(false)
@@ -316,21 +314,7 @@ export default function NewAgentPage() {
                   </p>
                 </div>
 
-                <div>
-                  <Label htmlFor="maxSilence">Максимальная тишина (сек)</Label>
-                  <Input
-                    id="maxSilence"
-                    type="number"
-                    min="1"
-                    max="10"
-                    value={form.maxSilenceDuration}
-                    onChange={(e) => handleInputChange('maxSilenceDuration', parseInt(e.target.value) || 3)}
-                    className="mt-1"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Максимальное время тишины до повтора вопроса (1-10 сек)
-                  </p>
-                </div>
+                {/* Настройка максимальной тишины удалена по требованиям */}
 
                 <div className="flex items-center justify-between">
                   <div>
@@ -407,10 +391,7 @@ export default function NewAgentPage() {
                     <span className="text-gray-600">Задержка ответа:</span>
                     <span>{form.responseDelay} мс</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Макс. тишина:</span>
-                    <span>{form.maxSilenceDuration} сек</span>
-                  </div>
+                  {/* Макс. тишина удалена */}
                   <div className="flex justify-between">
                     <span className="text-gray-600">Прерывания:</span>
                     <span>{form.interruptionHandling ? 'Включены' : 'Отключены'}</span>

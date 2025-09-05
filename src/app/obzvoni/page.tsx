@@ -25,6 +25,7 @@ import {
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { maskPhoneNumber } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
@@ -218,10 +219,7 @@ export default function ObzvoniPage() {
             Мониторинг
           </Button>
           
-          <Button onClick={() => router.push('/obzvoni/analytics')}>
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Аналитика
-          </Button>
+          
           
           <Button variant="outline" onClick={() => router.push('/obzvoni/funnel')}>
             <Settings className="h-4 w-4 mr-2" />
