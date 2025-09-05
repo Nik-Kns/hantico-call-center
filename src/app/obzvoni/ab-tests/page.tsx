@@ -117,7 +117,7 @@ export default function ObzvoniABTestsPage() {
 
   const getMetricName = (metric: string) => {
     const names: Record<string, string> = {
-      'conversion_rate': 'Конверсия',
+      'conversion_rate': 'Конверсия в регистрацию',
       'success_rate': 'Успешность',
       'avg_call_duration': 'Длительность звонка',
       'sms_consent_rate': 'Согласие на SMS'
