@@ -216,12 +216,6 @@ export default function ObzvoniPage() {
             Обновить
           </Button>
           
-          <Button onClick={() => router.push('/obzvoni/monitor')}>
-            <Monitor className="h-4 w-4 mr-2" />
-            Мониторинг
-          </Button>
-          
-          
           
           <Button variant="outline" onClick={() => router.push('/obzvoni/funnel')}>
             <Settings className="h-4 w-4 mr-2" />
