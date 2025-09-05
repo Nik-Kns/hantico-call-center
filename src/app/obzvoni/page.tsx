@@ -216,12 +216,6 @@ export default function ObzvoniPage() {
             Обновить
           </Button>
           
-          
-          <Button variant="outline" onClick={() => router.push('/obzvoni/funnel')}>
-            <Settings className="h-4 w-4 mr-2" />
-            Воронка
-          </Button>
-          
           <Button variant="outline" onClick={() => router.push('/obzvoni/ab-tests')}>
             <TrendingUp className="h-4 w-4 mr-2" />
             A/B тесты
