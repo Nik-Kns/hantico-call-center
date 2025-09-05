@@ -469,27 +469,7 @@ export default function ObzvoniABTestsPage() {
                           </CardContent>
                         </Card>
 
-                        <Card>
-                          <CardHeader>
-                            <CardTitle className="text-sm">Настройки теста</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="space-y-2 text-sm">
-                              <div className="flex justify-between">
-                                <span>Уровень доверия:</span>
-                                <span>{test.settings.confidenceLevel}%</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span>Автостоп:</span>
-                                <span>{test.settings.autoStop ? 'Включён' : 'Отключён'}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span>Основная метрика:</span>
-                                <span>{getMetricName(test.settings.primaryMetric)}</span>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
+                        {/* Блок настроек теста скрыт по требованиям */}
                       </div>
                     )}
                   </TabsContent>
