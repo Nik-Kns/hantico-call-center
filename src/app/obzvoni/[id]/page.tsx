@@ -25,7 +25,7 @@ import { maskPhoneNumber } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+// Tabs удалены: аналитика и звонки отображаются на одной странице
 
 // Типы для детальной страницы кампании
 interface CampaignDetails {
@@ -465,177 +465,165 @@ export default function CampaignDetailsPage() {
         </Card>
       </div>
 
-      {/* Табы с деталями */}
-      <Tabs defaultValue="calls" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="calls">Звонки ({callRecords.length})</TabsTrigger>
-          <TabsTrigger value="analytics">Аналитика</TabsTrigger>
-        </TabsList>
-
-        {/* Таб со звонками */}
-        <TabsContent value="calls" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>История звонков</CardTitle>
-                <Button variant="outline" size="sm">
-                  <Download className="h-4 w-4 mr-2" />
-                  Экспорт CSV
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        ID
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Номер
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Результат
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Длительность
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Время
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Согласие/Отказ
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Действия
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {callRecords.map((call) => (
-                      <tr key={call.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
-                          {call.id}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
-                          {maskPhoneNumber(call.phoneNumber)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {getResultBadge(call.result)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {call.duration > 0 ? formatDuration(call.duration) : '—'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {call.timestamp.toLocaleString('ru-RU', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {call.hasConsent ? (
-                            <Badge className="bg-green-100 text-green-800">Согласие</Badge>
-                          ) : call.result === 'success' ? (
-                            <Badge className="bg-red-100 text-red-800">Отказ</Badge>
-                          ) : (
-                            <span className="text-gray-400">—</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex items-center space-x-2">
-                            {call.hasRecording && (
-                              <Button size="sm" variant="outline" title="Прослушать запись">
-                                <Volume2 className="h-4 w-4" />
-                              </Button>
-                            )}
-                            {call.hasTranscript && (
-                              <Button size="sm" variant="outline" title="Показать транскрипт">
-                                <FileText className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Таб с аналитикой */}
-        <TabsContent value="analytics" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Распределение результатов</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {[
-                    { label: 'Успешные', count: campaign.successfulConnections, color: 'bg-green-500' },
-                    { label: 'Не ответили', count: Math.round(campaign.calledNumbers * 0.3), color: 'bg-gray-500' },
-                    { label: 'Отказы', count: Math.round(campaign.calledNumbers * 0.15), color: 'bg-red-500' },
-                    { label: 'Занято', count: Math.round(campaign.calledNumbers * 0.1), color: 'bg-orange-500' }
-                  ].map((item) => (
-                    <div key={item.label} className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-4 h-4 rounded-full ${item.color}`} />
-                        <span className="text-sm">{item.label}</span>
-                      </div>
-                      <span className="text-sm font-medium">{item.count.toLocaleString()}</span>
-                    </div>
-                  ))}
+      {/* Аналитика сверху */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Распределение результатов</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {[
+                { label: 'Успешные', count: campaign.successfulConnections, color: 'bg-green-500' },
+                { label: 'Не ответили', count: Math.round(campaign.calledNumbers * 0.3), color: 'bg-gray-500' },
+                { label: 'Отказы', count: Math.round(campaign.calledNumbers * 0.15), color: 'bg-red-500' },
+                { label: 'Занято', count: Math.round(campaign.calledNumbers * 0.1), color: 'bg-orange-500' }
+              ].map((item) => (
+                <div key={item.label} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-4 h-4 rounded-full ${item.color}`} />
+                    <span className="text-sm">{item.label}</span>
+                  </div>
+                  <span className="text-sm font-medium">{item.count.toLocaleString()}</span>
                 </div>
-              </CardContent>
-            </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Воронка звонков (по этапам)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2 px-3 text-sm text-gray-600">Этап</th>
-                        <th className="text-left py-2 px-3 text-sm text-gray-600">Кол-во</th>
-                        <th className="text-left py-2 px-3 text-sm text-gray-600">Конверсия от предыдущего</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(() => {
-                        const steps = [
-                          { step: 'Звонок', total: campaign.calledNumbers },
-                          { step: 'Успешное соединение', total: campaign.successfulConnections },
-                          { step: 'Согласие на SMS', total: campaign.smsAgreements },
-                          { step: 'Передано в Bitrix24', total: campaign.transfers }
-                        ]
-                        return steps.map((item, idx) => {
-                          const prev = idx === 0 ? item.total : steps[idx - 1].total
-                          const rate = prev > 0 ? Math.round((item.total / prev) * 100) : 0
-                          return (
-                            <tr key={item.step} className="border-b">
-                              <td className="py-2 px-3 text-sm">{item.step}</td>
-                              <td className="py-2 px-3 text-sm font-medium">{item.total.toLocaleString()}</td>
-                              <td className="py-2 px-3 text-sm">{rate}%</td>
-                            </tr>
-                          )
-                        })
-                      })()}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Воронка звонков (по этапам)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 px-3 text-sm text-gray-600">Этап</th>
+                    <th className="text-left py-2 px-3 text-sm text-gray-600">Кол-во</th>
+                    <th className="text-left py-2 px-3 text-sm text-gray-600">Конверсия от предыдущего</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const steps = [
+                      { step: 'Звонок', total: campaign.calledNumbers },
+                      { step: 'Успешное соединение', total: campaign.successfulConnections },
+                      { step: 'Согласие на SMS', total: campaign.smsAgreements },
+                      { step: 'Передано в Bitrix24', total: campaign.transfers }
+                    ]
+                    return steps.map((item, idx) => {
+                      const prev = idx === 0 ? item.total : steps[idx - 1].total
+                      const rate = prev > 0 ? Math.round((item.total / prev) * 100) : 0
+                      return (
+                        <tr key={item.step} className="border-b">
+                          <td className="py-2 px-3 text-sm">{item.step}</td>
+                          <td className="py-2 px-3 text-sm font-medium">{item.total.toLocaleString()}</td>
+                          <td className="py-2 px-3 text-sm">{rate}%</td>
+                        </tr>
+                      )
+                    })
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* История звонков ниже */}
+      <Card className="mt-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>История звонков</CardTitle>
+            <Button variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Экспорт CSV
+            </Button>
           </div>
-        </TabsContent>
-      </Tabs>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    ID
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Номер
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Результат
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Длительность
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Время
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Согласие/Отказ
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Действия
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {callRecords.map((call) => (
+                  <tr key={call.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
+                      {call.id}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
+                      {maskPhoneNumber(call.phoneNumber)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {getResultBadge(call.result)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {call.duration > 0 ? formatDuration(call.duration) : '—'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {call.timestamp.toLocaleString('ru-RU', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {call.hasConsent ? (
+                        <Badge className="bg-green-100 text-green-800">Согласие</Badge>
+                      ) : call.result === 'success' ? (
+                        <Badge className="bg-red-100 text-red-800">Отказ</Badge>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex items-center space-x-2">
+                        {call.hasRecording && (
+                          <Button size="sm" variant="outline" title="Прослушать запись">
+                            <Volume2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {call.hasTranscript && (
+                          <Button size="sm" variant="outline" title="Показать транскрипт">
+                            <FileText className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
