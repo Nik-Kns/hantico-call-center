@@ -25,7 +25,7 @@ import {
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { maskPhoneNumber } from '@/lib/utils'
+import { maskPhoneNumber, formatCallDuration } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
@@ -564,6 +564,130 @@ export default function ObzvoniPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Мониторинг (вставлен с /obzvoni/monitor) */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Мониторинг обзвонов</CardTitle>
+            <div className="flex items-center space-x-2">
+              <Button variant="outline" onClick={() => router.push('/obzvoni/monitor')}>Открыть полноэкранно</Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Общие метрики */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <Phone className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Активные звонки</p>
+                    <p className="text-2xl font-bold text-gray-900">{mockCampaigns.length > 0 ? 3 : 0}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <Users className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">В очереди</p>
+                    <p className="text-2xl font-bold text-gray-900">1,240</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <Activity className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Обработано</p>
+                    <p className="text-2xl font-bold text-gray-900">1,303</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="p-2 bg-orange-100 rounded-lg">
+                    <CheckCircle className="h-6 w-6 text-orange-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Успешность</p>
+                    <p className="text-2xl font-bold text-gray-900">46.8%</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <MessageSquare className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Автоответчики</p>
+                    <p className="text-2xl font-bold text-gray-900">38</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Активные звонки (таблица) - легкая версия */}
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold">Активные звонки в реальном времени</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 px-3 text-sm text-gray-600">Статус</th>
+                    <th className="text-left py-2 px-3 text-sm text-gray-600">Номер</th>
+                    <th className="text-left py-2 px-3 text-sm text-gray-600">Кампания</th>
+                    <th className="text-left py-2 px-3 text-sm text-gray-600">Агент</th>
+                    <th className="text-left py-2 px-3 text-sm text-gray-600">Этап</th>
+                    <th className="text-left py-2 px-3 text-sm text-gray-600">Длительность</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { status: 'talking', number: '+7 (999) 123-**-**', campaign: 'Тестовый обзвон базы', agent: 'Анна', step: 'Презентация предложения', duration: 120 },
+                    { status: 'voicemail', number: '+7 (999) 234-**-**', campaign: 'Реактивация неактивных', agent: 'Михаил', step: 'Автоответчик', duration: 90 },
+                    { status: 'connecting', number: '+7 (999) 345-**-**', campaign: 'Тестовый обзвон базы', agent: 'Елена', step: 'Соединение', duration: 30 },
+                  ].map((row, idx) => (
+                    <tr key={idx} className="border-b">
+                      <td className="py-2 px-3 text-sm">
+                        <div className="flex items-center space-x-2">
+                          {row.status === 'talking' ? <Volume2 className="h-4 w-4 text-green-600" /> : row.status === 'voicemail' ? <MessageSquare className="h-4 w-4 text-purple-600" /> : <Phone className="h-4 w-4 text-blue-600" />}
+                          <span className="text-gray-700">
+                            {row.status === 'talking' ? 'Разговор' : row.status === 'voicemail' ? 'Автоответчик' : 'Соединение'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-2 px-3 text-sm font-mono">{row.number}</td>
+                      <td className="py-2 px-3 text-sm">{row.campaign}</td>
+                      <td className="py-2 px-3 text-sm">{row.agent}</td>
+                      <td className="py-2 px-3 text-sm">{row.step}</td>
+                      <td className="py-2 px-3 text-sm font-medium">{formatCallDuration(row.duration)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
