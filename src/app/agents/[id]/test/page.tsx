@@ -46,6 +46,8 @@ export default function AgentTestPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [currentStage, setCurrentStage] = useState('greeting')
   const [isListening, setIsListening] = useState(false)
+  const [testPhone, setTestPhone] = useState('')
+  const [callStatus, setCallStatus] = useState<'idle' | 'calling' | 'ringing' | 'in_call'>('idle')
 
   if (!agent) {
     return (
@@ -167,6 +169,38 @@ export default function AgentTestPage() {
           </Button>
         </div>
       </div>
+
+      {/* Верхняя панель теста: номер и запуск */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Номер для теста</p>
+              <Input
+                placeholder="+7 900 000-00-00"
+                value={testPhone}
+                onChange={(e) => setTestPhone(e.target.value)}
+              />
+            </div>
+            <div className="text-sm text-gray-600">
+              <p>Текущий голос: <span className="font-medium">{voice?.name}</span></p>
+              <p>Статус: {
+                callStatus === 'idle' ? 'Готов' :
+                callStatus === 'calling' ? 'Исходящий вызов' :
+                callStatus === 'ringing' ? 'Ожидание ответа' : 'Разговор'
+              }</p>
+            </div>
+            <div className="flex space-x-2">
+              <Button onClick={() => { setCallStatus('calling'); setTimeout(() => setCallStatus('ringing'), 600) }}>
+                <Play className="h-4 w-4 mr-2" /> Запустить
+              </Button>
+              {callStatus === 'ringing' && (
+                <Button variant="outline" onClick={() => setCallStatus('in_call')}>Ответить</Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Чат */}

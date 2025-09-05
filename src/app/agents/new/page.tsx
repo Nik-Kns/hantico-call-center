@@ -10,7 +10,9 @@ import {
   Settings,
   MessageSquare,
   User,
-  AlertCircle
+  AlertCircle,
+  FileUp,
+  Phone
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -32,6 +34,9 @@ interface AgentForm {
   voiceId: string
   responseDelay: number
   interruptionHandling: boolean
+  basePrompt: string
+  kbFileName?: string | null
+  testPhone?: string
 }
 
 const agentRoles = [
@@ -48,10 +53,16 @@ export default function NewAgentPage() {
     role: '',
     voiceId: '',
     responseDelay: 500,
-    interruptionHandling: true
+    interruptionHandling: true,
+    basePrompt: '',
+    kbFileName: null,
+    testPhone: ''
   })
   const [isLoading, setIsLoading] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
+  const [callStatus, setCallStatus] = useState<'idle' | 'calling' | 'ringing' | 'in_call'>('idle')
+  const [testInput, setTestInput] = useState('')
+  const [testResponse, setTestResponse] = useState('')
 
   const handleInputChange = (field: keyof AgentForm, value: any) => {
     setForm(prev => ({
@@ -79,7 +90,9 @@ export default function NewAgentPage() {
       case 2:
         return form.voiceId
       case 3:
-        return true // Настройки имеют значения по умолчанию
+        return true
+      case 4:
+        return true
       default:
         return false
     }
@@ -94,9 +107,10 @@ export default function NewAgentPage() {
   }
 
   const steps = [
-    { id: 1, name: 'Основная информация', icon: User },
-    { id: 2, name: 'Выбор голоса', icon: Volume2 },
-    { id: 3, name: 'Настройки', icon: Settings }
+    { id: 1, name: 'Роль/этап', icon: User },
+    { id: 2, name: 'Голос (TTS)', icon: Volume2 },
+    { id: 3, name: 'Промптинг', icon: MessageSquare },
+    { id: 4, name: 'Тест', icon: Phone }
   ]
 
   return (
@@ -169,13 +183,13 @@ export default function NewAgentPage() {
       {/* Содержимое шагов */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          {/* Шаг 1: Основная информация */}
+          {/* Шаг 1: Роль/этап */}
           {currentStep === 1 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <User className="h-5 w-5 mr-2" />
-                  Основная информация
+                  Роль и базовая информация
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -285,16 +299,46 @@ export default function NewAgentPage() {
             </Card>
           )}
 
-          {/* Шаг 3: Настройки */}
+          {/* Шаг 3: Промптинг */}
           {currentStep === 3 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Settings className="h-5 w-5 mr-2" />
-                  Настройки поведения
+                  <MessageSquare className="h-5 w-5 mr-2" />
+                  Промптинг и знания
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
+                <div>
+                  <Label htmlFor="basePrompt">Инструкция для агента</Label>
+                  <Textarea
+                    id="basePrompt"
+                    placeholder="Опишите правила общения, цели и ограничения..."
+                    value={form.basePrompt}
+                    onChange={(e) => handleInputChange('basePrompt', e.target.value)}
+                    rows={6}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label>Документ знаний (опционально)</Label>
+                  <div className="mt-2 flex items-center space-x-3">
+                    <Input type="file" onChange={(e) => {
+                      const f = e.target.files?.[0]
+                      handleInputChange('kbFileName', f ? f.name : null)
+                    }} />
+                    {form.kbFileName && (
+                      <div className="text-sm text-gray-600 flex items-center">
+                        <FileUp className="h-4 w-4 mr-1" /> {form.kbFileName}
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Поддерживаются TXT/PDF/MD. Файл будет использован как база знаний.</p>
+                </div>
+
+                <Separator />
+
                 <div>
                   <Label htmlFor="responseDelay">Задержка ответа (мс)</Label>
                   <Input
@@ -333,11 +377,88 @@ export default function NewAgentPage() {
                     <div>
                       <h4 className="text-sm font-medium text-blue-900">Совет</h4>
                       <p className="text-sm text-blue-700 mt-1">
-                        После создания агента вы сможете настроить промты для каждого этапа разговора.
-                        Рекомендуем начать с базовых настроек и корректировать их по результатам тестирования.
+                        Добавьте краткую инструкцию и при необходимости документ знаний. Затем перейдите к тесту.
                       </p>
                     </div>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Шаг 4: Тест */}
+          {currentStep === 4 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Phone className="h-5 w-5 mr-2" />
+                  Финальный тест
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="testPhone">Номер для теста</Label>
+                    <Input
+                      id="testPhone"
+                      placeholder="Например: +7 900 000-00-00"
+                      value={form.testPhone}
+                      onChange={(e) => handleInputChange('testPhone', e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div className="flex items-end space-x-2">
+                    <Button
+                      className="mt-6"
+                      onClick={() => {
+                        setCallStatus('calling')
+                        setTimeout(() => setCallStatus('ringing'), 600)
+                      }}
+                    >
+                      <Phone className="h-4 w-4 mr-2" /> Запустить
+                    </Button>
+                    {callStatus === 'ringing' && (
+                      <Button className="mt-6" variant="outline" onClick={() => setCallStatus('in_call')}>
+                        Ответить
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-lg border bg-gray-50">
+                  <p className="text-sm text-gray-600">Статус: {
+                    callStatus === 'idle' ? 'Готов к вызову' :
+                    callStatus === 'calling' ? 'Исходящий вызов...' :
+                    callStatus === 'ringing' ? 'Вызов... ожидаем ответ' : 'Разговор идёт'
+                  }</p>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <Label>Альтернативно: текстовый тест</Label>
+                  <div className="flex items-center space-x-2">
+                    <Input
+                      placeholder="Напишите фразу клиента..."
+                      value={testInput}
+                      onChange={(e) => setTestInput(e.target.value)}
+                    />
+                    <Button
+                      onClick={() => {
+                        const response = form.basePrompt
+                          ? `Ответ агента (по инструкции): ${form.basePrompt.slice(0, 60)}...`
+                          : 'Ответ агента: готов к работе.'
+                        setTestResponse(response)
+                      }}
+                    >
+                      Проверить
+                    </Button>
+                  </div>
+                  {testResponse && (
+                    <div className="p-3 bg-green-50 text-sm rounded">
+                      {testResponse}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -394,6 +515,12 @@ export default function NewAgentPage() {
                     <span className="text-gray-600">Прерывания:</span>
                     <span>{form.interruptionHandling ? 'Включены' : 'Отключены'}</span>
                   </div>
+                  {form.basePrompt && (
+                    <div className="text-xs text-gray-600 mt-2">Инструкция задана</div>
+                  )}
+                  {form.kbFileName && (
+                    <div className="text-xs text-gray-600">Документ: {form.kbFileName}</div>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -413,8 +540,8 @@ export default function NewAgentPage() {
               Предыдущий шаг
             </Button>
             <Button
-              onClick={() => setCurrentStep(Math.min(3, currentStep + 1))}
-              disabled={currentStep === 3 || !isStepCompleted(currentStep)}
+              onClick={() => setCurrentStep(Math.min(4, currentStep + 1))}
+              disabled={currentStep === 4 || !isStepCompleted(currentStep)}
             >
               Следующий шаг
             </Button>
