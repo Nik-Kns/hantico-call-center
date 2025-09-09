@@ -909,7 +909,7 @@ export default function NewCompanyPage() {
           </Card>
         </div>
       </div>
-    </div>
+    </div>,
 
     {/* Модальное окно А/Б тестов */}
     <Dialog open={showABTests} onOpenChange={setShowABTests}>
