@@ -1,12 +1,10 @@
 'use client'
 
-import React from 'react'
+import { redirect } from 'next/navigation'
 
-export default function DashboardPage() {
-  // Пустая страница: оставляем только глобальный layout (левое и верхнее меню)
-  return (
-    <div />
-  )
+export default function HomePage() {
+  // Редирект на страницу компаний
+  redirect('/companies')
 }
 
 

@@ -62,24 +62,36 @@ export function maskPhoneNumber(phone: string): string {
   // Убираем все символы кроме цифр и +
   const cleaned = phone.replace(/[^\d+]/g, '')
   
-  if (cleaned.startsWith('+7') && cleaned.length === 12) {
-    // Российский номер: +7 (XXX) XXX-XX-XX -> +7 (XXX) XXX-**-**
+  if (cleaned.startsWith('+7') && cleaned.length >= 11) {
+    // Российский номер: +7 (9XX) XXX-XX-XX -> +7 (9••) •••-••-12
     const digits = cleaned.slice(2)
-    return `+7 (${digits.slice(0, 3)}) ${digits.slice(3, 6)}-**-**`
-  } else if (cleaned.startsWith('8') && cleaned.length === 11) {
-    // Российский номер с 8: 8 XXX XXX XX XX -> 8 XXX XXX **-**
-    return `8 (${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-**-**`
+    const lastTwo = digits.slice(-2)
+    return `+7 (${digits[0]}••) •••-••-${lastTwo}`
+  } else if (cleaned.startsWith('8') && cleaned.length >= 10) {
+    // Российский номер с 8: 8 9XX XXX XX XX -> 8 (9••) •••-••-12
+    const digits = cleaned.slice(1)
+    const lastTwo = digits.slice(-2)
+    return `8 (${digits[0]}••) •••-••-${lastTwo}`
   } else if (cleaned.length >= 10) {
-    // Общий случай - показываем первые цифры и маскируем последние 4
-    const visible = cleaned.slice(0, -4)
-    return `${visible}****`
+    // Общий случай - показываем первые 2-3 цифры и последние 2
+    const firstPart = cleaned.slice(0, 3)
+    const lastTwo = cleaned.slice(-2)
+    const middleLength = cleaned.length - 5
+    const middle = '•'.repeat(middleLength)
+    return `${firstPart}${middle}${lastTwo}`
   }
   
-  // Если номер слишком короткий, маскируем половину
-  const visibleLength = Math.floor(cleaned.length / 2)
-  const visible = cleaned.slice(0, visibleLength)
-  const masked = '*'.repeat(cleaned.length - visibleLength)
-  return visible + masked
+  // Если номер слишком короткий, маскируем середину
+  if (cleaned.length >= 4) {
+    const first = cleaned[0]
+    const last = cleaned.slice(-1)
+    const middleLength = cleaned.length - 2
+    const middle = '•'.repeat(middleLength)
+    return `${first}${middle}${last}`
+  }
+  
+  // Очень короткий номер - полная маскировка
+  return '•'.repeat(cleaned.length)
 }
 
 // Получение цвета для статуса
@@ -101,6 +113,7 @@ export function getStatusColor(status: string): string {
     'no_answer': 'bg-yellow-100 text-yellow-800',
     'busy': 'bg-orange-100 text-orange-800',
     'voicemail': 'bg-purple-100 text-purple-800',
+    'robot_voicemail': 'bg-indigo-100 text-indigo-800',
     'invalid': 'bg-gray-100 text-gray-800',
     'blacklist': 'bg-black text-white',
     
@@ -150,6 +163,7 @@ export function getStatusText(status: string): string {
     'no_answer': 'Не ответил',
     'busy': 'Занято',
     'voicemail': 'Автоответчик',
+    'robot_voicemail': 'Робот-автоответчик',
     'invalid': 'Недоступен',
     'blacklist': 'ЧС',
     
@@ -199,6 +213,7 @@ export function getStatusIcon(status: string): string {
     'no_answer': '📵',
     'busy': '📱',
     'voicemail': '📧',
+    'robot_voicemail': '🤖',
     'invalid': '⚠️',
     'blacklist': '🚫',
     

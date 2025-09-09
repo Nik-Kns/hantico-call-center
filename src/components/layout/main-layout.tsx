@@ -43,15 +43,15 @@ interface MainLayoutProps {
 
 const navigation = [
   {
-    name: 'Дашборд кампаний',
-    href: '/',
-    icon: BarChart3,
+    name: 'Компании',
+    href: '/companies',
+    icon: Phone,
     permissions: ['campaigns.view']
   },
   {
-    name: 'Обзвоны',
-    href: '/obzvoni',
-    icon: Phone,
+    name: 'Мониторинг',
+    href: '/obzvoni/monitor',
+    icon: BarChart3,
     permissions: ['campaigns.view']
   },
   {
