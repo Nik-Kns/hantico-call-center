@@ -222,6 +222,7 @@ export default function NewCompanyPage() {
   ]
 
   return (
+    <>
     <div className="space-y-6">
       {/* Заголовок */}
       <div className="flex items-center justify-between">
@@ -909,7 +910,7 @@ export default function NewCompanyPage() {
           </Card>
         </div>
       </div>
-    </div>,
+    </div>
 
     {/* Модальное окно А/Б тестов */}
     <Dialog open={showABTests} onOpenChange={setShowABTests}>
@@ -1070,5 +1071,6 @@ export default function NewCompanyPage() {
         </div>
       </DialogContent>
     </Dialog>
+    </>
   )
 }
