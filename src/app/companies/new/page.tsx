@@ -44,6 +44,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 
+interface ABTest {
+  id: string
+  name: string
+  description: string
+  status: 'active' | 'draft'
+  variantA: string
+  variantB: string
+  splitRatio: number
+  callsCount?: number
+}
+
 interface CampaignForm {
   name: string
   companyId: string
@@ -57,6 +68,7 @@ interface CampaignForm {
   serviceAvailable: boolean
   testPhone: string
   isTestCalling: boolean
+  selectedABTest?: ABTest
 }
 
 const mockAgents = [
@@ -73,6 +85,47 @@ const mockVoices = [
   { id: 'voice-4', name: 'Мужской спокойный', description: 'Размеренный, вдумчивый' }
 ]
 
+const mockABTests: ABTest[] = [
+  {
+    id: 'ab-1',
+    name: 'Тест приветствия v2',
+    description: 'Сравнение стандартного и персонализированного приветствия',
+    status: 'active',
+    variantA: 'Стандартное приветствие',
+    variantB: 'Персонализированное приветствие',
+    splitRatio: 50,
+    callsCount: 1234
+  },
+  {
+    id: 'ab-2',
+    name: 'Тест длительности разговора',
+    description: 'Короткий vs развернутый сценарий',
+    status: 'active',
+    variantA: 'Короткий сценарий',
+    variantB: 'Развернутый сценарий',
+    splitRatio: 50,
+    callsCount: 567
+  },
+  {
+    id: 'ab-3',
+    name: 'Тест голосов агентов',
+    description: 'Сравнение мужского и женского голоса для целевой аудитории',
+    status: 'draft',
+    variantA: 'Мужской голос',
+    variantB: 'Женский голос',
+    splitRatio: 50
+  },
+  {
+    id: 'ab-4',
+    name: 'Тест времени звонка',
+    description: 'Оптимальное время для звонков: утро vs вечер',
+    status: 'draft',
+    variantA: 'Утренние звонки',
+    variantB: 'Вечерние звонки',
+    splitRatio: 50
+  }
+]
+
 export default function NewCompanyPage() {
   const router = useRouter()
   const [form, setForm] = useState<CampaignForm>({
@@ -86,7 +139,8 @@ export default function NewCompanyPage() {
     telephonyOk: false,
     serviceAvailable: false,
     testPhone: '',
-    isTestCalling: false
+    isTestCalling: false,
+    selectedABTest: undefined
   })
 
   const [isLoading, setIsLoading] = useState(false)
@@ -96,6 +150,7 @@ export default function NewCompanyPage() {
   const [isRecording, setIsRecording] = useState(false)
   const [testCallStatus, setTestCallStatus] = useState<'idle' | 'calling' | 'connected' | 'ended'>('idle')
   const [showABTests, setShowABTests] = useState(false)
+  const [showCreateABTest, setShowCreateABTest] = useState(false)
 
   const handleInputChange = (field: keyof CampaignForm, value: any) => {
     setForm(prev => ({
@@ -180,6 +235,15 @@ export default function NewCompanyPage() {
       console.error('Ошибка записи:', error)
       setIsRecording(false)
     }
+  }
+
+  const handleSelectABTest = (test: ABTest) => {
+    handleInputChange('selectedABTest', test)
+    setShowABTests(false)
+  }
+
+  const handleRemoveABTest = () => {
+    handleInputChange('selectedABTest', undefined)
   }
 
   const isStepCompleted = (step: number) => {
@@ -692,20 +756,67 @@ export default function NewCompanyPage() {
                     </Badge>
                   </div>
                   
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <p className="text-sm text-gray-600 mb-4">
-                      Настройте А/Б тесты для сравнения эффективности разных сценариев
-                    </p>
-                    
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowABTests(true)}
-                      className="w-full"
-                    >
-                      <FlaskConical className="h-4 w-4 mr-2" />
-                      Открыть А/Б тесты
-                    </Button>
-                  </div>
+                  {form.selectedABTest ? (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <h4 className="font-medium text-blue-900">{form.selectedABTest.name}</h4>
+                            <Badge className={form.selectedABTest.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                              {form.selectedABTest.status === 'active' ? 'Активен' : 'Черновик'}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-blue-700 mb-3">
+                            {form.selectedABTest.description}
+                          </p>
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div className="bg-white/50 rounded px-3 py-2">
+                              <span className="font-medium">Вариант A:</span>
+                              <p className="text-gray-700">{form.selectedABTest.variantA}</p>
+                            </div>
+                            <div className="bg-white/50 rounded px-3 py-2">
+                              <span className="font-medium">Вариант B:</span>
+                              <p className="text-gray-700">{form.selectedABTest.variantB}</p>
+                            </div>
+                          </div>
+                          <div className="mt-3 text-sm text-blue-600">
+                            Распределение: {form.selectedABTest.splitRatio}% / {100 - form.selectedABTest.splitRatio}%
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleRemoveABTest}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowABTests(true)}
+                        >
+                          Изменить тест
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <p className="text-sm text-gray-600 mb-4">
+                        Настройте А/Б тесты для сравнения эффективности разных сценариев
+                      </p>
+                      
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowABTests(true)}
+                        className="w-full"
+                      >
+                        <FlaskConical className="h-4 w-4 mr-2" />
+                        Открыть А/Б тесты
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -801,6 +912,32 @@ export default function NewCompanyPage() {
                       </Badge>
                     </div>
                   </div>
+
+                  {form.selectedABTest && (
+                    <div>
+                      <p className="text-sm text-gray-600 mb-2">А/Б тестирование</p>
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <FlaskConical className="h-4 w-4 text-blue-600" />
+                          <h4 className="font-medium text-blue-900">{form.selectedABTest.name}</h4>
+                          <Badge className={form.selectedABTest.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                            {form.selectedABTest.status === 'active' ? 'Активен' : 'Черновик'}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-blue-700 mb-3">{form.selectedABTest.description}</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-white/50 rounded-lg p-3">
+                            <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Вариант A ({form.selectedABTest.splitRatio}%)</p>
+                            <p className="text-sm text-gray-900 mt-1">{form.selectedABTest.variantA}</p>
+                          </div>
+                          <div className="bg-white/50 rounded-lg p-3">
+                            <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Вариант B ({100 - form.selectedABTest.splitRatio}%)</p>
+                            <p className="text-sm text-gray-900 mt-1">{form.selectedABTest.variantB}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <Separator />
@@ -961,6 +1098,14 @@ export default function NewCompanyPage() {
                       </div>
                     </div>
                     <div className="flex space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleSelectABTest(mockABTests[0])}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Добавить в кампанию
+                      </Button>
                       <Button variant="ghost" size="sm">
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -994,6 +1139,14 @@ export default function NewCompanyPage() {
                       </div>
                     </div>
                     <div className="flex space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleSelectABTest(mockABTests[1])}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Добавить в кампанию
+                      </Button>
                       <Button variant="ghost" size="sm">
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -1027,6 +1180,13 @@ export default function NewCompanyPage() {
                       </div>
                     </div>
                     <div className="flex space-x-2">
+                      <Button 
+                        size="sm"
+                        onClick={() => handleSelectABTest(mockABTests[2])}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Добавить в кампанию
+                      </Button>
                       <Button variant="outline" size="sm">
                         <Play className="h-4 w-4 mr-1" />
                         Запустить
@@ -1055,6 +1215,13 @@ export default function NewCompanyPage() {
                       </div>
                     </div>
                     <div className="flex space-x-2">
+                      <Button 
+                        size="sm"
+                        onClick={() => handleSelectABTest(mockABTests[3])}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Добавить в кампанию
+                      </Button>
                       <Button variant="outline" size="sm">
                         <Play className="h-4 w-4 mr-1" />
                         Запустить
