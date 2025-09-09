@@ -37,6 +37,9 @@ export type SmsStatus = 'pending' | 'sent' | 'delivered' | 'failed';
 // Категории кампаний
 export type CampaignCategory = 'acquisition' | 'retention' | 'reactivation';
 
+// Типы базы для кампаний и агентов
+export type BaseType = 'registration' | 'no_answer' | 'refusals' | 'reactivation';
+
 // Сущность Lead/Контакт
 export interface Lead {
   id: string;
@@ -86,6 +89,7 @@ export interface Campaign {
   id: string;
   name: string;
   description?: string;
+  baseType: BaseType; // Обязательное поле - тип базы
   source: 'csv' | 'segment' | 'manual';
   sourceConfig?: {
     csvFile?: string;
@@ -387,6 +391,7 @@ export interface Agent {
   id: string;
   name: string;
   description: string;
+  baseType: BaseType; // Тип базы, для которой подходит агент
   role: string; // 'registration_agent', 'reminder_agent', etc.
   voiceId: string;
   status: 'active' | 'inactive' | 'archived';

@@ -43,6 +43,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { BaseType } from '@/lib/types'
 
 interface ABTest {
   id: string
@@ -58,6 +59,7 @@ interface ABTest {
 interface CampaignForm {
   name: string
   companyId: string
+  baseType: BaseType | ''
   agent: string
   voice: string
   instructions: string
@@ -72,10 +74,12 @@ interface CampaignForm {
 }
 
 const mockAgents = [
-  { id: 'anna-1', name: 'Анна', description: 'Продажи и консультации' },
-  { id: 'mikhail-2', name: 'Михаил', description: 'Поддержка и помощь' },
-  { id: 'elena-3', name: 'Елена', description: 'Опросы и исследования' },
-  { id: 'dmitry-4', name: 'Дмитрий', description: 'Информирование' }
+  { id: 'anna-1', name: 'Анна', description: 'Продажи и консультации', baseType: 'registration' as BaseType },
+  { id: 'mikhail-2', name: 'Михаил', description: 'Поддержка и помощь', baseType: 'no_answer' as BaseType },
+  { id: 'elena-3', name: 'Елена', description: 'Опросы и исследования', baseType: 'refusals' as BaseType },
+  { id: 'dmitry-4', name: 'Дмитрий', description: 'Информирование', baseType: 'reactivation' as BaseType },
+  { id: 'olga-5', name: 'Ольга', description: 'Регистрация новых клиентов', baseType: 'registration' as BaseType },
+  { id: 'ivan-6', name: 'Иван', description: 'Работа с недозвонами', baseType: 'no_answer' as BaseType }
 ]
 
 const mockVoices = [
@@ -131,6 +135,7 @@ export default function NewCompanyPage() {
   const [form, setForm] = useState<CampaignForm>({
     name: '',
     companyId: `CMP-${Date.now().toString(36).toUpperCase()}`,
+    baseType: '',
     agent: '',
     voice: '',
     instructions: '',
@@ -249,7 +254,7 @@ export default function NewCompanyPage() {
   const isStepCompleted = (step: number) => {
     switch (step) {
       case 1:
-        return form.name.trim() !== ''
+        return form.name.trim() !== '' && form.baseType !== ''
       case 2:
         return form.agent !== '' && form.voice !== ''
       case 3:
@@ -349,9 +354,9 @@ export default function NewCompanyPage() {
           {currentStep === 1 && (
             <Card>
               <CardHeader>
-                <CardTitle>Название компании</CardTitle>
+                <CardTitle>Название и тип кампании</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <div>
                   <Label htmlFor="name">Название компании *</Label>
                   <Input
@@ -363,6 +368,33 @@ export default function NewCompanyPage() {
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Введите понятное название для идентификации компании
+                  </p>
+                </div>
+                
+                <div>
+                  <Label htmlFor="baseType">Тип кампании *</Label>
+                  <Select value={form.baseType} onValueChange={(value) => {
+                    handleInputChange('baseType', value as BaseType)
+                    // Сбрасываем выбранного агента при смене типа
+                    if (form.agent) {
+                      const agent = mockAgents.find(a => a.id === form.agent)
+                      if (agent && agent.baseType !== value) {
+                        handleInputChange('agent', '')
+                      }
+                    }
+                  }}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Выберите тип кампании" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="registration">Регистрация</SelectItem>
+                      <SelectItem value="no_answer">Недозвон</SelectItem>
+                      <SelectItem value="refusals">Отказники</SelectItem>
+                      <SelectItem value="reactivation">Отклики/реактивация</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Тип кампании определяет, какие агенты будут доступны
                   </p>
                 </div>
               </CardContent>
@@ -381,21 +413,36 @@ export default function NewCompanyPage() {
               <CardContent className="space-y-6">
                 <div>
                   <Label>Выберите агента *</Label>
-                  <Select value={form.agent} onValueChange={(value) => handleInputChange('agent', value)}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Выберите агента для звонков" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {mockAgents.map((agent) => (
-                        <SelectItem key={agent.id} value={agent.id}>
-                          <div>
-                            <div className="font-medium">{agent.name}</div>
-                            <div className="text-xs text-gray-500">{agent.description}</div>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {!form.baseType ? (
+                    <div className="mt-1 p-3 border border-yellow-200 bg-yellow-50 rounded-lg">
+                      <p className="text-sm text-yellow-800">
+                        Сначала выберите тип кампании на предыдущем шаге
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <Select value={form.agent} onValueChange={(value) => handleInputChange('agent', value)}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Выберите агента для звонков" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {mockAgents
+                            .filter(agent => agent.baseType === form.baseType)
+                            .map((agent) => (
+                              <SelectItem key={agent.id} value={agent.id}>
+                                <div>
+                                  <div className="font-medium">{agent.name}</div>
+                                  <div className="text-xs text-gray-500">{agent.description}</div>
+                                </div>
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Доступны только агенты для типа кампании "{form.baseType === 'registration' ? 'Регистрация' : form.baseType === 'no_answer' ? 'Недозвон' : form.baseType === 'refusals' ? 'Отказники' : 'Отклики/реактивация'}"
+                      </p>
+                    </>
+                  )}
                 </div>
 
                 <div>
@@ -514,6 +561,15 @@ export default function NewCompanyPage() {
                     <div className="flex justify-between">
                       <span className="text-gray-600">Название:</span>
                       <span className="font-medium">{form.name || 'Не указано'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Тип кампании:</span>
+                      <span className="font-medium">
+                        {form.baseType === 'registration' ? 'Регистрация' : 
+                         form.baseType === 'no_answer' ? 'Недозвон' : 
+                         form.baseType === 'refusals' ? 'Отказники' : 
+                         form.baseType === 'reactivation' ? 'Отклики/реактивация' : 'Не выбран'}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Агент:</span>
@@ -869,6 +925,16 @@ export default function NewCompanyPage() {
                     <p className="font-medium text-lg">{form.name}</p>
                   </div>
 
+                  <div>
+                    <p className="text-sm text-gray-600">Тип кампании</p>
+                    <p className="font-medium">
+                      {form.baseType === 'registration' ? 'Регистрация' : 
+                       form.baseType === 'no_answer' ? 'Недозвон' : 
+                       form.baseType === 'refusals' ? 'Отказники' : 
+                       form.baseType === 'reactivation' ? 'Отклики/реактивация' : 'Не выбран'}
+                    </p>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-gray-600">Агент</p>
@@ -1020,7 +1086,7 @@ export default function NewCompanyPage() {
             <CardContent>
               {currentStep === 1 && (
                 <p className="text-sm text-gray-600">
-                  Выберите понятное название, которое поможет идентифицировать компанию в списке.
+                  Выберите понятное название и тип кампании. Тип определяет, какие агенты будут доступны.
                 </p>
               )}
               {currentStep === 2 && (

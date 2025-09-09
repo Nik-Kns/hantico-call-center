@@ -32,6 +32,7 @@ export default function AgentsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterRole, setFilterRole] = useState<string>('all')
+  const [filterBaseType, setFilterBaseType] = useState<string>('all')
 
   // Фильтрация агентов
   const filteredAgents = agents.filter(agent => {
@@ -39,8 +40,9 @@ export default function AgentsPage() {
                          agent.description.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesStatus = filterStatus === 'all' || agent.status === filterStatus
     const matchesRole = filterRole === 'all' || agent.role === filterRole
+    const matchesBaseType = filterBaseType === 'all' || agent.baseType === filterBaseType
     
-    return matchesSearch && matchesStatus && matchesRole
+    return matchesSearch && matchesStatus && matchesRole && matchesBaseType
   })
 
   const getStatusBadge = (status: string) => {
@@ -65,6 +67,21 @@ export default function AgentsPage() {
       'sales_agent': 'Продажи'
     }
     return roleMap[role] || role
+  }
+
+  const getBaseTypeBadge = (baseType: string) => {
+    switch (baseType) {
+      case 'registration':
+        return <Badge className="bg-blue-100 text-blue-800">Регистрация</Badge>
+      case 'no_answer':
+        return <Badge className="bg-yellow-100 text-yellow-800">Недозвон</Badge>
+      case 'refusals':
+        return <Badge className="bg-red-100 text-red-800">Отказники</Badge>
+      case 'reactivation':
+        return <Badge className="bg-purple-100 text-purple-800">Отклики/реактивация</Badge>
+      default:
+        return <Badge>{baseType}</Badge>
+    }
   }
 
   const getVoiceName = (voiceId: string) => {
@@ -184,7 +201,7 @@ export default function AgentsPage() {
               <Filter className="h-4 w-4 text-gray-500" />
               <span className="text-sm font-medium text-gray-700">Фильтры и поиск:</span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
@@ -219,12 +236,26 @@ export default function AgentsPage() {
                 </SelectContent>
               </Select>
 
+              <Select value={filterBaseType} onValueChange={setFilterBaseType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Тип базы" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Все типы</SelectItem>
+                  <SelectItem value="registration">Регистрация</SelectItem>
+                  <SelectItem value="no_answer">Недозвон</SelectItem>
+                  <SelectItem value="refusals">Отказники</SelectItem>
+                  <SelectItem value="reactivation">Отклики/реактивация</SelectItem>
+                </SelectContent>
+              </Select>
+
               <Button 
                 variant="outline" 
                 onClick={() => {
                   setSearchQuery('')
                   setFilterStatus('all')
                   setFilterRole('all')
+                  setFilterBaseType('all')
                 }}
               >
                 Сбросить
@@ -252,6 +283,9 @@ export default function AgentsPage() {
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Роль
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Тип базы
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Кампании
@@ -292,6 +326,9 @@ export default function AgentsPage() {
                       <Badge variant="outline">
                         {getRoleName(agent.role)}
                       </Badge>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {getBaseTypeBadge(agent.baseType)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">

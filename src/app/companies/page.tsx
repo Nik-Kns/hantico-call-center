@@ -34,12 +34,13 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Input } from '@/components/ui/input'
 import { mockCampaigns } from '@/lib/mock-data'
-import { Campaign, CampaignState } from '@/lib/types'
+import { Campaign, CampaignState, BaseType } from '@/lib/types'
 import { getStatusColor, getStatusText, calculatePercentage } from '@/lib/utils'
 
 interface ObzvonCampaign {
   id: string
   name: string
+  baseType: BaseType
   agent: string
   agentStage?: string
   database: string
@@ -60,6 +61,7 @@ const mockObzvonCampaigns: ObzvonCampaign[] = [
   {
     id: 'obz-1',
     name: 'Тестовый обзвон 2',
+    baseType: 'registration',
     agent: 'Анна (голос 1)',
     agentStage: 'Приветствие',
     database: 'Тестовая база №3413 (1,250 номеров)',
@@ -77,6 +79,7 @@ const mockObzvonCampaigns: ObzvonCampaign[] = [
   {
     id: 'obz-2',
     name: 'Реактивация неактивных',
+    baseType: 'reactivation',
     agent: 'Михаил (голос 2)',
     agentStage: 'Напоминание',
     database: 'Неактивные 90 дней (2,100 номеров)',
@@ -94,6 +97,7 @@ const mockObzvonCampaigns: ObzvonCampaign[] = [
   {
     id: 'obz-3',
     name: 'Холодная база январь',
+    baseType: 'registration',
     agent: 'Елена (голос 3)',
     agentStage: 'Холодный звонок',
     database: 'Новые лиды (850 номеров)',
@@ -115,6 +119,7 @@ export default function ObzvoniPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterAgent, setFilterAgent] = useState<string>('all')
   const [filterDate, setFilterDate] = useState<string>('all')
+  const [filterBaseType, setFilterBaseType] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -165,12 +170,28 @@ export default function ObzvoniPage() {
     }
   }
 
+  const getBaseTypeBadge = (baseType: BaseType) => {
+    switch (baseType) {
+      case 'registration':
+        return <Badge className="bg-blue-100 text-blue-800">Регистрация</Badge>
+      case 'no_answer':
+        return <Badge className="bg-orange-100 text-orange-800">Недозвон</Badge>
+      case 'refusals':
+        return <Badge className="bg-red-100 text-red-800">Отказники</Badge>
+      case 'reactivation':
+        return <Badge className="bg-purple-100 text-purple-800">Реактивация</Badge>
+      default:
+        return <Badge>{baseType}</Badge>
+    }
+  }
+
   // Получение уникальных агентов для фильтра
   const uniqueAgents = Array.from(new Set(campaigns.map(c => c.agent)))
 
   const filteredCampaigns = campaigns.filter(campaign => {
     const matchesStatus = filterStatus === 'all' || campaign.status === filterStatus
     const matchesAgent = filterAgent === 'all' || campaign.agent === filterAgent
+    const matchesBaseType = filterBaseType === 'all' || campaign.baseType === filterBaseType
     const matchesSearch = searchQuery === '' || 
       campaign.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       campaign.database.toLowerCase().includes(searchQuery.toLowerCase())
@@ -198,7 +219,7 @@ export default function ObzvoniPage() {
       }
     })()
 
-    return matchesStatus && matchesAgent && matchesSearch && matchesDate
+    return matchesStatus && matchesAgent && matchesBaseType && matchesSearch && matchesDate
   })
 
   return (
@@ -342,6 +363,21 @@ export default function ObzvoniPage() {
                 </SelectContent>
               </Select>
 
+              {/* Фильтр по типу базы */}
+              <Select value={filterBaseType} onValueChange={setFilterBaseType}>
+                <SelectTrigger>
+                  <Users className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Все типы" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Все типы</SelectItem>
+                  <SelectItem value="registration">Регистрация</SelectItem>
+                  <SelectItem value="no_answer">Недозвон</SelectItem>
+                  <SelectItem value="refusals">Отказники</SelectItem>
+                  <SelectItem value="reactivation">Реактивация</SelectItem>
+                </SelectContent>
+              </Select>
+
               {/* Фильтр по дате */}
               <Select value={filterDate} onValueChange={setFilterDate}>
                 <SelectTrigger>
@@ -364,6 +400,7 @@ export default function ObzvoniPage() {
                   setFilterStatus('all')
                   setFilterAgent('all')
                   setFilterDate('all')
+                  setFilterBaseType('all')
                   setSearchQuery('')
                 }}
                 className="whitespace-nowrap"
@@ -373,7 +410,7 @@ export default function ObzvoniPage() {
             </div>
 
             {/* Индикатор активных фильтров */}
-            {(filterStatus !== 'all' || filterAgent !== 'all' || filterDate !== 'all' || searchQuery !== '') && (
+            {(filterStatus !== 'all' || filterAgent !== 'all' || filterDate !== 'all' || filterBaseType !== 'all' || searchQuery !== '') && (
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <span>Активные фильтры:</span>
                 {filterStatus !== 'all' && (
@@ -381,6 +418,9 @@ export default function ObzvoniPage() {
                 )}
                 {filterAgent !== 'all' && (
                   <Badge variant="outline">Агент: {filterAgent}</Badge>
+                )}
+                {filterBaseType !== 'all' && (
+                  <Badge variant="outline">Тип базы: {filterBaseType}</Badge>
                 )}
                 {filterDate !== 'all' && (
                   <Badge variant="outline">Период: {filterDate}</Badge>
@@ -411,6 +451,9 @@ export default function ObzvoniPage() {
                     Название
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Тип базы
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     База номеров
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -420,10 +463,7 @@ export default function ObzvoniPage() {
                     Статус
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    % выполнения
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Этап/Агент
+                    Агент
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Действия
@@ -438,13 +478,13 @@ export default function ObzvoniPage() {
                         <div className="text-sm font-medium text-gray-900">
                           {campaign.name}
                         </div>
-                        <div className="text-sm text-gray-500">
-                          Агент: {campaign.agent}
-                          {campaign.agentStage && (
-                            <span className="ml-2 text-xs text-gray-400">• Этап: {campaign.agentStage}</span>
-                          )}
+                        <div className="text-xs text-gray-500">
+                          ID: {campaign.id}
                         </div>
                       </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {getBaseTypeBadge(campaign.baseType)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{campaign.database}</div>
@@ -453,7 +493,7 @@ export default function ObzvoniPage() {
                       <div className="text-sm text-gray-900">
                         {campaign.totalNumbers.toLocaleString()}
                       </div>
-                      <div className="text-xs text-gray-500">% исполнения: {campaign.progress}%</div>
+                      <div className="text-xs text-gray-500">Обработано: {campaign.progress}%</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(campaign.status)}

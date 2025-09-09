@@ -25,12 +25,13 @@ import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { mockVoices, mockVoiceLibrary } from '@/lib/mock-data'
-import { Agent } from '@/lib/types'
+import { Agent, BaseType } from '@/lib/types'
 
 interface AgentForm {
   name: string
   description: string
   role: string
+  baseType: BaseType | ''
   voiceId: string
   responseDelay: number
   interruptionHandling: boolean
@@ -51,6 +52,7 @@ export default function NewAgentPage() {
     name: '',
     description: '',
     role: '',
+    baseType: '',
     voiceId: '',
     responseDelay: 500,
     interruptionHandling: true,
@@ -88,7 +90,7 @@ export default function NewAgentPage() {
   const isStepCompleted = (step: number) => {
     switch (step) {
       case 1:
-        return form.name && form.description && form.role
+        return form.name && form.description && form.role && form.baseType
       case 2:
         return form.voiceId
       case 3:
@@ -272,6 +274,24 @@ export default function NewAgentPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div>
+                  <Label>Тип базы *</Label>
+                  <Select value={form.baseType} onValueChange={(value) => handleInputChange('baseType', value as BaseType)}>
+                    <SelectTrigger className="mt-2">
+                      <SelectValue placeholder="Выберите тип базы для агента" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="registration">Регистрация</SelectItem>
+                      <SelectItem value="no_answer">Недозвон</SelectItem>
+                      <SelectItem value="refusals">Отказники</SelectItem>
+                      <SelectItem value="reactivation">Отклики/реактивация</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Тип базы определяет, с какими кампаниями может работать агент
+                  </p>
                 </div>
               </CardContent>
             </Card>

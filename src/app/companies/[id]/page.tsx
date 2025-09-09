@@ -30,6 +30,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { maskPhoneNumber } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { BaseType } from '@/lib/types'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -40,6 +41,7 @@ interface CompanyDetails {
   id: string
   companyId: string
   name: string
+  baseType: BaseType
   status: 'active' | 'paused' | 'completed' | 'draft'
   agent: string
   voice: string
@@ -79,6 +81,7 @@ const mockCompanyDetails: { [key: string]: CompanyDetails } = {
     id: 'obz-1',
     companyId: 'CMP-1A2B3C4D',
     name: 'Новогодняя акция 2025',
+    baseType: 'registration' as BaseType,
     status: 'active',
     agent: 'Анна',
     voice: 'Женский дружелюбный',
@@ -97,6 +100,7 @@ const mockCompanyDetails: { [key: string]: CompanyDetails } = {
     id: 'obz-2',
     companyId: 'CMP-5E6F7G8H',
     name: 'Реактивация клиентов',
+    baseType: 'reactivation' as BaseType,
     status: 'paused',
     agent: 'Михаил',
     voice: 'Мужской деловой',
@@ -115,6 +119,7 @@ const mockCompanyDetails: { [key: string]: CompanyDetails } = {
     id: 'obz-3',
     companyId: 'CMP-9I0J1K2L',
     name: 'Холодная база январь',
+    baseType: 'no_answer' as BaseType,
     status: 'completed',
     agent: 'Елена',
     voice: 'Женский энергичный',
@@ -393,12 +398,27 @@ export default function CompanyDetailsPage() {
       {/* Верхняя информационная панель */}
       <Card>
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
             <div>
               <p className="text-sm text-gray-600 mb-1">Статус</p>
               <div className="flex items-center space-x-2">
                 {getStatusBadge(company.status)}
               </div>
+            </div>
+
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Тип кампании</p>
+              <Badge className={
+                company.baseType === 'registration' ? 'bg-blue-100 text-blue-800' :
+                company.baseType === 'no_answer' ? 'bg-yellow-100 text-yellow-800' :
+                company.baseType === 'refusals' ? 'bg-red-100 text-red-800' :
+                'bg-purple-100 text-purple-800'
+              }>
+                {company.baseType === 'registration' ? 'Регистрация' :
+                 company.baseType === 'no_answer' ? 'Недозвон' :
+                 company.baseType === 'refusals' ? 'Отказники' :
+                 'Отклики/реактивация'}
+              </Badge>
             </div>
             
             <div>
