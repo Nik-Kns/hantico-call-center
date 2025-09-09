@@ -59,6 +59,12 @@ const navigation = [
     href: '/agents',
     icon: Users,
     permissions: ['campaigns.view']
+  },
+  {
+    name: 'Настройки',
+    href: '/settings',
+    icon: Settings,
+    permissions: ['campaigns.view']
   }
 ]
 
