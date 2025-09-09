@@ -1,13 +1,13 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { 
   ArrowLeft,
   Play,
   Pause,
   Square,
-  Settings,
+  Copy,
   Phone,
   Clock,
   CheckCircle,
@@ -17,7 +17,14 @@ import {
   Download,
   FileText,
   Volume2,
-  AlertTriangle
+  AlertTriangle,
+  Check,
+  Link2,
+  UserCheck,
+  PhoneOff,
+  Bot,
+  Calendar,
+  Filter
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -25,170 +32,208 @@ import { maskPhoneNumber } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-// Tabs удалены: аналитика и звонки отображаются на одной странице
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
-// Типы для детальной страницы кампании
-interface CampaignDetails {
+interface CompanyDetails {
   id: string
+  companyId: string
   name: string
   status: 'active' | 'paused' | 'completed' | 'draft'
   agent: string
-  // script удален, сценарий внутри агента
-  script: string
-  database: string
+  voice: string
+  // Метрики передачи в ERP
+  totalReceived: number  // Сколько контактов передано ERP
+  totalProcessed: number  // Сколько обработано
+  totalInProgress: number  // Сколько в работе
+  // Декомпозиция обработанных
+  successfulConsent: number  // Успешные/согласие (SMS)
+  refusals: number  // Отказы
+  noAnswers: number  // Недозвоны
+  voicemails: number  // Автоответчики (роботы)
+  progress: number
   startTime?: Date
   endTime?: Date
-  progress: number
-  totalNumbers: number
-  calledNumbers: number
-  successfulConnections: number
-  smsAgreements: number
-  transfers: number
-  retries: number
 }
 
 interface CallRecord {
   id: string
-  phoneNumber: string
-  result: 'success' | 'no_answer' | 'busy' | 'refused' | 'error'
+  phoneNumber: string  // Маскированный номер
+  dateTime: Date
+  result: 'success' | 'refused' | 'no_answer' | 'voicemail' | 'busy'
+  category: string  // Категория результата
   duration: number
-  timestamp: Date
-  hasConsent: boolean
+  hasSms: boolean
+  hasLinkClick: boolean
+  hasRegistration: boolean
+  transferredToErp: boolean  // Флаг "передано в ERP/B24"
   hasRecording: boolean
   hasTranscript: boolean
-  notes?: string
 }
 
-// Моковые данные для детальной страницы
-const mockCampaignDetails: { [key: string]: CampaignDetails } = {
+// Моковые данные
+const mockCompanyDetails: { [key: string]: CompanyDetails } = {
   'obz-1': {
     id: 'obz-1',
-    name: 'Тестовый запуск',
+    companyId: 'CMP-1A2B3C4D',
+    name: 'Новогодняя акция 2025',
     status: 'active',
-    agent: 'Анна (голос 1)',
-    script: '',
-    database: 'Тестовая база №3413 (1,250 номеров)',
-    startTime: new Date(Date.now() - 3 * 60 * 60 * 1000),
-    progress: 68,
-    totalNumbers: 1250,
-    calledNumbers: 847,
-    successfulConnections: 623,
-    smsAgreements: 445,
-    transfers: 89,
-    retries: 156
+    agent: 'Анна',
+    voice: 'Женский дружелюбный',
+    totalReceived: 2500,
+    totalProcessed: 1847,
+    totalInProgress: 653,
+    successfulConsent: 1234,
+    refusals: 312,
+    noAnswers: 189,
+    voicemails: 112,
+    progress: 73.88,
+    startTime: new Date(Date.now() - 3 * 60 * 60 * 1000)
   },
   'obz-2': {
     id: 'obz-2',
-    name: 'Реактивация неактивных',
+    companyId: 'CMP-5E6F7G8H',
+    name: 'Реактивация клиентов',
     status: 'paused',
-    agent: 'Михаил (голос 2)',
-    script: '',
-    database: 'Неактивные 90 дней (2,100 номеров)',
-    startTime: new Date(Date.now() - 6 * 60 * 60 * 1000),
-    progress: 22,
-    totalNumbers: 2100,
-    calledNumbers: 456,
-    successfulConnections: 298,
-    smsAgreements: 156,
-    transfers: 34,
-    retries: 89
+    agent: 'Михаил',
+    voice: 'Мужской деловой',
+    totalReceived: 1800,
+    totalProcessed: 456,
+    totalInProgress: 1344,
+    successfulConsent: 234,
+    refusals: 89,
+    noAnswers: 78,
+    voicemails: 55,
+    progress: 25.33,
+    startTime: new Date(Date.now() - 6 * 60 * 60 * 1000)
   },
   'obz-3': {
     id: 'obz-3',
+    companyId: 'CMP-9I0J1K2L',
     name: 'Холодная база январь',
-    status: 'draft',
-    agent: 'Елена (голос 3)',
-    script: '',
-    database: 'Новые лиды (850 номеров)',
-    progress: 0,
-    totalNumbers: 850,
-    calledNumbers: 0,
-    successfulConnections: 0,
-    smsAgreements: 0,
-    transfers: 0,
-    retries: 0
+    status: 'completed',
+    agent: 'Елена',
+    voice: 'Женский энергичный',
+    totalReceived: 850,
+    totalProcessed: 850,
+    totalInProgress: 0,
+    successfulConsent: 445,
+    refusals: 178,
+    noAnswers: 156,
+    voicemails: 71,
+    progress: 100,
+    startTime: new Date(Date.now() - 24 * 60 * 60 * 1000),
+    endTime: new Date(Date.now() - 2 * 60 * 60 * 1000)
   }
 }
 
 const mockCallRecords: CallRecord[] = [
   {
     id: 'call-1',
-    phoneNumber: '+7 (999) 123-45-67',
+    phoneNumber: '+7 (9••) •••-45-67',
+    dateTime: new Date(Date.now() - 2 * 60 * 60 * 1000),
     result: 'success',
+    category: 'Согласие',
     duration: 245,
-    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-    hasConsent: true,
+    hasSms: true,
+    hasLinkClick: true,
+    hasRegistration: true,
+    transferredToErp: true,
     hasRecording: true,
-    hasTranscript: true,
-    notes: 'Клиент заинтересован, согласился на SMS'
+    hasTranscript: true
   },
   {
     id: 'call-2',
-    phoneNumber: '+7 (999) 234-56-78',
+    phoneNumber: '+7 (9••) •••-56-78',
+    dateTime: new Date(Date.now() - 3 * 60 * 60 * 1000),
     result: 'refused',
+    category: 'Отказ',
     duration: 89,
-    timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000),
-    hasConsent: false,
+    hasSms: false,
+    hasLinkClick: false,
+    hasRegistration: false,
+    transferredToErp: false,
     hasRecording: true,
-    hasTranscript: true,
-    notes: 'Категорический отказ'
+    hasTranscript: true
   },
   {
     id: 'call-3',
-    phoneNumber: '+7 (999) 345-67-89',
-    result: 'no_answer',
-    duration: 0,
-    timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
-    hasConsent: false,
+    phoneNumber: '+7 (9••) •••-67-89',
+    dateTime: new Date(Date.now() - 4 * 60 * 60 * 1000),
+    result: 'voicemail',
+    category: 'Автоответчик',
+    duration: 15,
+    hasSms: false,
+    hasLinkClick: false,
+    hasRegistration: false,
+    transferredToErp: false,
     hasRecording: false,
     hasTranscript: false
   },
   {
     id: 'call-4',
-    phoneNumber: '+7 (999) 456-78-90',
-    result: 'busy',
+    phoneNumber: '+7 (9••) •••-78-90',
+    dateTime: new Date(Date.now() - 5 * 60 * 60 * 1000),
+    result: 'no_answer',
+    category: 'Недозвон',
     duration: 0,
-    timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000),
-    hasConsent: false,
+    hasSms: false,
+    hasLinkClick: false,
+    hasRegistration: false,
+    transferredToErp: false,
     hasRecording: false,
     hasTranscript: false
   },
   {
     id: 'call-5',
-    phoneNumber: '+7 (999) 567-89-01',
+    phoneNumber: '+7 (9••) •••-89-01',
+    dateTime: new Date(Date.now() - 6 * 60 * 60 * 1000),
     result: 'success',
+    category: 'Согласие',
     duration: 312,
-    timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000),
-    hasConsent: true,
+    hasSms: true,
+    hasLinkClick: false,
+    hasRegistration: false,
+    transferredToErp: true,
     hasRecording: true,
-    hasTranscript: true,
-    notes: 'Успешная регистрация'
+    hasTranscript: true
   }
 ]
 
-export default function CampaignDetailsPage() {
+export default function CompanyDetailsPage() {
   const router = useRouter()
   const params = useParams()
-  const campaignId = params.id as string
+  const companyId = params.id as string
   
-  const [campaign, setCampaign] = useState<CampaignDetails | null>(
-    mockCampaignDetails[campaignId] || null
+  const [company, setCompany] = useState<CompanyDetails | null>(
+    mockCompanyDetails[companyId] || null
   )
-  const [callRecords, setCallRecords] = useState<CallRecord[]>(mockCallRecords)
+  const [callRecords] = useState<CallRecord[]>(mockCallRecords)
   const [isLoading, setIsLoading] = useState(false)
+  const [isCopied, setIsCopied] = useState(false)
+  const [dateFilter, setDateFilter] = useState('today')
+  const [searchFilter, setSearchFilter] = useState('')
 
-  const handleCampaignAction = async (action: 'start' | 'pause' | 'stop') => {
-    if (!campaign) return
+  const handleCompanyAction = async (action: 'start' | 'pause' | 'stop') => {
+    if (!company) return
     
     setIsLoading(true)
-    // Имитация API вызова
     setTimeout(() => {
-      setCampaign(prev => prev ? {
+      setCompany(prev => prev ? {
         ...prev,
         status: action === 'start' ? 'active' : action === 'pause' ? 'paused' : 'completed'
       } : null)
       setIsLoading(false)
     }, 1000)
+  }
+
+  const handleCopyCompanyId = () => {
+    if (company) {
+      navigator.clipboard.writeText(company.companyId)
+      setIsCopied(true)
+      setTimeout(() => setIsCopied(false), 2000)
+    }
   }
 
   const getStatusBadge = (status: string) => {
@@ -206,20 +251,20 @@ export default function CampaignDetailsPage() {
     }
   }
 
-  const getResultBadge = (result: string) => {
+  const getResultBadge = (result: string, category: string) => {
     switch (result) {
       case 'success':
-        return <Badge className="bg-green-100 text-green-800">Успех</Badge>
+        return <Badge className="bg-green-100 text-green-800">{category}</Badge>
       case 'refused':
-        return <Badge className="bg-red-100 text-red-800">Отказ</Badge>
+        return <Badge className="bg-red-100 text-red-800">{category}</Badge>
       case 'no_answer':
-        return <Badge className="bg-gray-100 text-gray-800">Не ответил</Badge>
+        return <Badge className="bg-gray-100 text-gray-800">{category}</Badge>
+      case 'voicemail':
+        return <Badge className="bg-yellow-100 text-yellow-800">{category}</Badge>
       case 'busy':
         return <Badge className="bg-orange-100 text-orange-800">Занято</Badge>
-      case 'error':
-        return <Badge className="bg-red-100 text-red-800">Ошибка</Badge>
       default:
-        return <Badge>Неизвестно</Badge>
+        return <Badge>{category}</Badge>
     }
   }
 
@@ -229,16 +274,16 @@ export default function CampaignDetailsPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  if (!campaign) {
+  if (!company) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Card>
           <CardContent className="p-12">
             <div className="text-center">
               <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h2 className="text-lg font-medium text-gray-900 mb-2">Кампания не найдена</h2>
+              <h2 className="text-lg font-medium text-gray-900 mb-2">Компания не найдена</h2>
               <p className="text-gray-600 mb-4">
-                Кампания с ID &quot;{campaignId}&quot; не существует или была удалена.
+                Компания с ID &quot;{companyId}&quot; не существует или была удалена.
               </p>
               <Button onClick={() => router.push('/obzvoni')}>
                 Вернуться к списку
@@ -261,32 +306,32 @@ export default function CampaignDetailsPage() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              {campaign.name}
+              {company.name}
             </h1>
             <p className="text-gray-600">
-              Детали кампании и результаты обзвона
+              Карточка компании и результаты обзвона
             </p>
           </div>
         </div>
         
         <div className="flex items-center space-x-3">
-          {getStatusBadge(campaign.status)}
+          {getStatusBadge(company.status)}
           
           <div className="flex space-x-2">
-            {campaign.status === 'draft' && (
+            {company.status === 'draft' && (
               <Button 
-                onClick={() => handleCampaignAction('start')}
+                onClick={() => handleCompanyAction('start')}
                 disabled={isLoading}
               >
                 <Play className="h-4 w-4 mr-2" />
                 Запустить
               </Button>
             )}
-            {campaign.status === 'active' && (
+            {company.status === 'active' && (
               <>
                 <Button 
                   variant="outline"
-                  onClick={() => handleCampaignAction('pause')}
+                  onClick={() => handleCompanyAction('pause')}
                   disabled={isLoading}
                 >
                   <Pause className="h-4 w-4 mr-2" />
@@ -294,7 +339,7 @@ export default function CampaignDetailsPage() {
                 </Button>
                 <Button 
                   variant="destructive"
-                  onClick={() => handleCampaignAction('stop')}
+                  onClick={() => handleCompanyAction('stop')}
                   disabled={isLoading}
                 >
                   <Square className="h-4 w-4 mr-2" />
@@ -302,10 +347,10 @@ export default function CampaignDetailsPage() {
                 </Button>
               </>
             )}
-            {campaign.status === 'paused' && (
+            {company.status === 'paused' && (
               <>
                 <Button 
-                  onClick={() => handleCampaignAction('start')}
+                  onClick={() => handleCompanyAction('start')}
                   disabled={isLoading}
                 >
                   <Play className="h-4 w-4 mr-2" />
@@ -313,7 +358,7 @@ export default function CampaignDetailsPage() {
                 </Button>
                 <Button 
                   variant="destructive"
-                  onClick={() => handleCampaignAction('stop')}
+                  onClick={() => handleCompanyAction('stop')}
                   disabled={isLoading}
                 >
                   <Square className="h-4 w-4 mr-2" />
@@ -321,216 +366,205 @@ export default function CampaignDetailsPage() {
                 </Button>
               </>
             )}
-            {campaign.status === 'draft' && (
-              <Button variant="outline">
-                <Settings className="h-4 w-4 mr-2" />
-                Настроить
-              </Button>
-            )}
           </div>
         </div>
       </div>
 
-      {/* Карточка статуса */}
+      {/* Верхняя информационная панель */}
       <Card>
-        <CardHeader>
-          <CardTitle>Статус кампании</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm text-gray-600">Прогресс выполнения</p>
-                <div className="flex items-center mt-2">
-                  <div className="flex-1 mr-4">
-                    <Progress value={campaign.progress} className="h-3" />
-                  </div>
-                  <span className="text-lg font-semibold">{campaign.progress}%</span>
-                </div>
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Статус</p>
+              <div className="flex items-center space-x-2">
+                {getStatusBadge(company.status)}
               </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-600">Агент</p>
-                  <p className="font-medium">{campaign.agent}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">База данных</p>
-                  <p className="font-medium">{campaign.database}</p>
-                </div>
+            </div>
+            
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Company ID</p>
+              <div className="flex items-center space-x-2">
+                <code className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">
+                  {company.companyId}
+                </code>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyCompanyId}
+                >
+                  {isCopied ? (
+                    <Check className="h-3 w-3 text-green-600" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                </Button>
               </div>
             </div>
 
-            <div className="space-y-4">
-              {campaign.startTime && (
-                <div>
-                  <p className="text-sm text-gray-600">Время запуска</p>
-                  <div className="flex items-center mt-1">
-                    <Clock className="h-4 w-4 text-gray-400 mr-2" />
-                    <span className="font-medium">
-                      {campaign.startTime.toLocaleString('ru-RU')}
-                    </span>
-                  </div>
-                </div>
-              )}
-              
-              {campaign.endTime && (
-                <div>
-                  <p className="text-sm text-gray-600">Время завершения</p>
-                  <div className="flex items-center mt-1">
-                    <Clock className="h-4 w-4 text-gray-400 mr-2" />
-                    <span className="font-medium">
-                      {campaign.endTime.toLocaleString('ru-RU')}
-                    </span>
-                  </div>
-                </div>
-              )}
-              
-              <div>
-                <p className="text-sm text-gray-600">Агенты</p>
-                <p className="font-medium">{campaign.agent}</p>
-                <p className="text-xs text-gray-500 mt-1">Всего в базе: {campaign.totalNumbers.toLocaleString()}</p>
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Передано ERP</p>
+              <p className="text-2xl font-bold">{company.totalReceived.toLocaleString()}</p>
+            </div>
+
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Прогресс</p>
+              <div className="flex items-center space-x-2">
+                <Progress value={company.progress} className="flex-1" />
+                <span className="text-sm font-medium">{company.progress}%</span>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* KPI */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+      {/* Основные метрики */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <Card>
-          <CardContent className="p-6 text-center">
-            <Phone className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-blue-600">
-              {campaign.calledNumbers.toLocaleString()}
-            </p>
-            <p className="text-sm text-gray-600">Совершено звонков</p>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Обработано</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {company.totalProcessed.toLocaleString()}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {Math.round((company.totalProcessed / company.totalReceived) * 100)}% от переданных
+                </p>
+              </div>
+              <CheckCircle className="h-8 w-8 text-blue-600 opacity-20" />
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6 text-center">
-            <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-green-600">
-              {campaign.successfulConnections.toLocaleString()}
-            </p>
-            <p className="text-sm text-gray-600">Успешные соединения</p>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">В работе</p>
+                <p className="text-2xl font-bold text-orange-600">
+                  {company.totalInProgress.toLocaleString()}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {Math.round((company.totalInProgress / company.totalReceived) * 100)}% от переданных
+                </p>
+              </div>
+              <Clock className="h-8 w-8 text-orange-600 opacity-20" />
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6 text-center">
-            <MessageSquare className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-purple-600">
-              {campaign.smsAgreements.toLocaleString()}
-            </p>
-            <p className="text-sm text-gray-600">Согласие на SMS</p>
-            <p className="text-xs text-gray-500">
-              {campaign.successfulConnections > 0 
-                ? `${Math.round((campaign.smsAgreements / campaign.successfulConnections) * 100)}%`
-                : '0%'
-              }
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6 text-center">
-            <Clock className="h-8 w-8 text-orange-600 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-orange-600">
-              {campaign.retries.toLocaleString()}
-            </p>
-            <p className="text-sm text-gray-600">Повторные звонки</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6 text-center">
-            <Users className="h-8 w-8 text-indigo-600 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-indigo-600">
-              {campaign.transfers.toLocaleString()}
-            </p>
-            <p className="text-sm text-gray-600">Передано в Bitrix24</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6 text-center">
-            <Clock className="h-8 w-8 text-gray-600 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-gray-600">
-              {campaign.totalNumbers - campaign.calledNumbers}
-            </p>
-            <p className="text-sm text-gray-600">Осталось звонков</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Аналитика сверху */}
-      <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Воронка звонков (по этапам)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-2 px-3 text-sm text-gray-600">Этап</th>
-                    <th className="text-left py-2 px-3 text-sm text-gray-600">Кол-во</th>
-                    <th className="text-left py-2 px-3 text-sm text-gray-600">Конверсия от предыдущего</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(() => {
-                    const voicemail = Math.max(0, Math.round(campaign.calledNumbers * 0.1))
-                    const answeredNotRegistered = Math.max(0, campaign.successfulConnections - campaign.smsAgreements)
-                    const perBucket = Math.floor(answeredNotRegistered / 5)
-                    const remainder = answeredNotRegistered % 5
-                    const dataBuckets = Array.from({ length: 5 }).map((_, i) => perBucket + (i < remainder ? 1 : 0))
-
-                    const steps = [
-                      { step: 'Звонок', total: campaign.calledNumbers },
-                      { step: 'Автоответчик', total: voicemail },
-                      { step: 'Ответил, но не зарегистрировался', total: answeredNotRegistered },
-                      { step: 'Данные 1', total: dataBuckets[0] || 0 },
-                      { step: 'Данные 2', total: dataBuckets[1] || 0 },
-                      { step: 'Данные 3', total: dataBuckets[2] || 0 },
-                      { step: 'Данные 4', total: dataBuckets[3] || 0 },
-                      { step: 'Данные 5', total: dataBuckets[4] || 0 },
-                      { step: 'Успешное соединение', total: campaign.successfulConnections },
-                      { step: 'Согласие на SMS', total: campaign.smsAgreements },
-                      { step: 'Передано в Bitrix24', total: campaign.transfers }
-                    ]
-
-                    return steps.map((item, idx) => {
-                      const prev = idx === 0 ? item.total : steps[idx - 1].total
-                      const rate = prev > 0 && item.total <= prev ? Math.round((item.total / prev) * 100) : null
-                      return (
-                        <tr key={`${item.step}-${idx}`} className="border-b">
-                          <td className="py-2 px-3 text-sm">{item.step}</td>
-                          <td className="py-2 px-3 text-sm font-medium">{item.total.toLocaleString()}</td>
-                          <td className="py-2 px-3 text-sm">{rate !== null ? `${rate}%` : '—'}</td>
-                        </tr>
-                      )
-                    })
-                  })()}
-                </tbody>
-              </table>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Конверсия</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {Math.round((company.successfulConsent / company.totalProcessed) * 100)}%
+                </p>
+                <p className="text-xs text-gray-500">
+                  Успешные из обработанных
+                </p>
+              </div>
+              <Users className="h-8 w-8 text-green-600 opacity-20" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* История звонков ниже */}
-      <Card className="mt-6">
+      {/* Декомпозиция обработанных */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Декомпозиция обработанных контактов</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+              <div className="flex items-center justify-between mb-2">
+                <MessageSquare className="h-5 w-5 text-green-600" />
+                <Badge className="bg-green-100 text-green-800">SMS</Badge>
+              </div>
+              <p className="text-2xl font-bold text-green-600">
+                {company.successfulConsent.toLocaleString()}
+              </p>
+              <p className="text-sm text-gray-600">Успешные/согласие</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {Math.round((company.successfulConsent / company.totalProcessed) * 100)}% от обработанных
+              </p>
+            </div>
+
+            <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+              <div className="flex items-center justify-between mb-2">
+                <XCircle className="h-5 w-5 text-red-600" />
+              </div>
+              <p className="text-2xl font-bold text-red-600">
+                {company.refusals.toLocaleString()}
+              </p>
+              <p className="text-sm text-gray-600">Отказы</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {Math.round((company.refusals / company.totalProcessed) * 100)}% от обработанных
+              </p>
+            </div>
+
+            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="flex items-center justify-between mb-2">
+                <PhoneOff className="h-5 w-5 text-gray-600" />
+              </div>
+              <p className="text-2xl font-bold text-gray-600">
+                {company.noAnswers.toLocaleString()}
+              </p>
+              <p className="text-sm text-gray-600">Недозвоны</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {Math.round((company.noAnswers / company.totalProcessed) * 100)}% от обработанных
+              </p>
+            </div>
+
+            <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+              <div className="flex items-center justify-between mb-2">
+                <Bot className="h-5 w-5 text-yellow-600" />
+              </div>
+              <p className="text-2xl font-bold text-yellow-600">
+                {company.voicemails.toLocaleString()}
+              </p>
+              <p className="text-sm text-gray-600">Автоответчики</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {Math.round((company.voicemails / company.totalProcessed) * 100)}% от обработанных
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Единая таблица звонков */}
+      <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>История звонков</CardTitle>
-            <Button variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
-              Экспорт CSV
-            </Button>
+            <CardTitle>Таблица звонков</CardTitle>
+            <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2">
+                <Label htmlFor="date-filter" className="text-sm">Период:</Label>
+                <Select value={dateFilter} onValueChange={setDateFilter}>
+                  <SelectTrigger id="date-filter" className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="today">Сегодня</SelectItem>
+                    <SelectItem value="week">Неделя</SelectItem>
+                    <SelectItem value="month">Месяц</SelectItem>
+                    <SelectItem value="all">Все время</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Input
+                placeholder="Поиск по номеру..."
+                value={searchFilter}
+                onChange={(e) => setSearchFilter(e.target.value)}
+                className="w-48"
+              />
+              <Button variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Экспорт
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -538,25 +572,22 @@ export default function CampaignDetailsPage() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Номер
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Дата/время
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Результат
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Длительность
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Время
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                    Флаги
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Согласие/Отказ
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Действия
                   </th>
                 </tr>
@@ -564,47 +595,75 @@ export default function CampaignDetailsPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {callRecords.map((call) => (
                   <tr key={call.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
-                      {call.id}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className="font-mono text-sm">{call.phoneNumber}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
-                      {maskPhoneNumber(call.phoneNumber)}
+                    <td className="px-4 py-3 whitespace-nowrap text-sm">
+                      <div>
+                        <div className="flex items-center text-gray-900">
+                          <Calendar className="h-3 w-3 mr-1 text-gray-400" />
+                          {call.dateTime.toLocaleDateString('ru-RU')}
+                        </div>
+                        <div className="flex items-center text-gray-500 text-xs">
+                          <Clock className="h-3 w-3 mr-1 text-gray-400" />
+                          {call.dateTime.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getResultBadge(call.result)}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      {getResultBadge(call.result, call.category)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm">
                       {call.duration > 0 ? formatDuration(call.duration) : '—'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {call.timestamp.toLocaleString('ru-RU', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-center space-x-1">
+                        {call.hasSms && (
+                          <div className="group relative">
+                            <MessageSquare className="h-4 w-4 text-blue-600" />
+                            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                              SMS отправлено
+                            </span>
+                          </div>
+                        )}
+                        {call.hasLinkClick && (
+                          <div className="group relative">
+                            <Link2 className="h-4 w-4 text-green-600" />
+                            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                              Переход по ссылке
+                            </span>
+                          </div>
+                        )}
+                        {call.hasRegistration && (
+                          <div className="group relative">
+                            <UserCheck className="h-4 w-4 text-purple-600" />
+                            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                              Регистрация
+                            </span>
+                          </div>
+                        )}
+                        {call.transferredToErp && (
+                          <Badge className="bg-indigo-100 text-indigo-800 text-xs">
+                            ERP
+                          </Badge>
+                        )}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {call.hasConsent ? (
-                        <Badge className="bg-green-100 text-green-800">Согласие</Badge>
-                      ) : call.result === 'success' ? (
-                        <Badge className="bg-red-100 text-red-800">Отказ</Badge>
-                      ) : (
-                        <span className="text-gray-400">—</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center space-x-2">
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex items-center space-x-1">
                         {call.hasRecording && (
-                          <Button size="sm" variant="outline" title="Прослушать запись">
+                          <Button size="sm" variant="ghost" title="Прослушать">
                             <Volume2 className="h-4 w-4" />
                           </Button>
                         )}
                         {call.hasTranscript && (
-                          <Button size="sm" variant="outline" title="Показать транскрипт">
+                          <Button size="sm" variant="ghost" title="Транскрипт">
                             <FileText className="h-4 w-4" />
                           </Button>
                         )}
+                        <Button size="sm" variant="ghost" title="Экспорт">
+                          <Download className="h-3 w-3" />
+                        </Button>
                       </div>
                     </td>
                   </tr>
