@@ -63,8 +63,8 @@ export default function AgentTestPage() {
     )
   }
 
-  const handleSendMessage = async (textParam?: string) => {
-    const textToSend = (textParam ?? inputMessage).trim()
+  const handleSendMessage = async (textParam?: string | React.MouseEvent<HTMLButtonElement>) => {
+    const textToSend = typeof textParam === 'string' ? textParam.trim() : inputMessage.trim()
     if (!textToSend) return
 
     const userMessage: TestMessage = {

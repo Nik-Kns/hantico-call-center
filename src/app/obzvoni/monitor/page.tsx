@@ -326,8 +326,8 @@ export default function ObzvoniMonitorPage() {
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
                     Конверсия
                   </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                    <Bot className="h-4 w-4 mx-auto" title="Автоответчики" />
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase" title="Автоответчики">
+                    <Bot className="h-4 w-4 mx-auto" />
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Последняя активность
