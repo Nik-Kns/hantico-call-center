@@ -37,13 +37,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { BaseType } from '@/lib/types'
 
 interface ABTest {
@@ -189,6 +182,15 @@ export default function NewCompanyPage() {
   const [showABTests, setShowABTests] = useState(false)
   const [showCreateABTest, setShowCreateABTest] = useState(false)
   const [showCreateAgent, setShowCreateAgent] = useState(false)
+  const [showABTestSelection, setShowABTestSelection] = useState(false)
+  const [showABTestCreation, setShowABTestCreation] = useState(false)
+  const [newABTest, setNewABTest] = useState({
+    name: '',
+    description: '',
+    variantA: '',
+    variantB: '',
+    splitRatio: 50
+  })
 
   const handleInputChange = (field: keyof CampaignForm, value: any) => {
     setForm(prev => ({
@@ -223,8 +225,8 @@ export default function NewCompanyPage() {
   }
 
   useEffect(() => {
-    // Автоматическая проверка готовности при монтировании на 6 шаге
-    if (currentStep === 6) {
+    // Автоматическая проверка готовности при монтировании на 3 шаге
+    if (currentStep === 3) {
       checkServiceReadiness()
     }
   }, [currentStep])
@@ -320,14 +322,13 @@ export default function NewCompanyPage() {
       case 2:
         return form.callWindow.start !== '' && form.callWindow.end !== ''
       case 3:
-        return (form.agent !== '' || (form.createNewAgent && form.newAgentName !== '')) && form.voice !== ''
+        return (form.agent !== '' || (form.createNewAgent && form.newAgentName !== '')) && 
+               form.voice !== '' && 
+               form.instructions.trim() !== '' && 
+               form.serviceReady
       case 4:
         return true // A/B тесты опциональны
       case 5:
-        return form.instructions.trim() !== ''
-      case 6:
-        return form.serviceReady
-      case 7:
         return true // Резюме всегда доступно
       default:
         return false
@@ -335,7 +336,7 @@ export default function NewCompanyPage() {
   }
 
   const isFormValid = () => {
-    return isStepCompleted(1) && isStepCompleted(2) && isStepCompleted(3) && isStepCompleted(5) && isStepCompleted(6)
+    return isStepCompleted(1) && isStepCompleted(2) && isStepCompleted(3)
   }
 
   const handleSave = async () => {
@@ -351,16 +352,14 @@ export default function NewCompanyPage() {
   const steps = [
     { id: 1, name: 'Название и тип', icon: Settings },
     { id: 2, name: 'Время и повторы', icon: Clock },
-    { id: 3, name: 'Агент и голос', icon: Mic },
+    { id: 3, name: 'Настройка Агента', icon: Mic },
     { id: 4, name: 'A/B тесты', icon: FlaskConical },
-    { id: 5, name: 'Инструкция', icon: FileText },
-    { id: 6, name: 'Проверка готовности', icon: CheckSquare },
-    { id: 7, name: 'Резюме', icon: CheckCircle }
+    { id: 5, name: 'Резюме', icon: CheckCircle }
   ]
 
   return (
     <>
-    <div className="space-y-6">
+      <div className="space-y-6">
       {/* Заголовок */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
@@ -563,8 +562,10 @@ export default function NewCompanyPage() {
             </Card>
           )}
 
-          {/* Шаг 3: Агент */}
+          {/* Шаг 3: Настройка Агента (объединенный) */}
           {currentStep === 3 && (
+            <>
+            {/* Выбор агента и голоса */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -770,10 +771,10 @@ export default function NewCompanyPage() {
                             variant="outline"
                             size="sm"
                             className="mt-3"
-                            onClick={() => setCurrentStep(5)}
+                            onClick={() => setCurrentStep(3)}
                           >
-                            <Edit className="h-3 w-3 mr-1" />
-                            Редактировать инструкции
+                            <ArrowLeft className="h-3 w-3 mr-1" />
+                            Назад к настройке агента
                           </Button>
                         )}
                       </div>
@@ -782,96 +783,9 @@ export default function NewCompanyPage() {
                 </div>
               </CardContent>
             </Card>
-          )}
 
-          {/* Шаг 4: A/B тесты */}
-          {currentStep === 4 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <FlaskConical className="h-5 w-5 mr-2" />
-                  A/B тестирование
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-gray-600">
-                  Настройте A/B тесты для сравнения эффективности разных сценариев и агентов (опционально)
-                </p>
-                
-                {form.selectedABTest ? (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <h4 className="font-medium text-blue-900">{form.selectedABTest.name}</h4>
-                          <Badge className={form.selectedABTest.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
-                            {form.selectedABTest.status === 'active' ? 'Активен' : 'Черновик'}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-blue-700 mb-3">
-                          {form.selectedABTest.description}
-                        </p>
-                        <div className="grid grid-cols-2 gap-3 text-sm">
-                          <div className="bg-white/50 rounded px-3 py-2">
-                            <span className="font-medium">Вариант A:</span>
-                            <p className="text-gray-700">{form.selectedABTest.variantA}</p>
-                          </div>
-                          <div className="bg-white/50 rounded px-3 py-2">
-                            <span className="font-medium">Вариант B:</span>
-                            <p className="text-gray-700">{form.selectedABTest.variantB}</p>
-                          </div>
-                        </div>
-                        <div className="mt-3 text-sm text-blue-600">
-                          Распределение трафика: {form.selectedABTest.splitRatio}% / {100 - form.selectedABTest.splitRatio}%
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleRemoveABTest}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowABTests(true)}
-                      >
-                        Изменить тест
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <p className="text-sm text-gray-600 mb-4">
-                      A/B тесты помогут определить наиболее эффективные сценарии и агентов
-                    </p>
-                    
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowABTests(true)}
-                      className="w-full"
-                    >
-                      <FlaskConical className="h-4 w-4 mr-2" />
-                      Выбрать A/B тест
-                    </Button>
-                  </div>
-                )}
-                
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-xs text-blue-700">
-                    💡 Совет: A/B тесты позволяют сравнить разные подходы и выбрать наиболее эффективный
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Шаг 5: Инструкция и документ знаний */}
-          {currentStep === 5 && (
-            <Card>
+            {/* Инструкция и документ знаний */}
+            <Card className="mt-6">
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <FileText className="h-5 w-5 mr-2" />
@@ -927,11 +841,9 @@ export default function NewCompanyPage() {
                 </div>
               </CardContent>
             </Card>
-          )}
 
-          {/* Шаг 6: Проверка готовности сервиса */}
-          {currentStep === 6 && (
-            <Card>
+            {/* Проверка готовности */}
+            <Card className="mt-6">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center">
@@ -950,75 +862,6 @@ export default function NewCompanyPage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Резюме предыдущих шагов */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h3 className="font-medium mb-3 flex items-center">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Параметры компании
-                  </h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Название:</span>
-                      <span className="font-medium">{form.name || 'Не указано'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Тип кампании:</span>
-                      <span className="font-medium">
-                        {form.baseType === 'registration' ? 'Регистрация' : 
-                         form.baseType === 'no_answer' ? 'Недозвон' : 
-                         form.baseType === 'refusals' ? 'Отказники' : 
-                         form.baseType === 'reactivation' ? 'Отклики/реактивация' : 'Не выбран'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Агент:</span>
-                      <span className="font-medium">
-                        {mockAgents.find(a => a.id === form.agent)?.name || 'Не выбран'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Голос:</span>
-                      <span className="font-medium">
-                        {mockVoices.find(v => v.id === form.voice)?.name || 'Не выбран'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Инструкции:</span>
-                      <span className="font-medium">
-                        {form.instructions ? 'Заполнены' : 'Не указаны'}
-                      </span>
-                    </div>
-                    {form.knowledgeDoc && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">База знаний:</span>
-                        <span className="font-medium">{form.knowledgeDoc.name}</span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="mt-4 pt-4 border-t border-blue-200">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Company ID:</span>
-                      <div className="flex items-center space-x-2">
-                        <code className="font-mono font-bold text-blue-900">
-                          {form.companyId}
-                        </code>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleCopyCompanyId}
-                        >
-                          {isCopied ? (
-                            <Check className="h-3 w-3 text-green-600" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Проверка готовности сервиса */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Телефония */}
@@ -1106,179 +949,270 @@ export default function NewCompanyPage() {
                     </div>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+            </>
+          )}
 
-                {/* Тестовый звонок */}
-                <div className="border-t pt-6">
-                  <h3 className="font-medium mb-4 flex items-center">
-                    <Phone className="h-4 w-4 mr-2" />
-                    Тестовый звонок
-                  </h3>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="test-phone">Номер телефона для теста</Label>
-                      <div className="flex space-x-2 mt-2">
-                        <Input
-                          id="test-phone"
-                          type="tel"
-                          placeholder="+7 900 123-45-67"
-                          value={form.testPhone}
-                          onChange={(e) => handleInputChange('testPhone', e.target.value)}
-                          disabled={form.isTestCalling || isRecording}
-                        />
-                        <Button
-                          variant="outline"
-                          onClick={startVoiceCall}
-                          disabled={form.isTestCalling || isRecording}
-                        >
-                          {isRecording ? (
-                            <>
-                              <div className="animate-pulse h-4 w-4 bg-red-500 rounded-full mr-2" />
-                              Говорите...
-                            </>
-                          ) : (
-                            <>
-                              <Headphones className="h-4 w-4 mr-2" />
-                              Через микрофон
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-
-                    {form.testPhone && (
-                      <div className="flex items-center space-x-4">
-                        <Button
-                          onClick={handleTestCall}
-                          disabled={!form.testPhone || form.isTestCalling}
-                          className="flex-1"
-                        >
-                          {testCallStatus === 'idle' && (
-                            <>
-                              <Phone className="h-4 w-4 mr-2" />
-                              Позвонить
-                            </>
-                          )}
-                          {testCallStatus === 'calling' && (
-                            <>
-                              <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                              Звоним...
-                            </>
-                          )}
-                          {testCallStatus === 'connected' && (
-                            <>
-                              <Phone className="h-4 w-4 mr-2 animate-pulse" />
-                              Разговор...
-                            </>
-                          )}
-                          {testCallStatus === 'ended' && (
-                            <>
-                              <CheckCircle className="h-4 w-4 mr-2" />
-                              Завершено
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    )}
-
-                    {testCallStatus === 'connected' && (
-                      <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                        <p className="text-sm text-green-700">
-                          Идет тестовый разговор с агентом {mockAgents.find(a => a.id === form.agent)?.name}...
+          {/* Шаг 4: A/B тесты */}
+          {currentStep === 4 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <FlaskConical className="h-5 w-5 mr-2" />
+                  A/B тестирование
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  Настройте A/B тесты для сравнения эффективности разных сценариев и агентов (опционально)
+                </p>
+                
+                {form.selectedABTest ? (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <h4 className="font-medium text-blue-900">{form.selectedABTest.name}</h4>
+                          <Badge className={form.selectedABTest.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                            {form.selectedABTest.status === 'active' ? 'Активен' : 'Черновик'}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-blue-700 mb-3">
+                          {form.selectedABTest.description}
                         </p>
-                      </div>
-                    )}
-
-                    {testCallStatus === 'ended' && (
-                      <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                        <p className="text-sm text-blue-700">
-                          Тестовый звонок успешно завершен. Агент готов к работе.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* А/Б тесты */}
-                <div className="border-t pt-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-medium flex items-center">
-                      <FlaskConical className="h-4 w-4 mr-2" />
-                      А/Б тестирование
-                    </h3>
-                    <Badge className="bg-blue-100 text-blue-800">
-                      Опционально
-                    </Badge>
-                  </div>
-                  
-                  {form.selectedABTest ? (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <h4 className="font-medium text-blue-900">{form.selectedABTest.name}</h4>
-                            <Badge className={form.selectedABTest.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
-                              {form.selectedABTest.status === 'active' ? 'Активен' : 'Черновик'}
-                            </Badge>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div className="bg-white/50 rounded px-3 py-2">
+                            <span className="font-medium">Вариант A:</span>
+                            <p className="text-gray-700">{form.selectedABTest.variantA}</p>
                           </div>
-                          <p className="text-sm text-blue-700 mb-3">
-                            {form.selectedABTest.description}
-                          </p>
-                          <div className="grid grid-cols-2 gap-3 text-sm">
-                            <div className="bg-white/50 rounded px-3 py-2">
-                              <span className="font-medium">Вариант A:</span>
-                              <p className="text-gray-700">{form.selectedABTest.variantA}</p>
-                            </div>
-                            <div className="bg-white/50 rounded px-3 py-2">
-                              <span className="font-medium">Вариант B:</span>
-                              <p className="text-gray-700">{form.selectedABTest.variantB}</p>
-                            </div>
-                          </div>
-                          <div className="mt-3 text-sm text-blue-600">
-                            Распределение: {form.selectedABTest.splitRatio}% / {100 - form.selectedABTest.splitRatio}%
+                          <div className="bg-white/50 rounded px-3 py-2">
+                            <span className="font-medium">Вариант B:</span>
+                            <p className="text-gray-700">{form.selectedABTest.variantB}</p>
                           </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleRemoveABTest}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
+                        <div className="mt-3 text-sm text-blue-600">
+                          Распределение трафика: {form.selectedABTest.splitRatio}% / {100 - form.selectedABTest.splitRatio}%
+                        </div>
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRemoveABTest}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setShowABTestSelection(true)
+                          setShowABTestCreation(false)
+                        }}
+                      >
+                        Изменить тест
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <p className="text-sm text-gray-600 mb-4">
+                        A/B тесты помогут определить наиболее эффективные сценарии и агентов
+                      </p>
+                      
                       <div className="flex space-x-2">
                         <Button
                           variant="outline"
-                          size="sm"
-                          onClick={() => setShowABTests(true)}
+                          onClick={() => {
+                            setShowABTestSelection(!showABTestSelection)
+                            setShowABTestCreation(false)
+                          }}
+                          className="flex-1"
                         >
-                          Изменить тест
+                          <FlaskConical className="h-4 w-4 mr-2" />
+                          Выбрать A/B тест
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setShowABTestCreation(!showABTestCreation)
+                            setShowABTestSelection(false)
+                          }}
+                          className="flex-1"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Создать новый A/B тест
                         </Button>
                       </div>
                     </div>
-                  ) : (
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-sm text-gray-600 mb-4">
-                        Настройте А/Б тесты для сравнения эффективности разных сценариев
-                      </p>
-                      
-                      <Button
-                        variant="outline"
-                        onClick={() => setShowABTests(true)}
-                        className="w-full"
-                      >
-                        <FlaskConical className="h-4 w-4 mr-2" />
-                        Открыть А/Б тесты
-                      </Button>
-                    </div>
-                  )}
+
+                    {/* Интерфейс выбора A/B теста */}
+                    {showABTestSelection && (
+                      <div className="border border-gray-200 rounded-lg p-4 space-y-4">
+                        <h4 className="font-medium flex items-center">
+                          <FlaskConical className="h-4 w-4 mr-2" />
+                          Доступные A/B тесты
+                        </h4>
+                        <div className="space-y-3">
+                          {mockABTests.map((test) => (
+                            <div key={test.id} className="border rounded-lg p-3 hover:bg-gray-50 cursor-pointer"
+                                 onClick={() => handleSelectABTest(test)}>
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center space-x-2 mb-1">
+                                    <h5 className="font-medium">{test.name}</h5>
+                                    <Badge className={test.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                                      {test.status === 'active' ? 'Активен' : 'Черновик'}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-sm text-gray-600 mb-2">{test.description}</p>
+                                  <div className="flex items-center space-x-4 text-xs text-gray-500">
+                                    <span>Вариант A: {test.variantA}</span>
+                                    <span>•</span>
+                                    <span>Вариант B: {test.variantB}</span>
+                                    <span>•</span>
+                                    <span>Распределение: {test.splitRatio}%/{100-test.splitRatio}%</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Интерфейс создания нового A/B теста */}
+                    {showABTestCreation && (
+                      <div className="border border-blue-200 bg-blue-50 rounded-lg p-4 space-y-4">
+                        <h4 className="font-medium flex items-center">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Создание нового A/B теста
+                        </h4>
+                        
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor="ab-test-name">Название теста *</Label>
+                            <Input
+                              id="ab-test-name"
+                              placeholder="Например: Тест приветствия"
+                              value={newABTest.name}
+                              onChange={(e) => setNewABTest({...newABTest, name: e.target.value})}
+                              className="mt-1"
+                            />
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor="ab-test-desc">Описание теста</Label>
+                            <Textarea
+                              id="ab-test-desc"
+                              placeholder="Опишите цель и гипотезу теста"
+                              value={newABTest.description}
+                              onChange={(e) => setNewABTest({...newABTest, description: e.target.value})}
+                              className="mt-1 min-h-[80px]"
+                            />
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="variant-a">Вариант A *</Label>
+                              <Input
+                                id="variant-a"
+                                placeholder="Описание варианта A"
+                                value={newABTest.variantA}
+                                onChange={(e) => setNewABTest({...newABTest, variantA: e.target.value})}
+                                className="mt-1"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="variant-b">Вариант B *</Label>
+                              <Input
+                                id="variant-b"
+                                placeholder="Описание варианта B"
+                                value={newABTest.variantB}
+                                onChange={(e) => setNewABTest({...newABTest, variantB: e.target.value})}
+                                className="mt-1"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor="split-ratio">Распределение трафика</Label>
+                            <div className="flex items-center space-x-4 mt-2">
+                              <span className="text-sm">Вариант A: {newABTest.splitRatio}%</span>
+                              <input
+                                type="range"
+                                min="10"
+                                max="90"
+                                value={newABTest.splitRatio}
+                                onChange={(e) => setNewABTest({...newABTest, splitRatio: parseInt(e.target.value)})}
+                                className="flex-1"
+                              />
+                              <span className="text-sm">Вариант B: {100 - newABTest.splitRatio}%</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex space-x-2">
+                            <Button
+                              onClick={() => {
+                                if (newABTest.name && newABTest.variantA && newABTest.variantB) {
+                                  const test = {
+                                    id: `ab-${Date.now()}`,
+                                    ...newABTest,
+                                    status: 'draft' as const
+                                  }
+                                  handleSelectABTest(test)
+                                  setNewABTest({
+                                    name: '',
+                                    description: '',
+                                    variantA: '',
+                                    variantB: '',
+                                    splitRatio: 50
+                                  })
+                                  setShowABTestCreation(false)
+                                }
+                              }}
+                              disabled={!newABTest.name || !newABTest.variantA || !newABTest.variantB}
+                            >
+                              <Check className="h-4 w-4 mr-2" />
+                              Создать и добавить
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setShowABTestCreation(false)
+                                setNewABTest({
+                                  name: '',
+                                  description: '',
+                                  variantA: '',
+                                  variantB: '',
+                                  splitRatio: 50
+                                })
+                              }}
+                            >
+                              <X className="h-4 w-4 mr-2" />
+                              Отмена
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-xs text-blue-700">
+                    💡 Совет: A/B тесты позволяют сравнить разные подходы и выбрать наиболее эффективный
+                  </p>
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Шаг 7: Резюме */}
-          {currentStep === 7 && (
+          {/* Шаг 5: Резюме */}
+          {currentStep === 5 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -1377,33 +1311,95 @@ export default function NewCompanyPage() {
                       </Badge>
                     </div>
                   </div>
+                </div>
 
-                  {form.selectedABTest && (
-                    <div>
-                      <p className="text-sm text-gray-600 mb-2">А/Б тестирование</p>
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <FlaskConical className="h-4 w-4 text-blue-600" />
-                          <h4 className="font-medium text-blue-900">{form.selectedABTest.name}</h4>
-                          <Badge className={form.selectedABTest.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
-                            {form.selectedABTest.status === 'active' ? 'Активен' : 'Черновик'}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-blue-700 mb-3">{form.selectedABTest.description}</p>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="bg-white/50 rounded-lg p-3">
-                            <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Вариант A ({form.selectedABTest.splitRatio}%)</p>
-                            <p className="text-sm text-gray-900 mt-1">{form.selectedABTest.variantA}</p>
-                          </div>
-                          <div className="bg-white/50 rounded-lg p-3">
-                            <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Вариант B ({100 - form.selectedABTest.splitRatio}%)</p>
-                            <p className="text-sm text-gray-900 mt-1">{form.selectedABTest.variantB}</p>
-                          </div>
-                        </div>
+                {/* Проверка готовности сервиса */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Телефония */}
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className={`p-2 rounded-full ${form.telephonyOk ? 'bg-green-100' : 'bg-red-100'}`}>
+                        {form.telephonyOk ? (
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                        ) : (
+                          <XCircle className="h-5 w-5 text-red-600" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium">Телефония</p>
+                        <p className="text-sm text-gray-600">
+                          {form.telephonyOk ? 'Подключена' : 'Не настроена'}
+                        </p>
                       </div>
                     </div>
-                  )}
+                  </div>
+
+                  {/* Баланс */}
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className={`p-2 rounded-full ${form.balanceOk ? 'bg-green-100' : 'bg-red-100'}`}>
+                        {form.balanceOk ? (
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                        ) : (
+                          <XCircle className="h-5 w-5 text-red-600" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium">Баланс</p>
+                        <p className="text-sm text-gray-600">
+                          {form.balanceOk ? '> 0 ₽' : 'Недостаточно средств'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* API/Интеграции */}
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className={`p-2 rounded-full ${form.serviceAvailable ? 'bg-green-100' : 'bg-yellow-100'}`}>
+                        {form.serviceAvailable ? (
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                        ) : (
+                          <AlertCircle className="h-5 w-5 text-yellow-600" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium">API/Интеграции</p>
+                        <p className="text-sm text-gray-600">
+                          {form.serviceAvailable ? 'Доступны' : 'Ограниченный доступ'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
+
+                {!form.serviceReady && (
+                  <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <div className="flex items-start space-x-3">
+                      <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-yellow-900">Требуется внимание</p>
+                        <p className="text-sm text-yellow-700 mt-1">
+                          Некоторые компоненты системы не готовы. Проверьте настройки перед запуском.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {form.serviceReady && (
+                  <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-green-900">Все системы готовы</p>
+                        <p className="text-sm text-green-700 mt-1">
+                          Сервис готов к запуску компании.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <Separator />
 
@@ -1513,196 +1509,6 @@ export default function NewCompanyPage() {
         </div>
       </div>
     </div>
-
-    {/* Модальное окно А/Б тестов */}
-    <Dialog open={showABTests} onOpenChange={setShowABTests}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center">
-            <FlaskConical className="h-5 w-5 mr-2" />
-            А/Б тесты
-          </DialogTitle>
-          <DialogDescription>
-            Управление А/Б тестами для сравнения эффективности разных сценариев
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-6 mt-6">
-          {/* Кнопка создания нового теста */}
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-medium">Мои А/Б тесты</h3>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Создать тест
-            </Button>
-          </div>
-
-          {/* Активные тесты */}
-          <div>
-            <h4 className="text-sm font-medium text-gray-600 mb-3">Активные тесты</h4>
-            <div className="space-y-3">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <h5 className="font-medium">Тест приветствия v2</h5>
-                        <Badge className="bg-green-100 text-green-800">
-                          <div className="h-2 w-2 bg-green-600 rounded-full mr-1 animate-pulse" />
-                          Активен
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-2">
-                        Сравнение стандартного и персонализированного приветствия
-                      </p>
-                      <div className="flex items-center space-x-4 text-sm">
-                        <span className="text-gray-500">Вариант A: 45%</span>
-                        <span className="text-gray-500">Вариант B: 55%</span>
-                        <span className="text-gray-500">•</span>
-                        <span className="text-gray-500">Звонков: 1,234</span>
-                      </div>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleSelectABTest(mockABTests[0])}
-                      >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Добавить в кампанию
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Pause className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <h5 className="font-medium">Тест длительности разговора</h5>
-                        <Badge className="bg-green-100 text-green-800">
-                          <div className="h-2 w-2 bg-green-600 rounded-full mr-1 animate-pulse" />
-                          Активен
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-2">
-                        Короткий vs развернутый сценарий
-                      </p>
-                      <div className="flex items-center space-x-4 text-sm">
-                        <span className="text-gray-500">Вариант A: 50%</span>
-                        <span className="text-gray-500">Вариант B: 50%</span>
-                        <span className="text-gray-500">•</span>
-                        <span className="text-gray-500">Звонков: 567</span>
-                      </div>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleSelectABTest(mockABTests[1])}
-                      >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Добавить в кампанию
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Pause className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {/* Черновики */}
-          <div>
-            <h4 className="text-sm font-medium text-gray-600 mb-3">Черновики</h4>
-            <div className="space-y-3">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <h5 className="font-medium">Тест голосов агентов</h5>
-                        <Badge className="bg-gray-100 text-gray-800">Черновик</Badge>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-2">
-                        Сравнение мужского и женского голоса для целевой аудитории
-                      </p>
-                      <div className="text-sm text-gray-500">
-                        Создан: 2 дня назад
-                      </div>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button 
-                        size="sm"
-                        onClick={() => handleSelectABTest(mockABTests[2])}
-                      >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Добавить в кампанию
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Play className="h-4 w-4 mr-1" />
-                        Запустить
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <h5 className="font-medium">Тест времени звонка</h5>
-                        <Badge className="bg-gray-100 text-gray-800">Черновик</Badge>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-2">
-                        Оптимальное время для звонков: утро vs вечер
-                      </p>
-                      <div className="text-sm text-gray-500">
-                        Создан: 5 дней назад
-                      </div>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button 
-                        size="sm"
-                        onClick={() => handleSelectABTest(mockABTests[3])}
-                      >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Добавить в кампанию
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Play className="h-4 w-4 mr-1" />
-                        Запустить
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
     </>
   )
 }
