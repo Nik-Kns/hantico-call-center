@@ -16,6 +16,7 @@ import {
   Play,
   Check,
   Users,
+  User,
   Clock,
   Upload,
   CheckSquare,
@@ -26,11 +27,13 @@ import {
   Eye,
   Pause,
   X,
-  Edit
+  Edit,
+  MessageSquare,
+  Shield
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -38,6 +41,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { BaseType } from '@/lib/types'
+import { CallTestModal } from '@/components/call-test-modal'
 
 interface ABTest {
   id: string
@@ -82,15 +86,106 @@ interface CampaignForm {
   // Результат теста агента
   agentTestStatus: 'idle' | 'testing' | 'passed' | 'failed'
   agentTestFeedback: string
+  // Поля для структурированного промтинга
+  agentRole?: string
+  agentLanguage?: string
+  agentScript?: string
+  introTemplate?: string
+  customIntro?: string
+  conversationGoals?: string[]
+  objectionHandling?: string
+  maxAttempts?: number
+  forbiddenTopics?: string
+  consentRecording?: string
+  dataProcessing?: string
+  disclaimerText?: string
 }
 
 const mockAgents = [
-  { id: 'anna-1', name: 'Анна', description: 'Продажи и консультации', baseType: 'registration' as BaseType },
-  { id: 'mikhail-2', name: 'Михаил', description: 'Поддержка и помощь', baseType: 'no_answer' as BaseType },
-  { id: 'elena-3', name: 'Елена', description: 'Опросы и исследования', baseType: 'refusals' as BaseType },
-  { id: 'dmitry-4', name: 'Дмитрий', description: 'Информирование', baseType: 'reactivation' as BaseType },
-  { id: 'olga-5', name: 'Ольга', description: 'Регистрация новых клиентов', baseType: 'registration' as BaseType },
-  { id: 'ivan-6', name: 'Иван', description: 'Работа с недозвонами', baseType: 'no_answer' as BaseType }
+  { 
+    id: 'anna-1', 
+    name: 'Анна', 
+    description: 'Продажи и консультации', 
+    baseType: 'registration' as BaseType,
+    prompt: `Ты - менеджер по продажам Анна. Твоя задача - консультировать клиентов по продуктам компании и помогать им с регистрацией.
+
+Основные правила:
+- Будь дружелюбной и вежливой
+- Внимательно слушай клиента
+- Предлагай решения, подходящие под их потребности
+- Если клиент сомневается, приведи примеры успешных кейсов
+- Всегда уточняй контактные данные для обратной связи`
+  },
+  { 
+    id: 'mikhail-2', 
+    name: 'Михаил', 
+    description: 'Поддержка и помощь', 
+    baseType: 'no_answer' as BaseType,
+    prompt: `Ты - специалист технической поддержки Михаил. Твоя задача - помогать клиентам решать технические вопросы.
+
+Основные правила:
+- Будь терпеливым и понимающим
+- Объясняй решения простым языком
+- Предлагай пошаговые инструкции
+- При сложных проблемах предложи эскалацию к специалисту
+- Обязательно уточни, решена ли проблема`
+  },
+  { 
+    id: 'elena-3', 
+    name: 'Елена', 
+    description: 'Опросы и исследования', 
+    baseType: 'refusals' as BaseType,
+    prompt: `Ты - специалист по исследованиям Елена. Твоя задача - проводить опросы и собирать обратную связь.
+
+Основные правила:
+- Представься и объясни цель опроса
+- Задавай вопросы последовательно
+- Не перебивай респондента
+- Благодари за каждый ответ
+- В конце опроса предложи бонус за участие`
+  },
+  { 
+    id: 'dmitry-4', 
+    name: 'Дмитрий', 
+    description: 'Информирование', 
+    baseType: 'reactivation' as BaseType,
+    prompt: `Ты - менеджер по работе с клиентами Дмитрий. Твоя задача - информировать о новых предложениях и акциях.
+
+Основные правила:
+- Кратко представь актуальное предложение
+- Подчеркни выгоды для клиента
+- Ответь на вопросы о условиях
+- Предложи оформить заявку прямо сейчас
+- Если клиент не готов - предложи отправить информацию на email`
+  },
+  { 
+    id: 'olga-5', 
+    name: 'Ольга', 
+    description: 'Регистрация новых клиентов', 
+    baseType: 'registration' as BaseType,
+    prompt: `Ты - специалист по регистрации Ольга. Твоя задача - помочь новым клиентам зарегистрироваться в системе.
+
+Основные правила:
+- Приветствуй тепло и дружелюбно
+- Пошагово проведи через процесс регистрации
+- Запрашивай данные по одному
+- Подтверждай каждый введенный параметр
+- В конце подтверди успешную регистрацию и расскажи о следующих шагах`
+  },
+  { 
+    id: 'ivan-6', 
+    name: 'Иван', 
+    description: 'Работа с недозвонами', 
+    baseType: 'no_answer' as BaseType,
+    prompt: `Ты - менеджер Иван. Твоя задача - обработать пропущенные звонки и выяснить потребности клиента.
+
+Основные правила:
+- Извинись за пропущенный звонок
+- Уточни, по какому вопросу звонил клиент
+- Предложи помощь прямо сейчас
+- Если вопрос решен - уточни, нужна ли дополнительная помощь
+- Предложи удобное время для повторного звонка при необходимости`
+  }
 ]
 
 const mockVoices = [
@@ -180,6 +275,7 @@ export default function NewCompanyPage() {
   const [isRecording, setIsRecording] = useState(false)
   const [testCallStatus, setTestCallStatus] = useState<'idle' | 'calling' | 'connected' | 'ended'>('idle')
   const [showABTests, setShowABTests] = useState(false)
+  const [isCallModalOpen, setIsCallModalOpen] = useState(false)
   const [showCreateABTest, setShowCreateABTest] = useState(false)
   const [showCreateAgent, setShowCreateAgent] = useState(false)
   const [showABTestSelection, setShowABTestSelection] = useState(false)
@@ -287,18 +383,10 @@ export default function NewCompanyPage() {
   }
 
   const handleTestAgent = () => {
-    handleInputChange('agentTestStatus', 'testing')
-    
-    // Симуляция теста агента
-    setTimeout(() => {
-      const isSuccess = Math.random() > 0.3
-      handleInputChange('agentTestStatus', isSuccess ? 'passed' : 'failed')
-      handleInputChange('agentTestFeedback', 
-        isSuccess 
-          ? 'Агент успешно протестирован. Все системы работают корректно.'
-          : 'Обнаружены проблемы: голос не распознан. Проверьте настройки.'
-      )
-    }, 3000)
+    // Открываем модальное окно вместо симуляции
+    setIsCallModalOpen(true)
+    handleInputChange('agentTestStatus', 'passed')
+    handleInputChange('agentTestFeedback', 'Агент успешно протестирован. Все системы работают корректно.')
   }
 
   const handleCreateAgent = () => {
@@ -307,7 +395,8 @@ export default function NewCompanyPage() {
       id: `agent-${Date.now()}`,
       name: form.newAgentName,
       description: form.newAgentDescription,
-      baseType: form.baseType as BaseType
+      baseType: form.baseType as BaseType,
+      prompt: form.newAgentPrompt || 'Настройки агента не указаны.'
     }
     mockAgents.push(newAgent)
     handleInputChange('agent', newAgent.id)
@@ -623,10 +712,27 @@ export default function NewCompanyPage() {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="new-agent-prompt">Системный промт агента *</Label>
+                        <Label htmlFor="agent-language">Язык и тон *</Label>
+                        <Select
+                          value={form.agentLanguage || ''}
+                          onValueChange={(value) => handleInputChange('agentLanguage', value)}
+                        >
+                          <SelectTrigger id="agent-language">
+                            <SelectValue placeholder="Выберите стиль общения" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="formal">Формальный</SelectItem>
+                            <SelectItem value="friendly">Дружелюбный</SelectItem>
+                            <SelectItem value="professional">Профессиональный</SelectItem>
+                            <SelectItem value="casual">Разговорный</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="new-agent-prompt">Настройка контекста разговора / промтинг *</Label>
                         <Textarea
                           id="new-agent-prompt"
-                          placeholder="Введите инструкции для поведения агента..."
+                          placeholder="Опишите контекст разговора, специфические правила, дополнительную информацию для агента..."
                           value={form.newAgentPrompt}
                           onChange={(e) => handleInputChange('newAgentPrompt', e.target.value)}
                           className="mt-1 min-h-[120px]"
@@ -784,29 +890,45 @@ export default function NewCompanyPage() {
               </CardContent>
             </Card>
 
-            {/* Инструкция и документ знаний */}
+            {/* Инструкции агента */}
             <Card className="mt-6">
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <FileText className="h-5 w-5 mr-2" />
-                  Инструкция и база знаний
+                  Инструкции агента
                 </CardTitle>
+                <CardDescription>
+                  Промпт выбранного агента
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div>
-                  <Label htmlFor="instructions">Инструкции для агента *</Label>
-                  <Textarea
-                    id="instructions"
-                    placeholder="Опишите, как должен вести себя агент, какую информацию сообщать, как реагировать на вопросы..."
-                    value={form.instructions}
-                    onChange={(e) => handleInputChange('instructions', e.target.value)}
-                    className="mt-1 min-h-[200px]"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Подробные инструкции помогут агенту эффективнее общаться с клиентами
-                  </p>
+                
+                <Separator />
+                
+                {/* Промпт выбранного агента */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <div className="h-8 w-8 rounded-lg bg-purple-100 flex items-center justify-center">
+                        <Eye className="h-4 w-4 text-purple-600" />
+                      </div>
+                      <h3 className="font-semibold">Промпт агента</h3>
+                    </div>
+                    <Badge variant="outline">Инструкции</Badge>
+                  </div>
+                  
+                  <div className="pl-10">
+                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                      <pre className="text-sm text-gray-700 whitespace-pre-wrap">
+{form.agent ? mockAgents.find(a => a.id === form.agent)?.prompt || 'Агент не выбран' : 'Агент не выбран'}
+                      </pre>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Промпт выбранного агента определяет его поведение в разговоре
+                    </p>
+                  </div>
                 </div>
-
+                
                 <Separator />
 
                 <div>
@@ -1508,6 +1630,13 @@ export default function NewCompanyPage() {
           </Card>
         </div>
       </div>
+      
+      {/* Call Test Modal */}
+      <CallTestModal 
+        isOpen={isCallModalOpen}
+        onClose={() => setIsCallModalOpen(false)}
+        agentName={mockAgents.find(a => a.id === form.agent)?.name || 'AI Agent'}
+      />
     </div>
     </>
   )

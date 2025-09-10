@@ -5,15 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import {
   Plug,
   Webhook,
-  FileCheck,
-  Ban,
-  Link2,
-  UserCheck,
-  CheckSquare,
-  BookOpen,
   Settings,
   Activity,
   Shield,
+  CheckSquare,
   Database
 } from 'lucide-react'
 
@@ -33,61 +28,13 @@ const settingsSections = [
     href: '/settings/webhooks',
     color: 'text-purple-600',
     bgColor: 'bg-purple-50'
-  },
-  {
-    title: 'Реестр согласий',
-    description: 'Управление согласиями на обработку данных и SMS-рассылки',
-    icon: FileCheck,
-    href: '/settings/consent',
-    color: 'text-green-600',
-    bgColor: 'bg-green-50'
-  },
-  {
-    title: 'Черные списки / DNC',
-    description: 'Управление исключениями и запрещенными номерами',
-    icon: Ban,
-    href: '/settings/dnc',
-    color: 'text-red-600',
-    bgColor: 'bg-red-50'
-  },
-  {
-    title: 'Каталог агрегаторов',
-    description: 'Настройка диплинк-роутера и партнерских ссылок',
-    icon: Link2,
-    href: '/settings/aggregators',
-    color: 'text-indigo-600',
-    bgColor: 'bg-indigo-50'
-  },
-  {
-    title: 'Онбординг-трекер',
-    description: 'Отслеживание воронки регистрации после SMS',
-    icon: UserCheck,
-    href: '/settings/aggregators#onboarding',
-    color: 'text-cyan-600',
-    bgColor: 'bg-cyan-50'
-  },
-  {
-    title: 'Задачи менеджера',
-    description: 'Централизованный inbox для ручной обработки',
-    icon: CheckSquare,
-    href: '/settings/tasks',
-    color: 'text-orange-600',
-    bgColor: 'bg-orange-50'
-  },
-  {
-    title: 'База знаний',
-    description: 'Справочник ответов и запрещенных фраз для ИИ',
-    icon: BookOpen,
-    href: '/settings/knowledge',
-    color: 'text-emerald-600',
-    bgColor: 'bg-emerald-50'
   }
 ]
 
 const quickStats = [
   { label: 'Активные интеграции', value: '5', icon: Activity, color: 'text-green-600' },
   { label: 'События за сегодня', value: '1,234', icon: Webhook, color: 'text-blue-600' },
-  { label: 'Записей в DNC', value: '892', icon: Shield, color: 'text-red-600' },
+  { label: 'Передано ID в ERP', value: '892', icon: Shield, color: 'text-red-600' },
   { label: 'Задач в очереди', value: '23', icon: CheckSquare, color: 'text-orange-600' }
 ]
 

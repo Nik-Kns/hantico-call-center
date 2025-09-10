@@ -12,11 +12,15 @@ import {
   User,
   AlertCircle,
   FileUp,
-  Phone
+  Phone,
+  Shield,
+  Eye,
+  Mic,
+  CheckSquare
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -26,6 +30,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { mockVoices, mockVoiceLibrary } from '@/lib/mock-data'
 import { Agent, BaseType } from '@/lib/types'
+import { CallTestModal } from '@/components/call-test-modal'
 
 interface AgentForm {
   name: string
@@ -38,6 +43,21 @@ interface AgentForm {
   basePrompt: string
   kbFileName?: string | null
   testPhone?: string
+  // Новые поля для структурированного промтинга
+  agentRole?: string
+  agentLanguage?: string
+  agentScript?: string
+  introTemplate?: string
+  customIntro?: string
+  conversationGoals?: string[]
+  objectionHandling?: string
+  maxAttempts?: number
+  forbiddenTopics?: string
+  consentRecording?: string
+  dataProcessing?: string
+  disclaimerText?: string
+  model?: string
+  additionalContext?: string
 }
 
 const agentRoles = [
@@ -66,6 +86,7 @@ export default function NewAgentPage() {
   const [testInput, setTestInput] = useState('')
   const [testResponse, setTestResponse] = useState('')
   const [isVoiceCall, setIsVoiceCall] = useState(false)
+  const [isCallModalOpen, setIsCallModalOpen] = useState(false)
   const recognitionRef = useRef<any | null>(null)
 
   const handleInputChange = (field: keyof AgentForm, value: any) => {
@@ -151,7 +172,7 @@ export default function NewAgentPage() {
     { id: 1, name: 'Роль/этап', icon: User },
     { id: 2, name: 'Голос (TTS)', icon: Volume2 },
     { id: 3, name: 'Промтинг', icon: MessageSquare },
-    { id: 4, name: 'Тест', icon: Phone }
+    { id: 4, name: 'Итоги', icon: CheckSquare }
   ]
 
   return (
@@ -275,24 +296,6 @@ export default function NewAgentPage() {
                     </SelectContent>
                   </Select>
                 </div>
-
-                <div>
-                  <Label>Тип базы *</Label>
-                  <Select value={form.baseType} onValueChange={(value) => handleInputChange('baseType', value as BaseType)}>
-                    <SelectTrigger className="mt-2">
-                      <SelectValue placeholder="Выберите тип базы для агента" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="registration">Регистрация</SelectItem>
-                      <SelectItem value="no_answer">Недозвон</SelectItem>
-                      <SelectItem value="refusals">Отказники</SelectItem>
-                      <SelectItem value="reactivation">Отклики/реактивация</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Тип базы определяет, с какими кампаниями может работать агент
-                  </p>
-                </div>
               </CardContent>
             </Card>
           )}
@@ -358,173 +361,225 @@ export default function NewAgentPage() {
             </Card>
           )}
 
-          {/* Шаг 3: Промтинг */}
+          {/* Шаг 3: Промтинг и настройки */}
           {currentStep === 3 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <MessageSquare className="h-5 w-5 mr-2" />
-                  Промтинг и знания
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <Label htmlFor="basePrompt">Инструкция для агента</Label>
-                  <Textarea
-                    id="basePrompt"
-                    placeholder="Опишите правила общения, цели и ограничения..."
-                    value={form.basePrompt}
-                    onChange={(e) => handleInputChange('basePrompt', e.target.value)}
-                    rows={6}
-                    className="mt-1"
-                  />
-                </div>
+            <div className="space-y-4">
+              {/* Системные инструкции */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Системные инструкции</Label>
+                <Textarea
+                  id="systemPrompt"
+                  placeholder="Ты отвечаешь только тогда когда сообщение начинается с Мия, если не это условие не выполнено не пиши в ответе ни чего просто ставь пробел
+Режим 1: Ответ по триггеру"
+                  value={form.basePrompt}
+                  onChange={(e) => handleInputChange('basePrompt', e.target.value)}
+                  className="min-h-[120px] font-mono text-sm bg-gray-50 border-gray-200"
+                />
+              </div>
 
-                <div>
-                  <Label>Документ знаний (опционально)</Label>
-                  <div className="mt-2 flex items-center space-x-3">
-                    <Input type="file" onChange={(e) => {
-                      const f = e.target.files?.[0]
-                      handleInputChange('kbFileName', f ? f.name : null)
-                    }} />
-                    {form.kbFileName && (
-                      <div className="text-sm text-gray-600 flex items-center">
-                        <FileUp className="h-4 w-4 mr-1" /> {form.kbFileName}
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">Поддерживаются TXT/PDF/MD. Файл будет использован как база знаний.</p>
-                </div>
+              {/* Модель */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Модель</Label>
+                <Select
+                  value={form.model || 'gpt-4o'}
+                  onValueChange={(value) => handleInputChange('model', value)}
+                >
+                  <SelectTrigger className="bg-gray-50">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="gpt-4o">gpt-4o-2024-11-20</SelectItem>
+                    <SelectItem value="gpt-4">gpt-4-turbo</SelectItem>
+                    <SelectItem value="gpt-3.5">gpt-3.5-turbo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                <Separator />
-
-                <div>
-                  <Label htmlFor="responseDelay">Задержка ответа (мс)</Label>
-                  <Input
-                    id="responseDelay"
-                    type="number"
-                    min="0"
-                    max="2000"
-                    step="100"
-                    value={form.responseDelay}
-                    onChange={(e) => handleInputChange('responseDelay', parseInt(e.target.value) || 0)}
-                    className="mt-1"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Время ожидания перед ответом агента (0-2000 мс)
-                  </p>
-                </div>
-
-                {/* Настройка максимальной тишины удалена по требованиям */}
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Обработка прерываний</Label>
-                    <p className="text-sm text-gray-600">
-                      Позволить клиенту прерывать речь агента
-                    </p>
-                  </div>
-                  <Switch
-                    checked={form.interruptionHandling}
-                    onCheckedChange={(checked) => handleInputChange('interruptionHandling', checked)}
-                  />
-                </div>
-
-                <div className="p-4 bg-blue-50 rounded-lg">
-                  <div className="flex">
-                    <AlertCircle className="h-5 w-5 text-blue-400 mr-2 flex-shrink-0 mt-0.5" />
+              {/* Документы */}
+              <div className="border-t pt-4">
+                <h3 className="text-sm font-medium mb-4">ДОКУМЕНТЫ</h3>
+                
+                {/* Документ знаний */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center">
+                      <FileUp className="h-5 w-5 text-gray-600" />
+                    </div>
                     <div>
-                      <h4 className="text-sm font-medium text-blue-900">Совет</h4>
-                      <p className="text-sm text-blue-700 mt-1">
-                        Добавьте краткую инструкцию и при необходимости документ знаний. Затем перейдите к тесту.
+                      <Label className="text-sm font-medium">Документ знаний</Label>
+                      <p className="text-xs text-gray-600">
+                        {form.kbFileName || 'Загрузить базу знаний'}
                       </p>
                     </div>
                   </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => document.getElementById('file-upload')?.click()}
+                  >
+                    + Файлы
+                  </Button>
+                  <input
+                    id="file-upload"
+                    type="file"
+                    className="hidden"
+                    accept=".txt,.pdf,.md"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0]
+                      handleInputChange('kbFileName', f ? f.name : null)
+                    }}
+                  />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+              
+              {/* Финальный тест */}
+              <div className="border-t pt-4">
+                <h3 className="text-sm font-medium mb-4">ФИНАЛЬНЫЙ ТЕСТ</h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium">Номер для теста</Label>
+                    <div className="mt-2 flex space-x-2">
+                      <Input
+                        placeholder="Например: +7 900 000-00-00"
+                        value={form.testPhone}
+                        onChange={(e) => handleInputChange('testPhone', e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button
+                        onClick={() => {
+                          setCallStatus('calling')
+                          setTimeout(() => setCallStatus('ringing'), 600)
+                        }}
+                      >
+                        <Phone className="h-4 w-4 mr-2" />
+                        Запустить
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsCallModalOpen(true)}
+                      >
+                        <Mic className="h-4 w-4 mr-2" />
+                        Говорить через микрофон
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="text-sm text-gray-600">
+                    Статус: Готов к вызову
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
 
-          {/* Шаг 4: Тест */}
+          {/* Шаг 4: Итоговые настройки */}
           {currentStep === 4 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Phone className="h-5 w-5 mr-2" />
-                  Финальный тест
+                  <CheckSquare className="h-5 w-5 mr-2" />
+                  Итоговые настройки
                 </CardTitle>
+                <CardDescription>
+                  Проверьте все настройки перед сохранением агента
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="testPhone">Номер для теста</Label>
-                    <Input
-                      id="testPhone"
-                      placeholder="Например: +7 900 000-00-00"
-                      value={form.testPhone}
-                      onChange={(e) => handleInputChange('testPhone', e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div className="flex items-end space-x-2">
-                    <Button
-                      className="mt-6"
-                      onClick={() => {
-                        setCallStatus('calling')
-                        setTimeout(() => setCallStatus('ringing'), 600)
-                      }}
-                    >
-                      <Phone className="h-4 w-4 mr-2" /> Запустить
-                    </Button>
-                    {callStatus === 'ringing' && (
-                      <Button className="mt-6" variant="outline" onClick={() => setCallStatus('in_call')}>
-                        Ответить
-                      </Button>
-                    )}
-                    <Button
-                      className="mt-6"
-                      variant={isVoiceCall ? 'destructive' : 'outline'}
-                      onClick={() => (isVoiceCall ? stopVoiceCall() : startVoiceCall())}
-                    >
-                      <Phone className="h-4 w-4 mr-2" /> {isVoiceCall ? 'Завершить разговор' : 'Говорить через микрофон'}
-                    </Button>
+                {/* Основная информация */}
+                <div>
+                  <h3 className="text-sm font-semibold mb-3 text-gray-700">Основная информация</h3>
+                  <div className="space-y-2 bg-gray-50 rounded-lg p-4">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Название:</span>
+                      <span className="text-sm font-medium">{form.name || 'Не указано'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Описание:</span>
+                      <span className="text-sm font-medium">{form.description || 'Не указано'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Роль:</span>
+                      <span className="text-sm font-medium">
+                        {agentRoles.find(r => r.id === form.role)?.name || 'Не выбрана'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="p-4 rounded-lg border bg-gray-50">
-                  <p className="text-sm text-gray-600">Статус: {
-                    callStatus === 'idle' ? 'Готов к вызову' :
-                    callStatus === 'calling' ? 'Исходящий вызов...' :
-                    callStatus === 'ringing' ? 'Вызов... ожидаем ответ' : 'Разговор идёт'
-                  }</p>
+                {/* Голос */}
+                <div>
+                  <h3 className="text-sm font-semibold mb-3 text-gray-700">Голос и TTS</h3>
+                  <div className="space-y-2 bg-gray-50 rounded-lg p-4">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Голос:</span>
+                      <span className="text-sm font-medium">
+                        {mockVoices.find(v => v.id === form.voiceId)?.name || 'Не выбран'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Задержка ответа:</span>
+                      <span className="text-sm font-medium">{form.responseDelay} мс</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Обработка прерываний:</span>
+                      <span className="text-sm font-medium">
+                        {form.interruptionHandling ? 'Включена' : 'Выключена'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Промптинг */}
+                <div>
+                  <h3 className="text-sm font-semibold mb-3 text-gray-700">Системные инструкции</h3>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                      {form.basePrompt || 'Не заданы'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Документы */}
+                <div>
+                  <h3 className="text-sm font-semibold mb-3 text-gray-700">Документы</h3>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">База знаний:</span>
+                      <span className="text-sm font-medium">
+                        {form.kbFileName || 'Не загружена'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 <Separator />
 
-                <div className="space-y-2">
-                  <Label>Альтернативно: текстовый тест</Label>
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      placeholder="Напишите фразу клиента..."
-                      value={testInput}
-                      onChange={(e) => setTestInput(e.target.value)}
-                    />
-                    <Button
-                      onClick={() => {
-                        const response = form.basePrompt
-                          ? `Ответ агента (по инструкции): ${form.basePrompt.slice(0, 60)}...`
-                          : 'Ответ агента: готов к работе.'
-                        setTestResponse(response)
-                      }}
-                    >
-                      Проверить
-                    </Button>
-                  </div>
-                  {testResponse && (
-                    <div className="p-3 bg-green-50 text-sm rounded">
-                      {testResponse}
-                    </div>
-                  )}
+                {/* Кнопка сохранения */}
+                <div className="flex justify-end space-x-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => handleSave(true)}
+                    disabled={isLoading}
+                  >
+                    Сохранить как черновик
+                  </Button>
+                  <Button
+                    onClick={() => handleSave(false)}
+                    disabled={isLoading || !isStepCompleted(1) || !isStepCompleted(2)}
+                  >
+                    {isLoading ? (
+                      <>
+                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                        Сохранение...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        Сохранить и активировать
+                      </>
+                    )}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -614,6 +669,13 @@ export default function NewAgentPage() {
           </div>
         </CardContent>
       </Card>
+      
+      {/* Call Test Modal */}
+      <CallTestModal 
+        isOpen={isCallModalOpen}
+        onClose={() => setIsCallModalOpen(false)}
+        agentName={form.name || 'AI Agent'}
+      />
     </div>
   )
 }
