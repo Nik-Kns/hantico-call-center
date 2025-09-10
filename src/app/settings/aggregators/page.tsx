@@ -116,7 +116,7 @@ const mockAggregators: Aggregator[] = [
     active: false,
     campaigns: [],
     parameters: {
-      source: 'hantico_ai'
+      utm_source: 'hantico_ai'
     }
   }
 ]

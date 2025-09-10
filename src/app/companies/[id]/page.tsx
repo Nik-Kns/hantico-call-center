@@ -24,7 +24,8 @@ import {
   PhoneOff,
   Bot,
   Calendar,
-  Filter
+  Filter,
+  FileDown
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -36,6 +37,15 @@ import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 interface CompanyDetails {
   id: string
@@ -56,13 +66,14 @@ interface CompanyDetails {
   voicemails: number  // Автоответчики (человек)
   robotVoicemails: number  // Автоответчики (роботы)
   progress: number
+  historicalConversion: number  // Историческая результативность
   startTime?: Date
   endTime?: Date
 }
 
 interface CallRecord {
   id: string
-  phoneNumber: string  // Маскированный номер
+  leadId: string  // ID контакта вместо номера
   dateTime: Date
   result: 'success' | 'refused' | 'no_answer' | 'voicemail' | 'robot_voicemail' | 'busy'
   category: string  // Категория результата
@@ -94,6 +105,7 @@ const mockCompanyDetails: { [key: string]: CompanyDetails } = {
     voicemails: 71,
     robotVoicemails: 41,
     progress: 73.88,
+    historicalConversion: 68.4,
     startTime: new Date(Date.now() - 3 * 60 * 60 * 1000)
   },
   'obz-2': {
@@ -113,6 +125,7 @@ const mockCompanyDetails: { [key: string]: CompanyDetails } = {
     voicemails: 35,
     robotVoicemails: 20,
     progress: 25.33,
+    historicalConversion: 51.3,
     startTime: new Date(Date.now() - 6 * 60 * 60 * 1000)
   },
   'obz-3': {
@@ -132,6 +145,7 @@ const mockCompanyDetails: { [key: string]: CompanyDetails } = {
     voicemails: 51,
     robotVoicemails: 20,
     progress: 100,
+    historicalConversion: 52.4,
     startTime: new Date(Date.now() - 24 * 60 * 60 * 1000),
     endTime: new Date(Date.now() - 2 * 60 * 60 * 1000)
   }
@@ -140,7 +154,7 @@ const mockCompanyDetails: { [key: string]: CompanyDetails } = {
 const mockCallRecords: CallRecord[] = [
   {
     id: 'call-1',
-    phoneNumber: '+7 (9••) •••-45-67',
+    leadId: 'LEAD-001234',
     dateTime: new Date(Date.now() - 2 * 60 * 60 * 1000),
     result: 'success',
     category: 'Согласие',
@@ -154,7 +168,7 @@ const mockCallRecords: CallRecord[] = [
   },
   {
     id: 'call-2',
-    phoneNumber: '+7 (9••) •••-56-78',
+    leadId: 'LEAD-002345',
     dateTime: new Date(Date.now() - 3 * 60 * 60 * 1000),
     result: 'refused',
     category: 'Отказ',
@@ -168,7 +182,7 @@ const mockCallRecords: CallRecord[] = [
   },
   {
     id: 'call-3',
-    phoneNumber: '+7 (9••) •••-67-89',
+    leadId: 'LEAD-003456',
     dateTime: new Date(Date.now() - 4 * 60 * 60 * 1000),
     result: 'voicemail',
     category: 'Автоответчик',
@@ -182,7 +196,7 @@ const mockCallRecords: CallRecord[] = [
   },
   {
     id: 'call-6',
-    phoneNumber: '+7 (9••) •••-12-34',
+    leadId: 'LEAD-004567',
     dateTime: new Date(Date.now() - 7 * 60 * 60 * 1000),
     result: 'robot_voicemail',
     category: 'Робот-автоответчик',
@@ -196,7 +210,7 @@ const mockCallRecords: CallRecord[] = [
   },
   {
     id: 'call-4',
-    phoneNumber: '+7 (9••) •••-78-90',
+    leadId: 'LEAD-005678',
     dateTime: new Date(Date.now() - 5 * 60 * 60 * 1000),
     result: 'no_answer',
     category: 'Недозвон',
@@ -210,7 +224,7 @@ const mockCallRecords: CallRecord[] = [
   },
   {
     id: 'call-5',
-    phoneNumber: '+7 (9••) •••-89-01',
+    leadId: 'LEAD-006789',
     dateTime: new Date(Date.now() - 6 * 60 * 60 * 1000),
     result: 'success',
     category: 'Согласие',
@@ -237,6 +251,10 @@ export default function CompanyDetailsPage() {
   const [isCopied, setIsCopied] = useState(false)
   const [dateFilter, setDateFilter] = useState('today')
   const [searchFilter, setSearchFilter] = useState('')
+  const [resultFilter, setResultFilter] = useState('all')
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [exportPeriod, setExportPeriod] = useState('today')
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([])
 
   const handleCompanyAction = async (action: 'start' | 'pause' | 'stop') => {
     if (!company) return
@@ -298,6 +316,46 @@ export default function CompanyDetailsPage() {
     const secs = seconds % 60
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
+
+  const handleExport = () => {
+    // Фильтруем данные по периоду и статусам
+    const filteredData = callRecords.filter(call => {
+      if (selectedStatuses.length > 0 && !selectedStatuses.includes(call.result)) {
+        return false
+      }
+      // Здесь бы была логика фильтрации по периоду
+      return true
+    })
+
+    // Создаем CSV строку БЕЗ номеров телефонов
+    const csvHeader = 'lead_id,call_id,datetime,result,category,duration_seconds,has_sms,has_link_click,has_registration,transferred_to_erp\n'
+    const csvRows = filteredData.map(call => 
+      `${call.leadId},${call.id},${call.dateTime.toISOString()},${call.result},${call.category},${call.duration},${call.hasSms},${call.hasLinkClick},${call.hasRegistration},${call.transferredToErp}`
+    ).join('\n')
+    
+    const csvContent = csvHeader + csvRows
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `campaign_${company?.id}_calls_${new Date().toISOString().split('T')[0]}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    
+    setShowExportModal(false)
+    setSelectedStatuses([])
+  }
+
+  const statusOptions = [
+    { value: 'success', label: 'Успешные' },
+    { value: 'refused', label: 'Отказы' },
+    { value: 'no_answer', label: 'Недозвоны' },
+    { value: 'voicemail', label: 'Автоответчики' },
+    { value: 'robot_voicemail', label: 'Роботы' },
+    { value: 'busy', label: 'Занято' }
+  ]
 
   if (!company) {
     return (
@@ -395,10 +453,10 @@ export default function CompanyDetailsPage() {
         </div>
       </div>
 
-      {/* Верхняя информационная панель */}
+      {/* Верхняя информационная панель - расширенный хедер */}
       <Card>
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-6">
             <div>
               <p className="text-sm text-gray-600 mb-1">Статус</p>
               <div className="flex items-center space-x-2">
@@ -407,7 +465,7 @@ export default function CompanyDetailsPage() {
             </div>
 
             <div>
-              <p className="text-sm text-gray-600 mb-1">Тип кампании</p>
+              <p className="text-sm text-gray-600 mb-1">Тип базы</p>
               <Badge className={
                 company.baseType === 'registration' ? 'bg-blue-100 text-blue-800' :
                 company.baseType === 'no_answer' ? 'bg-yellow-100 text-yellow-800' :
@@ -421,6 +479,22 @@ export default function CompanyDetailsPage() {
               </Badge>
             </div>
             
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Агент</p>
+              <div className="flex items-center">
+                <Bot className="h-4 w-4 text-gray-400 mr-2" />
+                <span className="font-medium">{company.agent}</span>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Историческая результативность</p>
+              <div className="flex items-center">
+                <span className="text-xl font-bold text-green-600">{company.historicalConversion}%</span>
+                <span className="text-xs text-gray-500 ml-2">успешных звонков за все время</span>
+              </div>
+            </div>
+
             <div>
               <p className="text-sm text-gray-600 mb-1">Company ID</p>
               <div className="flex items-center space-x-2">
@@ -442,11 +516,6 @@ export default function CompanyDetailsPage() {
             </div>
 
             <div>
-              <p className="text-sm text-gray-600 mb-1">Передано ERP</p>
-              <p className="text-2xl font-bold">{company.totalReceived.toLocaleString()}</p>
-            </div>
-
-            <div>
               <p className="text-sm text-gray-600 mb-1">Прогресс</p>
               <div className="flex items-center space-x-2">
                 <Progress value={company.progress} className="flex-1" />
@@ -457,8 +526,25 @@ export default function CompanyDetailsPage() {
         </CardContent>
       </Card>
 
-      {/* Основные метрики */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      {/* Основные метрики - 4 плитки */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Всего принято</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {company.totalReceived.toLocaleString()}
+                </p>
+                <p className="text-xs text-gray-500">
+                  контактов от ERP
+                </p>
+              </div>
+              <Users className="h-8 w-8 text-gray-600 opacity-20" />
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -468,7 +554,7 @@ export default function CompanyDetailsPage() {
                   {company.totalProcessed.toLocaleString()}
                 </p>
                 <p className="text-xs text-gray-500">
-                  {Math.round((company.totalProcessed / company.totalReceived) * 100)}% от переданных
+                  {Math.round((company.totalProcessed / company.totalReceived) * 100)}% от принятых
                 </p>
               </div>
               <CheckCircle className="h-8 w-8 text-blue-600 opacity-20" />
@@ -485,7 +571,7 @@ export default function CompanyDetailsPage() {
                   {company.totalInProgress.toLocaleString()}
                 </p>
                 <p className="text-xs text-gray-500">
-                  {Math.round((company.totalInProgress / company.totalReceived) * 100)}% от переданных
+                  {Math.round((company.totalInProgress / company.totalReceived) * 100)}% от принятых
                 </p>
               </div>
               <Clock className="h-8 w-8 text-orange-600 opacity-20" />
@@ -497,24 +583,32 @@ export default function CompanyDetailsPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Конверсия</p>
+                <p className="text-sm text-gray-600">
+                  {company.baseType === 'registration' ? 'Регистрации' :
+                   company.baseType === 'no_answer' ? 'Дозвоны' :
+                   company.baseType === 'refusals' ? 'Переубеждения' :
+                   'Реактивации'}
+                </p>
                 <p className="text-2xl font-bold text-green-600">
-                  {Math.round((company.successfulConsent / company.totalProcessed) * 100)}%
+                  {company.successfulConsent.toLocaleString()}
                 </p>
                 <p className="text-xs text-gray-500">
-                  Успешные из обработанных
+                  {Math.round((company.successfulConsent / company.totalProcessed) * 100)}% конверсия
                 </p>
               </div>
-              <Users className="h-8 w-8 text-green-600 opacity-20" />
+              <UserCheck className="h-8 w-8 text-green-600 opacity-20" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Декомпозиция обработанных */}
+      {/* Мониторинг/декомпозиция обработанных контактов по исходам */}
       <Card>
         <CardHeader>
-          <CardTitle>Декомпозиция обработанных контактов</CardTitle>
+          <CardTitle>Мониторинг обработанных контактов по исходам</CardTitle>
+          <p className="text-sm text-gray-600 mt-1">
+            Всего обработано: {company.totalProcessed.toLocaleString()} контактов
+          </p>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -607,13 +701,36 @@ export default function CompanyDetailsPage() {
                   </SelectContent>
                 </Select>
               </div>
+              
+              <div className="flex items-center space-x-2">
+                <Label htmlFor="result-filter" className="text-sm">Статус:</Label>
+                <Select value={resultFilter} onValueChange={setResultFilter}>
+                  <SelectTrigger id="result-filter" className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Все результаты</SelectItem>
+                    <SelectItem value="success">Согласие</SelectItem>
+                    <SelectItem value="refused">Отказ</SelectItem>
+                    <SelectItem value="no_answer">Недозвон</SelectItem>
+                    <SelectItem value="voicemail">Автоответчик</SelectItem>
+                    <SelectItem value="robot_voicemail">Робот-автоответчик</SelectItem>
+                    <SelectItem value="busy">Занято</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
               <Input
-                placeholder="Поиск по номеру..."
+                placeholder="Поиск по Lead ID..."
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
                 className="w-48"
               />
-              <Button variant="outline" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowExportModal(true)}
+              >
                 <Download className="h-4 w-4 mr-2" />
                 Экспорт
               </Button>
@@ -626,7 +743,7 @@ export default function CompanyDetailsPage() {
               <thead className="bg-gray-50 border-b">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Номер
+                    ID контакта
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Дата/время
@@ -646,10 +763,32 @@ export default function CompanyDetailsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {callRecords.map((call) => (
+                {callRecords
+                  .filter((call) => {
+                    // Фильтр по статусу результата
+                    if (resultFilter !== 'all' && call.result !== resultFilter) {
+                      return false
+                    }
+                    // Фильтр по поиску Lead ID
+                    if (searchFilter && !call.leadId.toLowerCase().includes(searchFilter.toLowerCase())) {
+                      return false
+                    }
+                    return true
+                  })
+                  .map((call) => (
                   <tr key={call.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <span className="font-mono text-sm">{call.phoneNumber}</span>
+                      <div className="flex items-center">
+                        <span className="font-mono text-sm font-medium text-blue-600">{call.leadId}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="ml-2 h-6 w-6 p-0"
+                          onClick={() => navigator.clipboard.writeText(call.leadId)}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm">
                       <div>
@@ -726,6 +865,86 @@ export default function CompanyDetailsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Модальное окно экспорта */}
+      <Dialog open={showExportModal} onOpenChange={setShowExportModal}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <FileDown className="h-5 w-5 mr-2" />
+              Экспорт таблицы звонков
+            </DialogTitle>
+            <DialogDescription>
+              Настройте параметры экспорта данных в CSV
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="export-period">Период</Label>
+              <Select value={exportPeriod} onValueChange={setExportPeriod}>
+                <SelectTrigger id="export-period" className="mt-2">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="today">Сегодня</SelectItem>
+                  <SelectItem value="yesterday">Вчера</SelectItem>
+                  <SelectItem value="week">Последняя неделя</SelectItem>
+                  <SelectItem value="month">Последний месяц</SelectItem>
+                  <SelectItem value="all">Все время</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Фильтр по статусам</Label>
+              <p className="text-xs text-gray-500 mb-3">Выберите статусы для экспорта (если ничего не выбрано - экспортируются все)</p>
+              <div className="space-y-2 mt-2">
+                {statusOptions.map((status) => (
+                  <div key={status.value} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={status.value}
+                      checked={selectedStatuses.includes(status.value)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedStatuses([...selectedStatuses, status.value])
+                        } else {
+                          setSelectedStatuses(selectedStatuses.filter(s => s !== status.value))
+                        }
+                      }}
+                    />
+                    <Label 
+                      htmlFor={status.value} 
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      {status.label}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-sm text-blue-900 font-medium mb-1">Важно:</p>
+              <ul className="text-xs text-blue-700 space-y-1">
+                <li>• Экспортируются только ID контактов и метаданные</li>
+                <li>• Номера телефонов НЕ включены в экспорт</li>
+                <li>• Файл будет сохранен в формате CSV</li>
+              </ul>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowExportModal(false)}>
+              Отмена
+            </Button>
+            <Button onClick={handleExport}>
+              <Download className="h-4 w-4 mr-2" />
+              Скачать CSV
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

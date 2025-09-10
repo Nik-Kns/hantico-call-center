@@ -118,6 +118,7 @@ export const mockCampaigns: Campaign[] = [
     id: 'obz-1',
     name: 'Тестовый запуск №1',
     description: 'Тестовая кампания для демонстрации',
+    baseType: 'registration',
     source: 'segment',
     sourceConfig: {
       segmentId: 'vip-segment',
@@ -169,6 +170,7 @@ export const mockCampaigns: Campaign[] = [
     id: 'obz-2',
     name: 'Реактивация неактивных',
     description: 'Возврат клиентов, не заходивших более 90 дней',
+    baseType: 'reactivation',
     source: 'csv',
     sourceConfig: {
       csvFile: 'inactive_users_90days.csv'
@@ -213,6 +215,7 @@ export const mockCampaigns: Campaign[] = [
     id: 'obz-3',
     name: 'Холодная база январь',
     description: 'Знакомство с продуктом для новых лидов',
+    baseType: 'registration',
     source: 'manual',
     scriptId: 'script-3',
     scriptVersion: 'A',
@@ -932,6 +935,7 @@ export const mockAgents: Agent[] = [
     id: 'agent-1',
     name: 'Анна - Регистрация',
     description: 'Агент для регистрации новых пользователей',
+    baseType: 'registration',
     role: 'registration_agent',
     voiceId: 'voice-anna-1',
     status: 'active',
@@ -983,6 +987,7 @@ export const mockAgents: Agent[] = [
     id: 'agent-2',
     name: 'Михаил - Реактивация',
     description: 'Агент для возврата неактивных клиентов',
+    baseType: 'reactivation',
     role: 'reactivation_agent',
     voiceId: 'voice-mikhail-1',
     status: 'active',
@@ -1017,6 +1022,7 @@ export const mockAgents: Agent[] = [
     id: 'agent-3',
     name: 'Елена - Холодные звонки',
     description: 'Агент для работы с холодной базой',
+    baseType: 'registration',
     role: 'cold_calling_agent',
     voiceId: 'voice-elena-1',
     status: 'inactive',

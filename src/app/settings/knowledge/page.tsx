@@ -246,7 +246,7 @@ export default function KnowledgePage() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-2">
-                          <span className="font-medium text-red-600">"{item.phrase}"</span>
+                          <span className="font-medium text-red-600">&quot;{item.phrase}&quot;</span>
                           {getSeverityBadge(item.severity)}
                         </div>
                         <p className="text-sm text-gray-600">{item.reason}</p>

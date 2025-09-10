@@ -23,7 +23,11 @@ import {
   TrendingUp,
   Activity,
   MessageSquare,
-  Volume2
+  Volume2,
+  UserCheck,
+  PhoneOff,
+  PhoneMissed,
+  Bot
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -55,6 +59,11 @@ interface ObzvonCampaign {
   startTime?: Date
   endTime?: Date
   progress: number
+  // Дополнительные поля для декомпозиции
+  refusals: number
+  noAnswers: number
+  voicemails: number
+  busyNumbers: number
 }
 
 const mockObzvonCampaigns: ObzvonCampaign[] = [
@@ -73,6 +82,10 @@ const mockObzvonCampaigns: ObzvonCampaign[] = [
     smsAgreements: 445,
     transfers: 89,
     retries: 156,
+    refusals: 178,
+    noAnswers: 224,
+    voicemails: 38,
+    busyNumbers: 42,
     startTime: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 часа назад
     progress: 68
   },
@@ -84,13 +97,17 @@ const mockObzvonCampaigns: ObzvonCampaign[] = [
     agentStage: 'Напоминание',
     database: 'Неактивные 90 дней (2,100 номеров)',
     script: 'Возвращение с бонусом',
-    status: 'paused',
+    status: 'active',
     totalNumbers: 2100,
     calledNumbers: 456,
     successfulConnections: 298,
     smsAgreements: 156,
     transfers: 34,
     retries: 89,
+    refusals: 142,
+    noAnswers: 158,
+    voicemails: 22,
+    busyNumbers: 18,
     startTime: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 часов назад
     progress: 22
   },
@@ -109,7 +126,33 @@ const mockObzvonCampaigns: ObzvonCampaign[] = [
     smsAgreements: 0,
     transfers: 0,
     retries: 0,
+    refusals: 0,
+    noAnswers: 0,
+    voicemails: 0,
+    busyNumbers: 0,
     progress: 0
+  },
+  {
+    id: 'obz-4',
+    name: 'Работа с отказниками',
+    baseType: 'refusals',
+    agent: 'Ольга (голос 4)',
+    agentStage: 'Переубеждение',
+    database: 'Отказники Q4 (1,800 номеров)',
+    script: 'Специальное предложение',
+    status: 'active',
+    totalNumbers: 1800,
+    calledNumbers: 1245,
+    successfulConnections: 856,
+    smsAgreements: 312,
+    transfers: 156,
+    retries: 389,
+    refusals: 544,
+    noAnswers: 389,
+    voicemails: 67,
+    busyNumbers: 89,
+    startTime: new Date(Date.now() - 24 * 60 * 60 * 1000), // 24 часа назад
+    progress: 69
   }
 ]
 
@@ -121,13 +164,49 @@ export default function ObzvoniPage() {
   const [filterDate, setFilterDate] = useState<string>('all')
   const [filterBaseType, setFilterBaseType] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState<string>('')
+  const [searchIdQuery, setSearchIdQuery] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
+  const [decompositionPeriod, setDecompositionPeriod] = useState<string>('all')
 
-  // Статистика в реальном времени
-  const totalActive = campaigns.filter(c => c.status === 'active').length
-  const totalCalls = campaigns.reduce((sum, c) => sum + c.calledNumbers, 0)
-  const totalSuccess = campaigns.reduce((sum, c) => sum + c.successfulConnections, 0)
-  const totalSmsAgreements = campaigns.reduce((sum, c) => sum + c.smsAgreements, 0)
+  // Фильтрация кампаний по периоду для декомпозиции
+  const getFilteredCampaignsByPeriod = (period: string) => {
+    const now = new Date()
+    return campaigns.filter(campaign => {
+      if (campaign.status !== 'active') return false
+      if (period === 'all') return true
+      if (!campaign.startTime) return false
+      
+      const campaignDate = campaign.startTime
+      
+      switch (period) {
+        case 'today':
+          return campaignDate.toDateString() === now.toDateString()
+        case 'week':
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+          return campaignDate >= weekAgo
+        case 'month':
+          const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+          return campaignDate >= monthAgo
+        default:
+          return true
+      }
+    })
+  }
+
+  // Статистика в реальном времени (только по активным кампаниям)
+  const activeCampaigns = campaigns.filter(c => c.status === 'active')
+  const filteredForDecomposition = getFilteredCampaignsByPeriod(decompositionPeriod)
+  
+  const totalActive = activeCampaigns.length
+  const totalCalls = filteredForDecomposition.reduce((sum, c) => sum + c.calledNumbers, 0)
+  const totalSuccess = filteredForDecomposition.reduce((sum, c) => sum + c.successfulConnections, 0)
+  const totalSmsAgreements = filteredForDecomposition.reduce((sum, c) => sum + c.smsAgreements, 0)
+  const totalRefusals = filteredForDecomposition.reduce((sum, c) => sum + (c.refusals || 0), 0)
+  const totalNoAnswers = filteredForDecomposition.reduce((sum, c) => sum + (c.noAnswers || 0), 0)
+  const totalVoicemails = filteredForDecomposition.reduce((sum, c) => sum + (c.voicemails || 0), 0)
+  const totalBusy = filteredForDecomposition.reduce((sum, c) => sum + (c.busyNumbers || 0), 0)
+  const totalReceived = activeCampaigns.reduce((sum, c) => sum + c.totalNumbers, 0)
+  const totalInProgress = activeCampaigns.reduce((sum, c) => sum + (c.totalNumbers - c.calledNumbers), 0)
 
   const handleRefresh = async () => {
     setIsLoading(true)
@@ -195,6 +274,8 @@ export default function ObzvoniPage() {
     const matchesSearch = searchQuery === '' || 
       campaign.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       campaign.database.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesId = searchIdQuery === '' || 
+      campaign.id.toLowerCase().includes(searchIdQuery.toLowerCase())
     
     const matchesDate = (() => {
       if (filterDate === 'all') return true
@@ -219,7 +300,7 @@ export default function ObzvoniPage() {
       }
     })()
 
-    return matchesStatus && matchesAgent && matchesBaseType && matchesSearch && matchesDate
+    return matchesStatus && matchesAgent && matchesBaseType && matchesSearch && matchesId && matchesDate
   })
 
   return (
@@ -253,8 +334,8 @@ export default function ObzvoniPage() {
         </div>
       </div>
 
-      {/* Статистика в реальном времени */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Основная статистика по активным кампаниям */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
@@ -301,16 +382,143 @@ export default function ObzvoniPage() {
           <CardContent className="p-6">
             <div className="flex items-center">
               <div className="p-2 bg-orange-100 rounded-lg">
-                <Users className="h-6 w-6 text-orange-600" />
+                <Clock className="h-6 w-6 text-orange-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Согласия на SMS</p>
+                <p className="text-sm font-medium text-gray-600">В работе</p>
+                <p className="text-2xl font-bold text-gray-900">{totalInProgress.toLocaleString()}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-yellow-100 rounded-lg">
+                <UserCheck className="h-6 w-6 text-yellow-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Согласия SMS</p>
                 <p className="text-2xl font-bold text-gray-900">{totalSmsAgreements.toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Декомпозиция обработанных контактов по исходам (суммарно по всем активным кампаниям) */}
+      {totalActive > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Декомпозиция обработанных контактов по исходам</CardTitle>
+                <p className="text-sm text-gray-600 mt-1">
+                  Суммарная статистика по {filteredForDecomposition.length} активным кампаниям. Всего обработано: {totalCalls.toLocaleString()} контактов
+                </p>
+              </div>
+              <Select value={decompositionPeriod} onValueChange={setDecompositionPeriod}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Период" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Все время</SelectItem>
+                  <SelectItem value="today">Сегодня</SelectItem>
+                  <SelectItem value="week">За неделю</SelectItem>
+                  <SelectItem value="month">За месяц</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                <div className="flex items-center justify-between mb-2">
+                  <MessageSquare className="h-5 w-5 text-green-600" />
+                  <Badge className="bg-green-100 text-green-800">SMS</Badge>
+                </div>
+                <p className="text-2xl font-bold text-green-600">
+                  {totalSmsAgreements.toLocaleString()}
+                </p>
+                <p className="text-sm text-gray-600">Успешные/согласие</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {totalCalls > 0 ? Math.round((totalSmsAgreements / totalCalls) * 100) : 0}% от обработанных
+                </p>
+              </div>
+
+              <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                <div className="flex items-center justify-between mb-2">
+                  <XCircle className="h-5 w-5 text-red-600" />
+                </div>
+                <p className="text-2xl font-bold text-red-600">
+                  {totalRefusals > 0 ? totalRefusals.toLocaleString() : '0'}
+                </p>
+                <p className="text-sm text-gray-600">Отказы</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {totalCalls > 0 && totalRefusals > 0 ? Math.round((totalRefusals / totalCalls) * 100) : 0}% от обработанных
+                </p>
+              </div>
+
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <PhoneOff className="h-5 w-5 text-gray-600" />
+                </div>
+                <p className="text-2xl font-bold text-gray-600">
+                  {totalNoAnswers > 0 ? totalNoAnswers.toLocaleString() : '0'}
+                </p>
+                <p className="text-sm text-gray-600">Недозвоны</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {totalCalls > 0 && totalNoAnswers > 0 ? Math.round((totalNoAnswers / totalCalls) * 100) : 0}% от обработанных
+                </p>
+              </div>
+
+              <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                <div className="flex items-center justify-between mb-2">
+                  <Bot className="h-5 w-5 text-purple-600" />
+                </div>
+                <p className="text-2xl font-bold text-purple-600">
+                  {totalVoicemails > 0 ? totalVoicemails.toLocaleString() : '0'}
+                </p>
+                <p className="text-sm text-gray-600">Автоответчики</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {totalCalls > 0 && totalVoicemails > 0 ? Math.round((totalVoicemails / totalCalls) * 100) : 0}% от обработанных
+                </p>
+              </div>
+
+              <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                <div className="flex items-center justify-between mb-2">
+                  <PhoneMissed className="h-5 w-5 text-orange-600" />
+                </div>
+                <p className="text-2xl font-bold text-orange-600">
+                  {totalBusy > 0 ? totalBusy.toLocaleString() : '0'}
+                </p>
+                <p className="text-sm text-gray-600">Занято</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {totalCalls > 0 && totalBusy > 0 ? Math.round((totalBusy / totalCalls) * 100) : 0}% от обработанных
+                </p>
+              </div>
+            </div>
+            
+            <div className="mt-4 pt-4 border-t">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-600">
+                  <span className="font-medium">Общая конверсия:</span>
+                  <span className="ml-2 text-lg font-bold text-green-600">
+                    {totalCalls > 0 ? ((totalSmsAgreements / totalCalls) * 100).toFixed(1) : 0}%
+                  </span>
+                </div>
+                <div className="text-sm text-gray-600">
+                  <span className="font-medium">Осталось обработать:</span>
+                  <span className="ml-2 text-lg font-bold text-orange-600">
+                    {totalInProgress.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Фильтры и поиск */}
       <Card>
@@ -321,7 +529,7 @@ export default function ObzvoniPage() {
               <span className="text-sm font-medium text-gray-700">Фильтры и поиск:</span>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
               {/* Поиск */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -329,6 +537,17 @@ export default function ObzvoniPage() {
                   placeholder="Поиск по названию или базе..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              
+              {/* Поиск по ID */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Поиск по ID..."
+                  value={searchIdQuery}
+                  onChange={(e) => setSearchIdQuery(e.target.value)}
                   className="pl-10"
                 />
               </div>
@@ -402,6 +621,7 @@ export default function ObzvoniPage() {
                   setFilterDate('all')
                   setFilterBaseType('all')
                   setSearchQuery('')
+                  setSearchIdQuery('')
                 }}
                 className="whitespace-nowrap"
               >
@@ -410,7 +630,7 @@ export default function ObzvoniPage() {
             </div>
 
             {/* Индикатор активных фильтров */}
-            {(filterStatus !== 'all' || filterAgent !== 'all' || filterDate !== 'all' || filterBaseType !== 'all' || searchQuery !== '') && (
+            {(filterStatus !== 'all' || filterAgent !== 'all' || filterDate !== 'all' || filterBaseType !== 'all' || searchQuery !== '' || searchIdQuery !== '') && (
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <span>Активные фильтры:</span>
                 {filterStatus !== 'all' && (
@@ -427,6 +647,9 @@ export default function ObzvoniPage() {
                 )}
                 {searchQuery !== '' && (
                   <Badge variant="outline">Поиск: &quot;{searchQuery}&quot;</Badge>
+                )}
+                {searchIdQuery !== '' && (
+                  <Badge variant="outline">ID: &quot;{searchIdQuery}&quot;</Badge>
                 )}
                 <span className="text-gray-500">
                   Показано: {filteredCampaigns.length} из {campaigns.length}
@@ -447,6 +670,9 @@ export default function ObzvoniPage() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b">
                 <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    ID
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Название
                   </th>
@@ -474,13 +700,13 @@ export default function ObzvoniPage() {
                 {filteredCampaigns.map((campaign) => (
                   <tr key={campaign.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {campaign.name}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          ID: {campaign.id}
-                        </div>
+                      <div className="text-sm font-mono font-medium text-gray-900">
+                        {campaign.id}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {campaign.name}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

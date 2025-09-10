@@ -25,7 +25,8 @@ import {
   Plus,
   Eye,
   Pause,
-  X
+  X,
+  Edit
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -71,6 +72,23 @@ interface CampaignForm {
   testPhone: string
   isTestCalling: boolean
   selectedABTest?: ABTest
+  // Время и повторы
+  callWindow: {
+    start: string
+    end: string
+  }
+  retryPolicy: {
+    maxAttempts: number
+    delayMinutes: number
+  }
+  // Создание агента инлайн
+  createNewAgent: boolean
+  newAgentName: string
+  newAgentDescription: string
+  newAgentPrompt: string
+  // Результат теста агента
+  agentTestStatus: 'idle' | 'testing' | 'passed' | 'failed'
+  agentTestFeedback: string
 }
 
 const mockAgents = [
@@ -145,7 +163,21 @@ export default function NewCompanyPage() {
     serviceAvailable: false,
     testPhone: '',
     isTestCalling: false,
-    selectedABTest: undefined
+    selectedABTest: undefined,
+    callWindow: {
+      start: '09:00',
+      end: '20:00'
+    },
+    retryPolicy: {
+      maxAttempts: 3,
+      delayMinutes: 60
+    },
+    createNewAgent: false,
+    newAgentName: '',
+    newAgentDescription: '',
+    newAgentPrompt: '',
+    agentTestStatus: 'idle',
+    agentTestFeedback: ''
   })
 
   const [isLoading, setIsLoading] = useState(false)
@@ -156,6 +188,7 @@ export default function NewCompanyPage() {
   const [testCallStatus, setTestCallStatus] = useState<'idle' | 'calling' | 'connected' | 'ended'>('idle')
   const [showABTests, setShowABTests] = useState(false)
   const [showCreateABTest, setShowCreateABTest] = useState(false)
+  const [showCreateAgent, setShowCreateAgent] = useState(false)
 
   const handleInputChange = (field: keyof CampaignForm, value: any) => {
     setForm(prev => ({
@@ -190,8 +223,8 @@ export default function NewCompanyPage() {
   }
 
   useEffect(() => {
-    // Автоматическая проверка готовности при монтировании на 4 шаге
-    if (currentStep === 4) {
+    // Автоматическая проверка готовности при монтировании на 6 шаге
+    if (currentStep === 6) {
       checkServiceReadiness()
     }
   }, [currentStep])
@@ -251,17 +284,50 @@ export default function NewCompanyPage() {
     handleInputChange('selectedABTest', undefined)
   }
 
+  const handleTestAgent = () => {
+    handleInputChange('agentTestStatus', 'testing')
+    
+    // Симуляция теста агента
+    setTimeout(() => {
+      const isSuccess = Math.random() > 0.3
+      handleInputChange('agentTestStatus', isSuccess ? 'passed' : 'failed')
+      handleInputChange('agentTestFeedback', 
+        isSuccess 
+          ? 'Агент успешно протестирован. Все системы работают корректно.'
+          : 'Обнаружены проблемы: голос не распознан. Проверьте настройки.'
+      )
+    }, 3000)
+  }
+
+  const handleCreateAgent = () => {
+    // Сохраняем нового агента
+    const newAgent = {
+      id: `agent-${Date.now()}`,
+      name: form.newAgentName,
+      description: form.newAgentDescription,
+      baseType: form.baseType as BaseType
+    }
+    mockAgents.push(newAgent)
+    handleInputChange('agent', newAgent.id)
+    handleInputChange('createNewAgent', false)
+    setShowCreateAgent(false)
+  }
+
   const isStepCompleted = (step: number) => {
     switch (step) {
       case 1:
         return form.name.trim() !== '' && form.baseType !== ''
       case 2:
-        return form.agent !== '' && form.voice !== ''
+        return form.callWindow.start !== '' && form.callWindow.end !== ''
       case 3:
-        return form.instructions.trim() !== ''
+        return (form.agent !== '' || (form.createNewAgent && form.newAgentName !== '')) && form.voice !== ''
       case 4:
-        return form.serviceReady
+        return true // A/B тесты опциональны
       case 5:
+        return form.instructions.trim() !== ''
+      case 6:
+        return form.serviceReady
+      case 7:
         return true // Резюме всегда доступно
       default:
         return false
@@ -269,7 +335,7 @@ export default function NewCompanyPage() {
   }
 
   const isFormValid = () => {
-    return isStepCompleted(1) && isStepCompleted(2) && isStepCompleted(3) && isStepCompleted(4)
+    return isStepCompleted(1) && isStepCompleted(2) && isStepCompleted(3) && isStepCompleted(5) && isStepCompleted(6)
   }
 
   const handleSave = async () => {
@@ -283,11 +349,13 @@ export default function NewCompanyPage() {
   }
 
   const steps = [
-    { id: 1, name: 'Название компании', icon: Settings },
-    { id: 2, name: 'Агент', icon: Mic },
-    { id: 3, name: 'Инструкция', icon: FileText },
-    { id: 4, name: 'Проверка готовности', icon: CheckSquare },
-    { id: 5, name: 'Резюме', icon: CheckCircle }
+    { id: 1, name: 'Название и тип', icon: Settings },
+    { id: 2, name: 'Время и повторы', icon: Clock },
+    { id: 3, name: 'Агент и голос', icon: Mic },
+    { id: 4, name: 'A/B тесты', icon: FlaskConical },
+    { id: 5, name: 'Инструкция', icon: FileText },
+    { id: 6, name: 'Проверка готовности', icon: CheckSquare },
+    { id: 7, name: 'Резюме', icon: CheckCircle }
   ]
 
   return (
@@ -401,8 +469,102 @@ export default function NewCompanyPage() {
             </Card>
           )}
 
-          {/* Шаг 2: Агент */}
+          {/* Шаг 2: Время и повторы */}
           {currentStep === 2 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Clock className="h-5 w-5 mr-2" />
+                  Время звонков и политика повторов
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <Label>Окно дозвона</Label>
+                  <div className="grid grid-cols-2 gap-4 mt-2">
+                    <div>
+                      <Label htmlFor="start-time" className="text-sm text-gray-600">Начало</Label>
+                      <Input
+                        id="start-time"
+                        type="time"
+                        value={form.callWindow.start}
+                        onChange={(e) => handleInputChange('callWindow', { ...form.callWindow, start: e.target.value })}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="end-time" className="text-sm text-gray-600">Окончание</Label>
+                      <Input
+                        id="end-time"
+                        type="time"
+                        value={form.callWindow.end}
+                        onChange={(e) => handleInputChange('callWindow', { ...form.callWindow, end: e.target.value })}
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Укажите временной промежуток для совершения звонков
+                  </p>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <Label>Политика повторов</Label>
+                  <div className="space-y-4 mt-2">
+                    <div>
+                      <Label htmlFor="max-attempts" className="text-sm text-gray-600">
+                        Максимальное количество попыток
+                      </Label>
+                      <Select 
+                        value={form.retryPolicy.maxAttempts.toString()} 
+                        onValueChange={(value) => handleInputChange('retryPolicy', { ...form.retryPolicy, maxAttempts: parseInt(value) })}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1 попытка</SelectItem>
+                          <SelectItem value="2">2 попытки</SelectItem>
+                          <SelectItem value="3">3 попытки</SelectItem>
+                          <SelectItem value="4">4 попытки</SelectItem>
+                          <SelectItem value="5">5 попыток</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="retry-delay" className="text-sm text-gray-600">
+                        Задержка между попытками (минуты)
+                      </Label>
+                      <Select 
+                        value={form.retryPolicy.delayMinutes.toString()} 
+                        onValueChange={(value) => handleInputChange('retryPolicy', { ...form.retryPolicy, delayMinutes: parseInt(value) })}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="30">30 минут</SelectItem>
+                          <SelectItem value="60">1 час</SelectItem>
+                          <SelectItem value="120">2 часа</SelectItem>
+                          <SelectItem value="240">4 часа</SelectItem>
+                          <SelectItem value="1440">24 часа</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Настройте, сколько раз и с какими интервалами повторять звонки при недозвоне
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Шаг 3: Агент */}
+          {currentStep === 3 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -412,12 +574,86 @@ export default function NewCompanyPage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
-                  <Label>Выберите агента *</Label>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label>Выберите или создайте агента *</Label>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant={form.createNewAgent ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => {
+                          handleInputChange('createNewAgent', !form.createNewAgent)
+                          if (!form.createNewAgent) {
+                            handleInputChange('agent', '')
+                          }
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Создать нового
+                      </Button>
+                    </div>
+                  </div>
+                  
                   {!form.baseType ? (
                     <div className="mt-1 p-3 border border-yellow-200 bg-yellow-50 rounded-lg">
                       <p className="text-sm text-yellow-800">
-                        Сначала выберите тип кампании на предыдущем шаге
+                        Сначала выберите тип кампании на первом шаге
                       </p>
+                    </div>
+                  ) : form.createNewAgent ? (
+                    <div className="space-y-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div>
+                        <Label htmlFor="new-agent-name">Имя агента *</Label>
+                        <Input
+                          id="new-agent-name"
+                          placeholder="Например: Анна"
+                          value={form.newAgentName}
+                          onChange={(e) => handleInputChange('newAgentName', e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="new-agent-desc">Описание агента</Label>
+                        <Input
+                          id="new-agent-desc"
+                          placeholder="Например: Дружелюбный консультант"
+                          value={form.newAgentDescription}
+                          onChange={(e) => handleInputChange('newAgentDescription', e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="new-agent-prompt">Системный промт агента *</Label>
+                        <Textarea
+                          id="new-agent-prompt"
+                          placeholder="Введите инструкции для поведения агента..."
+                          value={form.newAgentPrompt}
+                          onChange={(e) => handleInputChange('newAgentPrompt', e.target.value)}
+                          className="mt-1 min-h-[120px]"
+                        />
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button
+                          size="sm"
+                          onClick={handleCreateAgent}
+                          disabled={!form.newAgentName || !form.newAgentPrompt}
+                        >
+                          <Check className="h-4 w-4 mr-1" />
+                          Сохранить агента
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            handleInputChange('createNewAgent', false)
+                            handleInputChange('newAgentName', '')
+                            handleInputChange('newAgentDescription', '')
+                            handleInputChange('newAgentPrompt', '')
+                          }}
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Отмена
+                        </Button>
+                      </div>
                     </div>
                   ) : (
                     <>
@@ -439,7 +675,7 @@ export default function NewCompanyPage() {
                         </SelectContent>
                       </Select>
                       <p className="text-xs text-gray-500 mt-1">
-                        Доступны только агенты для типа кампании "{form.baseType === 'registration' ? 'Регистрация' : form.baseType === 'no_answer' ? 'Недозвон' : form.baseType === 'refusals' ? 'Отказники' : 'Отклики/реактивация'}"
+                        Доступны только агенты для типа кампании &quot;{form.baseType === 'registration' ? 'Регистрация' : form.baseType === 'no_answer' ? 'Недозвон' : form.baseType === 'refusals' ? 'Отказники' : 'Отклики/реактивация'}&quot;
                       </p>
                     </>
                   )}
@@ -466,12 +702,175 @@ export default function NewCompanyPage() {
                     Прослушать образец
                   </Button>
                 </div>
+
+                {/* Инлайн-тест агента */}
+                <Separator />
+                
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-medium flex items-center">
+                      <Headphones className="h-4 w-4 mr-2" />
+                      Тестирование агента
+                    </h3>
+                    {form.agentTestStatus === 'passed' && (
+                      <Badge className="bg-green-100 text-green-800">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Пройдено
+                      </Badge>
+                    )}
+                    {form.agentTestStatus === 'failed' && (
+                      <Badge className="bg-red-100 text-red-800">
+                        <XCircle className="h-3 w-3 mr-1" />
+                        Есть замечания
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <Button
+                      onClick={handleTestAgent}
+                      disabled={!form.agent || form.agentTestStatus === 'testing'}
+                      className="w-full"
+                    >
+                      {form.agentTestStatus === 'idle' && (
+                        <>
+                          <Phone className="h-4 w-4 mr-2" />
+                          Тестовый звонок агента
+                        </>
+                      )}
+                      {form.agentTestStatus === 'testing' && (
+                        <>
+                          <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                          Тестирование...
+                        </>
+                      )}
+                      {(form.agentTestStatus === 'passed' || form.agentTestStatus === 'failed') && (
+                        <>
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          Повторить тест
+                        </>
+                      )}
+                    </Button>
+                    
+                    {form.agentTestFeedback && (
+                      <div className={`p-3 rounded-lg border ${
+                        form.agentTestStatus === 'passed' 
+                          ? 'bg-green-50 border-green-200' 
+                          : 'bg-red-50 border-red-200'
+                      }`}>
+                        <p className={`text-sm ${
+                          form.agentTestStatus === 'passed' 
+                            ? 'text-green-700' 
+                            : 'text-red-700'
+                        }`}>
+                          {form.agentTestFeedback}
+                        </p>
+                        {form.agentTestStatus === 'failed' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-3"
+                            onClick={() => setCurrentStep(5)}
+                          >
+                            <Edit className="h-3 w-3 mr-1" />
+                            Редактировать инструкции
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Шаг 3: Инструкция и документ знаний */}
-          {currentStep === 3 && (
+          {/* Шаг 4: A/B тесты */}
+          {currentStep === 4 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <FlaskConical className="h-5 w-5 mr-2" />
+                  A/B тестирование
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  Настройте A/B тесты для сравнения эффективности разных сценариев и агентов (опционально)
+                </p>
+                
+                {form.selectedABTest ? (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <h4 className="font-medium text-blue-900">{form.selectedABTest.name}</h4>
+                          <Badge className={form.selectedABTest.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                            {form.selectedABTest.status === 'active' ? 'Активен' : 'Черновик'}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-blue-700 mb-3">
+                          {form.selectedABTest.description}
+                        </p>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div className="bg-white/50 rounded px-3 py-2">
+                            <span className="font-medium">Вариант A:</span>
+                            <p className="text-gray-700">{form.selectedABTest.variantA}</p>
+                          </div>
+                          <div className="bg-white/50 rounded px-3 py-2">
+                            <span className="font-medium">Вариант B:</span>
+                            <p className="text-gray-700">{form.selectedABTest.variantB}</p>
+                          </div>
+                        </div>
+                        <div className="mt-3 text-sm text-blue-600">
+                          Распределение трафика: {form.selectedABTest.splitRatio}% / {100 - form.selectedABTest.splitRatio}%
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRemoveABTest}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowABTests(true)}
+                      >
+                        Изменить тест
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <p className="text-sm text-gray-600 mb-4">
+                      A/B тесты помогут определить наиболее эффективные сценарии и агентов
+                    </p>
+                    
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowABTests(true)}
+                      className="w-full"
+                    >
+                      <FlaskConical className="h-4 w-4 mr-2" />
+                      Выбрать A/B тест
+                    </Button>
+                  </div>
+                )}
+                
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-xs text-blue-700">
+                    💡 Совет: A/B тесты позволяют сравнить разные подходы и выбрать наиболее эффективный
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Шаг 5: Инструкция и документ знаний */}
+          {currentStep === 5 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -530,8 +929,8 @@ export default function NewCompanyPage() {
             </Card>
           )}
 
-          {/* Шаг 4: Проверка готовности сервиса */}
-          {currentStep === 4 && (
+          {/* Шаг 6: Проверка готовности сервиса */}
+          {currentStep === 6 && (
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -878,8 +1277,8 @@ export default function NewCompanyPage() {
             </Card>
           )}
 
-          {/* Шаг 5: Резюме */}
-          {currentStep === 5 && (
+          {/* Шаг 7: Резюме */}
+          {currentStep === 7 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
