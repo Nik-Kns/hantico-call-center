@@ -195,6 +195,12 @@ export default function ObzvoniMonitorPage() {
   const [visibleColumns, setVisibleColumns] = useState<string[]>(
     allColumns.filter(col => col.fixed || col.default).map(col => col.id)
   )
+  
+  // Состояния для графика
+  const [selectedMetric, setSelectedMetric] = useState<'transferred' | 'received' | 'processed' | 'success' | 'voicemail'>('transferred')
+  const [chartDateFilter, setChartDateFilter] = useState<'today' | 'period'>('today')
+  const [intervalStart, setIntervalStart] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+  const [intervalEnd, setIntervalEnd] = useState(new Date().toISOString().split('T')[0])
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -450,6 +456,259 @@ export default function ObzvoniMonitorPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* График динамики метрик */}
+      {filteredCompanies.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Динамика метрик</CardTitle>
+                <p className="text-sm text-gray-600 mt-1">
+                  График показателей выбранных кампаний
+                </p>
+              </div>
+              <div className="flex items-center space-x-4">
+                {/* Фильтр показателей */}
+                <div className="flex items-center space-x-2">
+                  <Button
+                    size="sm"
+                    variant={selectedMetric === 'transferred' ? 'default' : 'ghost'}
+                    onClick={() => setSelectedMetric('transferred')}
+                    className={selectedMetric === 'transferred' ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                  >
+                    Передано
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={selectedMetric === 'received' ? 'default' : 'ghost'}
+                    onClick={() => setSelectedMetric('received')}
+                    className={selectedMetric === 'received' ? 'bg-green-600 hover:bg-green-700' : ''}
+                  >
+                    Получено
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={selectedMetric === 'processed' ? 'default' : 'ghost'}
+                    onClick={() => setSelectedMetric('processed')}
+                    className={selectedMetric === 'processed' ? 'bg-indigo-600 hover:bg-indigo-700' : ''}
+                  >
+                    Обработано
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={selectedMetric === 'success' ? 'default' : 'ghost'}
+                    onClick={() => setSelectedMetric('success')}
+                    className={selectedMetric === 'success' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}
+                  >
+                    Успешные
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={selectedMetric === 'voicemail' ? 'default' : 'ghost'}
+                    onClick={() => setSelectedMetric('voicemail')}
+                    className={selectedMetric === 'voicemail' ? 'bg-purple-600 hover:bg-purple-700' : ''}
+                  >
+                    Автоответчики
+                  </Button>
+                </div>
+                
+                {/* Фильтр времени */}
+                <div className="flex items-center space-x-2">
+                  <Label className="text-sm">Период:</Label>
+                  <Select value={chartDateFilter} onValueChange={(value: any) => setChartDateFilter(value)}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="today">Сегодня</SelectItem>
+                      <SelectItem value="period">Период</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  {/* Выбор дат для периода */}
+                  {chartDateFilter === 'period' && (
+                    <>
+                      <Input
+                        type="date"
+                        value={intervalStart}
+                        onChange={(e) => setIntervalStart(e.target.value)}
+                        className="w-32"
+                      />
+                      <span className="text-sm text-gray-500">—</span>
+                      <Input
+                        type="date"
+                        value={intervalEnd}
+                        onChange={(e) => setIntervalEnd(e.target.value)}
+                        className="w-32"
+                      />
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Область графика */}
+              <div className="bg-gray-50 rounded-lg p-6">
+                <div className="relative h-64">
+                  {chartDateFilter === 'period' ? (
+                    /* Линейный график для периода */
+                    <div className="absolute inset-0 flex flex-col">
+                      {/* Сетка Y-оси */}
+                      <div className="absolute inset-0 flex flex-col justify-between">
+                        {[100, 75, 50, 25, 0].map((value) => (
+                          <div key={value} className="flex items-center">
+                            <span className="text-xs text-gray-400 -ml-10 w-8 text-right">{value}%</span>
+                            <div className="flex-1 border-b border-gray-200 ml-2"></div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* SVG с линейным графиком */}
+                      <svg className="absolute inset-0 w-full h-full" style={{ marginLeft: '0px' }}>
+                        {filteredCompanies.slice(0, 5).map((company, companyIndex) => {
+                          const colors = ['#3b82f6', '#10b981', '#f97316', '#8b5cf6', '#ef4444']
+                          const color = colors[companyIndex % colors.length]
+                          
+                          // Генерируем точки для линии на основе выбранной метрики
+                          const getMetricValue = (company: CompanyMonitor, metric: string) => {
+                            switch (metric) {
+                              case 'transferred': return company.totalTransferred
+                              case 'received': return company.totalReceived
+                              case 'processed': return company.totalProcessed
+                              case 'success': return company.successCount
+                              case 'voicemail': return company.voicemailCount
+                              default: return 0
+                            }
+                          }
+                          
+                          const maxValue = Math.max(...filteredCompanies.slice(0, 5).map(c => getMetricValue(c, selectedMetric)))
+                          const normalizedValue = maxValue > 0 ? (getMetricValue(company, selectedMetric) / maxValue) * 160 : 0
+                          const yOffset = 200 - normalizedValue
+                          
+                          // Создаем точки для недели
+                          const points = Array.from({ length: 7 }, (_, i) => {
+                            const x = 10 + (i * 120)
+                            const variation = Math.random() * 20 - 10 // Случайная вариация ±10px
+                            const y = Math.max(40, Math.min(200, yOffset + variation))
+                            return `${x},${y}`
+                          }).join(' ')
+                          
+                          return (
+                            <polyline
+                              key={company.id}
+                              points={points}
+                              fill="none"
+                              stroke={color}
+                              strokeWidth="3"
+                              opacity="0.8"
+                            />
+                          )
+                        })}
+                      </svg>
+                    </div>
+                  ) : (
+                    /* Столбчатая диаграмма для сегодня */
+                    <div className="absolute inset-0 flex items-end justify-between gap-2">
+                      {Array.from({ length: 12 }, (_, index) => {
+                        // Рассчитываем среднее значение выбранной метрики
+                        const getAverageMetric = () => {
+                          if (filteredCompanies.length === 0) return 0
+                          const sum = filteredCompanies.reduce((acc, company) => {
+                            switch (selectedMetric) {
+                              case 'transferred': return acc + company.totalTransferred
+                              case 'received': return acc + company.totalReceived
+                              case 'processed': return acc + company.totalProcessed
+                              case 'success': return acc + company.successCount
+                              case 'voicemail': return acc + company.voicemailCount
+                              default: return acc
+                            }
+                          }, 0)
+                          return Math.round(sum / filteredCompanies.length)
+                        }
+                        
+                        const avgValue = getAverageMetric()
+                        const maxPossible = Math.max(...filteredCompanies.map(c => {
+                          switch (selectedMetric) {
+                            case 'transferred': return c.totalTransferred
+                            case 'received': return c.totalReceived
+                            case 'processed': return c.totalProcessed
+                            case 'success': return c.successCount
+                            case 'voicemail': return c.voicemailCount
+                            default: return 0
+                          }
+                        }))
+                        
+                        const percentage = maxPossible > 0 ? Math.round((avgValue / maxPossible) * 100) : 0
+                        const hourVariation = Math.round(percentage + (Math.random() * 20 - 10))
+                        const normalizedValue = Math.max(5, Math.min(100, hourVariation))
+                        
+                        const metricColors = {
+                          transferred: 'bg-blue-500',
+                          received: 'bg-green-500', 
+                          processed: 'bg-indigo-500',
+                          success: 'bg-emerald-500',
+                          voicemail: 'bg-purple-500'
+                        }
+                        const color = metricColors[selectedMetric] || 'bg-gray-500'
+                        
+                        return (
+                          <div key={index} className="flex-1 flex flex-col justify-end items-center relative">
+                            <span className="text-xs text-gray-600 absolute -top-5">
+                              {normalizedValue}
+                            </span>
+                            <div 
+                              className={`w-full ${color} rounded-t transition-all duration-300`}
+                              style={{ height: `${(normalizedValue / 100) * 160}px` }}
+                            />
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Ось X */}
+                <div className="flex justify-between mt-4 px-2 text-xs text-gray-500">
+                  {chartDateFilter === 'today' ? (
+                    ['00:00', '02:00', '04:00', '06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'].map(time => (
+                      <span key={time}>{time}</span>
+                    ))
+                  ) : (
+                    ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map((day, i) => (
+                      <span key={i}>{day}</span>
+                    ))
+                  )}
+                </div>
+              </div>
+              
+              {/* Легенда для кампаний (только для периода) */}
+              {chartDateFilter === 'period' && filteredCompanies.length > 1 && (
+                <div className="flex items-center justify-center space-x-6 text-sm">
+                  {filteredCompanies.slice(0, 5).map((company, index) => {
+                    const colors = ['#3b82f6', '#10b981', '#f97316', '#8b5cf6', '#ef4444']
+                    const color = colors[index % colors.length]
+                    return (
+                      <div key={company.id} className="flex items-center">
+                        <div className="w-3 h-3 rounded mr-2" style={{ backgroundColor: color }}></div>
+                        <span className="truncate max-w-32">{company.name}</span>
+                      </div>
+                    )
+                  })}
+                  {filteredCompanies.length > 5 && (
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-gray-400 rounded mr-2"></div>
+                      <span>+{filteredCompanies.length - 5} ещё</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Таблица кампаний с горизонтальным скроллом */}
       <Card>

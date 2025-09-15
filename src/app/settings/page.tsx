@@ -41,7 +41,8 @@ import {
   Download,
   Trash2,
   Eye,
-  CheckCircle
+  CheckCircle,
+  MoreHorizontal
 } from 'lucide-react'
 
 const settingsSections = [
@@ -535,24 +536,9 @@ export default function SettingsPage() {
                       <Button variant="ghost" size="sm">
                         <Eye className="h-3 w-3" />
                       </Button>
-                      {notification.status === 'active' && (
-                        <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleResolve(notification.id)}
-                          >
-                            <CheckCircle className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleIgnore(notification.id)}
-                          >
-                            <XCircle className="h-3 w-3" />
-                          </Button>
-                        </>
-                      )}
+                      <Button variant="ghost" size="sm">
+                        <MoreHorizontal className="h-3 w-3" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
