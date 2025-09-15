@@ -411,7 +411,7 @@ export default function AgentsPage() {
                     Название
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Подзаголовок/описание
+                    Описание
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Голос
@@ -441,7 +441,7 @@ export default function AgentsPage() {
                       </div>
                     </td>
                     
-                    {/* Подзаголовок/описание */}
+                    {/* Описание */}
                     <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                       <div className="text-sm text-gray-500">
                         {agent.description}
