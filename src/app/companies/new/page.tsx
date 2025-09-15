@@ -880,37 +880,6 @@ export default function NewCompanyPage() {
               </CardContent>
             </Card>
 
-            {/* Настройки агента */}
-            {form.agent && (
-              <Card className="mt-6">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <FileText className="h-5 w-5 mr-2" />
-                    Настройки агента
-                  </CardTitle>
-                  <CardDescription>
-                    Промпт и инструкции (только для чтения)
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Промпт агента - Read Only */}
-                  <div>
-                    <Label className="flex items-center space-x-2 mb-2">
-                      <Eye className="h-4 w-4" />
-                      <span>Промпт агента</span>
-                    </Label>
-                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                      <pre className="text-sm text-gray-600 whitespace-pre-wrap font-mono">
-{mockAgents.find(a => a.id === form.agent)?.prompt || 'Промпт не найден'}
-                      </pre>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      Этот промпт определяет поведение агента во время звонка
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             {/* Проверка готовности */}
             <Card className="mt-6">
