@@ -38,7 +38,6 @@ interface AgentForm {
   name: string
   subtitle: string // Подзаголовок/описание назначения
   description: string
-  role: string
   voiceId: string
   responseDelay: number
   interruptionHandling: boolean
@@ -49,11 +48,6 @@ interface AgentForm {
   model?: string
 }
 
-const agentRoles = [
-  { id: 'registration_agent', name: 'Агент регистрации', description: 'Помогает новым пользователям зарегистрироваться' },
-  { id: 'reactivation_agent', name: 'Агент реактивации', description: 'Возвращает неактивных клиентов' },
-  { id: 'cold_calling_agent', name: 'Агент холодных звонков', description: 'Работает с новыми лидами' }
-]
 
 export default function NewAgentPage() {
   const router = useRouter()
@@ -61,7 +55,6 @@ export default function NewAgentPage() {
     name: '',
     subtitle: '',
     description: '',
-    role: '',
     voiceId: '',
     responseDelay: 500,
     interruptionHandling: true,
@@ -102,7 +95,7 @@ export default function NewAgentPage() {
   const isStepCompleted = (step: number) => {
     switch (step) {
       case 1:
-        return form.name && form.subtitle && form.role
+        return form.name && form.subtitle && form.description
       case 2:
         return form.voiceId
       case 3:
@@ -118,9 +111,6 @@ export default function NewAgentPage() {
     return mockVoices.find(v => v.id === voiceId)
   }
 
-  const getRoleById = (roleId: string) => {
-    return agentRoles.find(r => r.id === roleId)
-  }
 
   // Голосовой режим через микрофон (без телефонии)
   const startVoiceCall = () => {
@@ -160,7 +150,7 @@ export default function NewAgentPage() {
   }
 
   const steps = [
-    { id: 1, name: 'Роль/этап', icon: User },
+    { id: 1, name: 'Основная информация', icon: User },
     { id: 2, name: 'Голос (TTS)', icon: Volume2 },
     { id: 3, name: 'Промтинг', icon: MessageSquare },
     { id: 4, name: 'Итоги', icon: CheckSquare }
@@ -280,22 +270,14 @@ export default function NewAgentPage() {
                 </div>
 
                 <div>
-                  <Label>Роль/этап *</Label>
-                  <Select value={form.role} onValueChange={(value) => handleInputChange('role', value)}>
-                    <SelectTrigger className="mt-2">
-                      <SelectValue placeholder="Выберите роль агента" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {agentRoles.map((role) => (
-                        <SelectItem key={role.id} value={role.id}>
-                          <div>
-                            <div className="font-medium">{role.name}</div>
-                            <div className="text-xs text-gray-500">{role.description}</div>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="description">Описание *</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Опишите назначение и функции агента..."
+                    value={form.description}
+                    onChange={(e) => handleInputChange('description', e.target.value)}
+                    className="mt-1 min-h-[100px]"
+                  />
                 </div>
 
                 {/* Поле "Кто создал" */}
@@ -523,9 +505,9 @@ export default function NewAgentPage() {
                       <span className="text-sm font-medium">{form.subtitle || 'Не указано'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Роль:</span>
+                      <span className="text-sm text-gray-600">Описание:</span>
                       <span className="text-sm font-medium">
-                        {agentRoles.find(r => r.id === form.role)?.name || 'Не выбрана'}
+                        {form.description ? (form.description.length > 30 ? form.description.substring(0, 30) + '...' : form.description) : 'Не указано'}
                       </span>
                     </div>
                   </div>
@@ -629,10 +611,10 @@ export default function NewAgentPage() {
                 </div>
               )}
 
-              {form.role && (
+              {form.description && (
                 <div>
-                  <p className="text-sm text-gray-600">Роль</p>
-                  <p className="font-medium">{getRoleById(form.role)?.name}</p>
+                  <p className="text-sm text-gray-600">Описание</p>
+                  <p className="text-sm">{form.description}</p>
                 </div>
               )}
 
