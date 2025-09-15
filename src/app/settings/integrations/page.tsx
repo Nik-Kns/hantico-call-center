@@ -72,10 +72,10 @@ export default function IntegrationsPage() {
   
   // Asterisk настройки
   const [asteriskSettings, setAsteriskSettings] = useState({
-    server: 'pbx.yourcompany.com',
+    server: '158.160.141.1',
     port: '5060',
     username: 'hantico_agent',
-    password: 'SecurePass123!',
+    password: '••••••••••••••••••••••••••••',
     sipChannels: '10'
   })
 
@@ -269,55 +269,61 @@ export default function IntegrationsPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Server Settings */}
-              <div className="space-y-4">
+              <div className="space-y-6">
+                {/* Channel Name and Provider */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="asterisk-server">Адрес сервера</Label>
+                    <Label htmlFor="channel-name" className="text-sm text-gray-600">
+                      <span className="text-red-500">*</span> Название канала
+                    </Label>
                     <Input
-                      id="asterisk-server"
-                      value={asteriskSettings.server}
-                      onChange={(e) => setAsteriskSettings(prev => ({ ...prev, server: e.target.value }))}
+                      id="channel-name"
+                      value="TNMOTTOK"
                       className="mt-2"
-                      placeholder="pbx.yourcompany.com"
+                      placeholder="Название канала"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="asterisk-port">Порт</Label>
-                    <Input
-                      id="asterisk-port"
-                      value={asteriskSettings.port}
-                      onChange={(e) => setAsteriskSettings(prev => ({ ...prev, port: e.target.value }))}
-                      className="mt-2"
-                      placeholder="5060"
-                    />
+                    <Label htmlFor="provider" className="text-sm text-gray-600">
+                      <span className="text-red-500">*</span> Провайдер
+                    </Label>
+                    <Select defaultValue="standard">
+                      <SelectTrigger className="mt-2">
+                        <SelectValue placeholder="Выберите провайдера" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="standard">Стандартные настройки</SelectItem>
+                        <SelectItem value="custom">Пользовательские настройки</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
-                {/* Credentials */}
-                <div className="space-y-4 pt-4 border-t">
-                  <h3 className="font-medium">Учетные данные</h3>
-                  
+                {/* Login and Password */}
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="sip-username">SIP пользователь</Label>
+                    <Label htmlFor="login" className="text-sm text-gray-600">
+                      Логин
+                    </Label>
                     <Input
-                      id="sip-username"
-                      value={asteriskSettings.username}
-                      onChange={(e) => setAsteriskSettings(prev => ({ ...prev, username: e.target.value }))}
+                      id="login"
+                      value="1550"
                       className="mt-2"
-                      placeholder="hantico_agent"
+                      placeholder="Логин"
                     />
                   </div>
-
                   <div>
-                    <Label htmlFor="sip-password">SIP пароль</Label>
+                    <Label htmlFor="password" className="text-sm text-gray-600">
+                      Пароль
+                    </Label>
                     <div className="relative mt-2">
                       <Input
-                        id="sip-password"
+                        id="password"
                         type={showSipPassword ? "text" : "password"}
                         value={asteriskSettings.password}
                         onChange={(e) => setAsteriskSettings(prev => ({ ...prev, password: e.target.value }))}
                         className="pr-10"
+                        placeholder="Пароль"
                       />
                       <Button
                         size="sm"
@@ -329,7 +335,89 @@ export default function IntegrationsPage() {
                       </Button>
                     </div>
                   </div>
+                </div>
 
+                {/* Server Address and Port */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="server-address" className="text-sm text-gray-600">
+                      <span className="text-red-500">*</span> Адрес сервера
+                    </Label>
+                    <Input
+                      id="server-address"
+                      value="158.160.141.1"
+                      className="mt-2"
+                      placeholder="IP адрес или домен"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="port" className="text-sm text-gray-600">
+                      <span className="text-red-500">*</span> Порт
+                    </Label>
+                    <Input
+                      id="port"
+                      value="5060"
+                      className="mt-2"
+                      placeholder="5060"
+                    />
+                  </div>
+                </div>
+
+                {/* Call Transfer */}
+                <div>
+                  <Label htmlFor="call-transfer" className="text-sm text-gray-600">
+                    Перевод звонка
+                  </Label>
+                  <Select defaultValue="standard">
+                    <SelectTrigger className="mt-2">
+                      <SelectValue placeholder="Выберите тип перевода" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="standard">Стандартный</SelectItem>
+                      <SelectItem value="direct">Прямой</SelectItem>
+                      <SelectItem value="supervised">Контролируемый</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="pt-4 border-t">
+                  <div className="flex justify-end space-x-2">
+                    <Button variant="outline">
+                      Отмена
+                    </Button>
+                    <Button className="bg-blue-600 hover:bg-blue-700">
+                      Сохранить
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Additional Settings Card */}
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Расширенные настройки</CardTitle>
+              <CardDescription>
+                Дополнительные параметры подключения и настройки телефонии
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Credentials Section */}
+              <div className="space-y-4">
+                <h3 className="font-medium">Учетные данные</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="sip-username">SIP пользователь</Label>
+                    <Input
+                      id="sip-username"
+                      value={asteriskSettings.username}
+                      onChange={(e) => setAsteriskSettings(prev => ({ ...prev, username: e.target.value }))}
+                      className="mt-2"
+                      placeholder="hantico_agent"
+                    />
+                  </div>
                   <div>
                     <Label htmlFor="sip-channels">Количество SIP-каналов</Label>
                     <Input
@@ -345,70 +433,47 @@ export default function IntegrationsPage() {
                     </p>
                   </div>
                 </div>
+              </div>
 
-                {/* Phone Numbers */}
-                <div className="space-y-4 pt-4 border-t">
-                  <h3 className="font-medium">Доступные номера</h3>
-                  
-                  <div className="space-y-2">
-                    {mockPhoneNumbers.map((phone) => (
-                      <div
-                        key={phone.id}
-                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <input
-                            type="checkbox"
-                            checked={selectedNumbers.includes(phone.id)}
-                            onChange={() => toggleNumberSelection(phone.id)}
-                            disabled={phone.status === 'test'}
-                            className="h-4 w-4 text-blue-600 rounded border-gray-300"
-                          />
-                          <div>
-                            <p className="font-medium text-sm">{phone.number}</p>
-                            <p className="text-xs text-gray-500">{phone.name}</p>
-                          </div>
+              {/* Phone Numbers */}
+              <div className="space-y-4 pt-4 border-t">
+                <h3 className="font-medium">Доступные номера</h3>
+                
+                <div className="space-y-2">
+                  {mockPhoneNumbers.map((phone) => (
+                    <div
+                      key={phone.id}
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedNumbers.includes(phone.id)}
+                          onChange={() => toggleNumberSelection(phone.id)}
+                          disabled={phone.status === 'test'}
+                          className="h-4 w-4 text-blue-600 rounded border-gray-300"
+                        />
+                        <div>
+                          <p className="font-medium text-sm">{phone.number}</p>
+                          <p className="text-xs text-gray-500">{phone.name}</p>
                         </div>
-                        {phone.status === 'test' && (
-                          <Badge className="bg-yellow-100 text-yellow-800">Тестовый</Badge>
-                        )}
                       </div>
-                    ))}
-                  </div>
+                      {phone.status === 'test' && (
+                        <Badge className="bg-yellow-100 text-yellow-800">Тестовый</Badge>
+                      )}
+                    </div>
+                  ))}
                 </div>
+              </div>
 
-                {/* Test Number */}
-                <div className="space-y-4 pt-4 border-t">
-                  <h3 className="font-medium">Тестовый номер по умолчанию</h3>
-                  
-                  <Select value={selectedTestNumber} onValueChange={setSelectedTestNumber}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {mockPhoneNumbers
-                        .filter(phone => phone.status === 'test')
-                        .map((phone) => (
-                          <SelectItem key={phone.id} value={phone.id}>
-                            {phone.number} - {phone.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-gray-500">
-                    Этот номер будет использоваться для тестовых звонков при настройке агентов
-                  </p>
-                </div>
-
-                <div className="flex justify-end space-x-2">
-                  <Button variant="outline">
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Проверить подключение
-                  </Button>
-                  <Button>
-                    Сохранить настройки
-                  </Button>
-                </div>
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button variant="outline">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Проверить подключение
+                </Button>
+                <Button>
+                  Применить настройки
+                </Button>
               </div>
             </CardContent>
           </Card>
