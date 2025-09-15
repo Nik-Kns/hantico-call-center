@@ -1138,19 +1138,76 @@ export default function NewCompanyPage() {
                       <p className="font-medium">{form.knowledgeDoc.name}</p>
                     </div>
                   )}
+                </div>
 
-                  <div>
-                    <p className="text-sm text-gray-600 mb-2">Готовность сервиса</p>
-                    <div className="flex items-center space-x-4">
-                      <Badge className={form.telephonyOk ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                        Телефония: {form.telephonyOk ? '✓' : '✗'}
-                      </Badge>
-                      <Badge className={form.balanceOk ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                        Баланс: {form.balanceOk ? '✓' : '✗'}
-                      </Badge>
-                      <Badge className={form.serviceAvailable ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
-                        API: {form.serviceAvailable ? '✓' : '!'}
-                      </Badge>
+                {/* Проверка готовности сервиса */}
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-medium text-gray-700">Готовность сервиса</h3>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={checkServiceReadiness}
+                    disabled={isCheckingService}
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${isCheckingService ? 'animate-spin' : ''}`} />
+                    Обновить статусы
+                  </Button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Телефония */}
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className={`p-2 rounded-full ${form.telephonyOk ? 'bg-green-100' : 'bg-red-100'}`}>
+                        {form.telephonyOk ? (
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                        ) : (
+                          <XCircle className="h-5 w-5 text-red-600" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium">Телефония</p>
+                        <p className="text-sm text-gray-600">
+                          {form.telephonyOk ? 'Подключена' : 'Не настроена'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Баланс */}
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className={`p-2 rounded-full ${form.balanceOk ? 'bg-green-100' : 'bg-red-100'}`}>
+                        {form.balanceOk ? (
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                        ) : (
+                          <XCircle className="h-5 w-5 text-red-600" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium">Баланс</p>
+                        <p className="text-sm text-gray-600">
+                          {form.balanceOk ? '> 0 ₽' : 'Недостаточно средств'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* API/Интеграции */}
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className={`p-2 rounded-full ${form.serviceAvailable ? 'bg-green-100' : 'bg-yellow-100'}`}>
+                        {form.serviceAvailable ? (
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                        ) : (
+                          <AlertCircle className="h-5 w-5 text-yellow-600" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium">API/Интеграции</p>
+                        <p className="text-sm text-gray-600">
+                          {form.serviceAvailable ? 'Доступны' : 'Ограниченный доступ'}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
