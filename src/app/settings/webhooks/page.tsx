@@ -345,7 +345,7 @@ export default function WebhooksPage() {
             <div className="p-4 border rounded-lg">
               <div className="flex items-center mb-2">
                 <Download className="h-5 w-5 text-indigo-600 mr-2" />
-                <h4 className="font-medium">Клиент забрал результат</h4>
+                <h4 className="font-medium">Отдано в ERP</h4>
               </div>
               <p className="text-sm text-gray-600 mb-2">result_retrieved</p>
               <p className="text-xs text-gray-500">
