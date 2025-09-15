@@ -241,14 +241,9 @@ export default function ObzvoniMonitorPage() {
     return Math.round((company.successCount / company.totalProcessed) * 100)
   }
 
-  // Фильтрация компаний с учетом выбранных
+  // Фильтрация компаний только по поиску (не по выбранным чекбоксам)
   const filteredCompanies = useMemo(() => {
     let filtered = companies
-
-    // Фильтр по выбранным кампаниям
-    if (selectedCompanies.length > 0) {
-      filtered = filtered.filter(c => selectedCompanies.includes(c.id))
-    }
 
     // Фильтр по поиску
     if (searchQuery) {
@@ -259,17 +254,25 @@ export default function ObzvoniMonitorPage() {
     }
 
     return filtered
-  }, [companies, selectedCompanies, searchQuery])
+  }, [companies, searchQuery])
 
-  // Подсчет агрегированных метрик с учетом фильтров
+  // Фильтрация только выбранных компаний для графика и метрик
+  const selectedFilteredCompanies = useMemo(() => {
+    if (selectedCompanies.length === 0) {
+      return filteredCompanies // Если ничего не выбрано, показываем все
+    }
+    return filteredCompanies.filter(c => selectedCompanies.includes(c.id))
+  }, [filteredCompanies, selectedCompanies])
+
+  // Подсчет агрегированных метрик с учетом выбранных кампаний
   const totalMetrics = useMemo(() => ({
-    transferred: filteredCompanies.reduce((sum, c) => sum + c.totalTransferred, 0),
-    received: filteredCompanies.reduce((sum, c) => sum + c.totalReceived, 0),
-    processed: filteredCompanies.reduce((sum, c) => sum + c.totalProcessed, 0),
-    inProgress: filteredCompanies.reduce((sum, c) => sum + c.totalInProgress, 0),
-    success: filteredCompanies.reduce((sum, c) => sum + c.successCount, 0),
-    voicemail: filteredCompanies.reduce((sum, c) => sum + c.voicemailCount, 0)
-  }), [filteredCompanies])
+    transferred: selectedFilteredCompanies.reduce((sum, c) => sum + c.totalTransferred, 0),
+    received: selectedFilteredCompanies.reduce((sum, c) => sum + c.totalReceived, 0),
+    processed: selectedFilteredCompanies.reduce((sum, c) => sum + c.totalProcessed, 0),
+    inProgress: selectedFilteredCompanies.reduce((sum, c) => sum + c.totalInProgress, 0),
+    success: selectedFilteredCompanies.reduce((sum, c) => sum + c.successCount, 0),
+    voicemail: selectedFilteredCompanies.reduce((sum, c) => sum + c.voicemailCount, 0)
+  }), [selectedFilteredCompanies])
 
   // Обработчик выбора всех
   const handleSelectAll = () => {
@@ -465,7 +468,7 @@ export default function ObzvoniMonitorPage() {
       </div>
 
       {/* График динамики метрик */}
-      {filteredCompanies.length > 0 && (
+      {selectedFilteredCompanies.length > 0 && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -575,7 +578,7 @@ export default function ObzvoniMonitorPage() {
                       
                       {/* SVG с линейным графиком */}
                       <svg className="absolute inset-0 w-full h-full" style={{ marginLeft: '0px' }}>
-                        {filteredCompanies.slice(0, 5).map((company, companyIndex) => {
+                        {selectedFilteredCompanies.slice(0, 5).map((company, companyIndex) => {
                           const colors = ['#3b82f6', '#10b981', '#f97316', '#8b5cf6', '#ef4444']
                           const color = colors[companyIndex % colors.length]
                           
@@ -591,7 +594,7 @@ export default function ObzvoniMonitorPage() {
                             }
                           }
                           
-                          const maxValue = Math.max(...filteredCompanies.slice(0, 5).map(c => getMetricValue(c, selectedMetric)))
+                          const maxValue = Math.max(...selectedFilteredCompanies.slice(0, 5).map(c => getMetricValue(c, selectedMetric)))
                           const normalizedValue = maxValue > 0 ? (getMetricValue(company, selectedMetric) / maxValue) * 160 : 0
                           const yOffset = 200 - normalizedValue
                           
@@ -622,8 +625,8 @@ export default function ObzvoniMonitorPage() {
                       {Array.from({ length: 12 }, (_, index) => {
                         // Рассчитываем среднее значение выбранной метрики
                         const getAverageMetric = () => {
-                          if (filteredCompanies.length === 0) return 0
-                          const sum = filteredCompanies.reduce((acc, company) => {
+                          if (selectedFilteredCompanies.length === 0) return 0
+                          const sum = selectedFilteredCompanies.reduce((acc, company) => {
                             switch (selectedMetric) {
                               case 'transferred': return acc + company.totalTransferred
                               case 'received': return acc + company.totalReceived
@@ -633,11 +636,11 @@ export default function ObzvoniMonitorPage() {
                               default: return acc
                             }
                           }, 0)
-                          return Math.round(sum / filteredCompanies.length)
+                          return Math.round(sum / selectedFilteredCompanies.length)
                         }
                         
                         const avgValue = getAverageMetric()
-                        const maxPossible = Math.max(...filteredCompanies.map(c => {
+                        const maxPossible = Math.max(...selectedFilteredCompanies.map(c => {
                           switch (selectedMetric) {
                             case 'transferred': return c.totalTransferred
                             case 'received': return c.totalReceived
@@ -692,9 +695,9 @@ export default function ObzvoniMonitorPage() {
               </div>
               
               {/* Легенда для кампаний (только для периода) */}
-              {chartDateFilter === 'period' && filteredCompanies.length > 1 && (
+              {chartDateFilter === 'period' && selectedFilteredCompanies.length > 1 && (
                 <div className="flex items-center justify-center space-x-6 text-sm">
-                  {filteredCompanies.slice(0, 5).map((company, index) => {
+                  {selectedFilteredCompanies.slice(0, 5).map((company, index) => {
                     const colors = ['#3b82f6', '#10b981', '#f97316', '#8b5cf6', '#ef4444']
                     const color = colors[index % colors.length]
                     return (
@@ -704,10 +707,10 @@ export default function ObzvoniMonitorPage() {
                       </div>
                     )
                   })}
-                  {filteredCompanies.length > 5 && (
+                  {selectedFilteredCompanies.length > 5 && (
                     <div className="flex items-center">
                       <div className="w-3 h-3 bg-gray-400 rounded mr-2"></div>
-                      <span>+{filteredCompanies.length - 5} ещё</span>
+                      <span>+{selectedFilteredCompanies.length - 5} ещё</span>
                     </div>
                   )}
                 </div>
