@@ -686,26 +686,6 @@ export default function NewCompanyPage() {
                   )}
                 </div>
 
-                {/* Голос агента */}
-                <div>
-                  <Label>Голос агента *</Label>
-                  <Select value={form.voice} onValueChange={(value) => handleInputChange('voice', value)}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Выберите голос" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {mockVoices.map((voice) => (
-                        <SelectItem key={voice.id} value={voice.id}>
-                          <div>
-                            <div className="font-medium">{voice.name}</div>
-                            <div className="text-xs text-gray-500">{voice.description}</div>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
                 <Separator />
                 
                 {/* A/B тестирование */}
@@ -794,6 +774,28 @@ export default function NewCompanyPage() {
                           Укажите, какой процент звонков будет направлен на каждого агента
                         </p>
                       </div>
+                      
+                      {/* Описания выбранных агентов */}
+                      {form.agentA && form.agentB && (
+                        <div className="grid grid-cols-2 gap-4 mt-4">
+                          <div className="p-3 bg-white rounded-lg border">
+                            <h4 className="font-medium text-sm mb-1">
+                              Агент A: {mockAgents.find(a => a.id === form.agentA)?.name}
+                            </h4>
+                            <p className="text-xs text-gray-600">
+                              {mockAgents.find(a => a.id === form.agentA)?.description}
+                            </p>
+                          </div>
+                          <div className="p-3 bg-white rounded-lg border">
+                            <h4 className="font-medium text-sm mb-1">
+                              Агент B: {mockAgents.find(a => a.id === form.agentB)?.name}
+                            </h4>
+                            <p className="text-xs text-gray-600">
+                              {mockAgents.find(a => a.id === form.agentB)?.description}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
