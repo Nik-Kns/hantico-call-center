@@ -544,12 +544,12 @@ export default function ObzvoniPage() {
               <span className="text-sm font-medium text-gray-700">Фильтры и поиск:</span>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-3">
               {/* Поиск */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Поиск по названию или базе..."
+                  placeholder="Поиск по названию..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -584,8 +584,8 @@ export default function ObzvoniPage() {
               {/* Фильтр по агенту */}
               <Select value={filterAgent} onValueChange={setFilterAgent}>
                 <SelectTrigger>
-                  <User className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Все агенты" />
+                  <User className="h-4 w-4 mr-1" />
+                  <SelectValue placeholder="Агенты" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Все агенты</SelectItem>
@@ -600,8 +600,8 @@ export default function ObzvoniPage() {
               {/* Фильтр по типу базы */}
               <Select value={filterBaseType} onValueChange={setFilterBaseType}>
                 <SelectTrigger>
-                  <Users className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Все типы" />
+                  <Users className="h-4 w-4 mr-1" />
+                  <SelectValue placeholder="Тип базы" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Все типы</SelectItem>
@@ -615,8 +615,8 @@ export default function ObzvoniPage() {
               {/* Фильтр по дате */}
               <Select value={filterDate} onValueChange={setFilterDate}>
                 <SelectTrigger>
-                  <Calendar className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Все периоды" />
+                  <Calendar className="h-4 w-4 mr-1" />
+                  <SelectValue placeholder="Период" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Все периоды</SelectItem>
