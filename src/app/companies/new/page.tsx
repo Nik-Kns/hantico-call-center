@@ -533,98 +533,6 @@ export default function NewCompanyPage() {
                     Введите понятное название для идентификации компании
                   </p>
                 </div>
-                
-                <Separator />
-                
-                {/* A/B тестирование */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-2">
-                      <FlaskConical className="h-4 w-4 text-gray-600" />
-                      <Label 
-                        htmlFor="ab-test" 
-                        className="text-sm font-medium cursor-pointer"
-                      >
-                        A/B-тест
-                      </Label>
-                    </div>
-                    <Switch
-                      id="ab-test"
-                      checked={form.isABTestEnabled}
-                      onCheckedChange={(checked) => handleInputChange('isABTestEnabled', checked)}
-                      className="data-[state=checked]:bg-[#17a2b8] data-[state=unchecked]:bg-gray-200"
-                    />
-                  </div>
-                  
-                  {form.isABTestEnabled && (
-                    <div className="space-y-4 p-4 bg-teal-50 border border-teal-200 rounded-lg">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="agent-a">Агент A *</Label>
-                          <Select value={form.agentA} onValueChange={(value) => handleInputChange('agentA', value)}>
-                            <SelectTrigger id="agent-a" className="mt-1">
-                              <SelectValue placeholder="Выберите агента A" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {mockAgents
-                                .filter(agent => agent.id !== form.agentB)
-                                .map((agent) => (
-                                  <SelectItem key={agent.id} value={agent.id}>
-                                    <div>
-                                      <div className="font-medium">{agent.name}</div>
-                                      <div className="text-xs text-gray-500">{agent.description}</div>
-                                    </div>
-                                  </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div>
-                          <Label htmlFor="agent-b">Агент B *</Label>
-                          <Select value={form.agentB} onValueChange={(value) => handleInputChange('agentB', value)}>
-                            <SelectTrigger id="agent-b" className="mt-1">
-                              <SelectValue placeholder="Выберите агента B" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {mockAgents
-                                .filter(agent => agent.id !== form.agentA)
-                                .map((agent) => (
-                                  <SelectItem key={agent.id} value={agent.id}>
-                                    <div>
-                                      <div className="font-medium">{agent.name}</div>
-                                      <div className="text-xs text-gray-500">{agent.description}</div>
-                                    </div>
-                                  </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="traffic-split">Распределение трафика</Label>
-                        <div className="flex items-center space-x-4 mt-2">
-                          <span className="text-sm font-medium">Агент A: {form.trafficSplit}%</span>
-                          <input
-                            id="traffic-split"
-                            type="range"
-                            min="0"
-                            max="100"
-                            step="5"
-                            value={form.trafficSplit}
-                            onChange={(e) => handleInputChange('trafficSplit', parseInt(e.target.value))}
-                            className="flex-1"
-                          />
-                          <span className="text-sm font-medium">Агент B: {100 - form.trafficSplit}%</span>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-2">
-                          Укажите, какой процент звонков будет направлен на каждого агента
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
               </CardContent>
             </Card>
           )}
@@ -796,6 +704,98 @@ export default function NewCompanyPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                <Separator />
+                
+                {/* A/B тестирование */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <FlaskConical className="h-4 w-4 text-gray-600" />
+                      <Label 
+                        htmlFor="ab-test" 
+                        className="text-sm font-medium cursor-pointer"
+                      >
+                        A/B-тест
+                      </Label>
+                    </div>
+                    <Switch
+                      id="ab-test"
+                      checked={form.isABTestEnabled}
+                      onCheckedChange={(checked) => handleInputChange('isABTestEnabled', checked)}
+                      className="data-[state=checked]:bg-[#17a2b8] data-[state=unchecked]:bg-gray-200"
+                    />
+                  </div>
+                  
+                  {form.isABTestEnabled && (
+                    <div className="space-y-4 p-4 bg-teal-50 border border-teal-200 rounded-lg">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="agent-a">Агент A *</Label>
+                          <Select value={form.agentA} onValueChange={(value) => handleInputChange('agentA', value)}>
+                            <SelectTrigger id="agent-a" className="mt-1">
+                              <SelectValue placeholder="Выберите агента A" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {mockAgents
+                                .filter(agent => agent.id !== form.agentB)
+                                .map((agent) => (
+                                  <SelectItem key={agent.id} value={agent.id}>
+                                    <div>
+                                      <div className="font-medium">{agent.name}</div>
+                                      <div className="text-xs text-gray-500">{agent.description}</div>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="agent-b">Агент B *</Label>
+                          <Select value={form.agentB} onValueChange={(value) => handleInputChange('agentB', value)}>
+                            <SelectTrigger id="agent-b" className="mt-1">
+                              <SelectValue placeholder="Выберите агента B" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {mockAgents
+                                .filter(agent => agent.id !== form.agentA)
+                                .map((agent) => (
+                                  <SelectItem key={agent.id} value={agent.id}>
+                                    <div>
+                                      <div className="font-medium">{agent.name}</div>
+                                      <div className="text-xs text-gray-500">{agent.description}</div>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="traffic-split">Распределение трафика</Label>
+                        <div className="flex items-center space-x-4 mt-2">
+                          <span className="text-sm font-medium">Агент A: {form.trafficSplit}%</span>
+                          <input
+                            id="traffic-split"
+                            type="range"
+                            min="0"
+                            max="100"
+                            step="5"
+                            value={form.trafficSplit}
+                            onChange={(e) => handleInputChange('trafficSplit', parseInt(e.target.value))}
+                            className="flex-1"
+                          />
+                          <span className="text-sm font-medium">Агент B: {100 - form.trafficSplit}%</span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">
+                          Укажите, какой процент звонков будет направлен на каждого агента
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Инлайн-тест агента */}
