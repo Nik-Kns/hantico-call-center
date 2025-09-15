@@ -138,8 +138,8 @@ export default function NewAgentPage() {
         .map((r: any) => r[0].transcript)
         .join(' ')
       if (transcript) {
-        const response = form.basePrompt
-          ? `Ответ агента (по инструкции): ${form.basePrompt.slice(0, 60)}...`
+        const response = form.instruction
+          ? `Ответ агента (по инструкции): ${form.instruction.slice(0, 60)}...`
           : 'Ответ агента: готов к работе.'
         setTestResponse(`${transcript} → ${response}`)
       }
@@ -559,7 +559,7 @@ export default function NewAgentPage() {
                   <h3 className="text-sm font-semibold mb-3 text-gray-700">Системные инструкции</h3>
                   <div className="bg-gray-50 rounded-lg p-4">
                     <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                      {form.basePrompt || 'Не заданы'}
+                      {form.instruction || 'Не заданы'}
                     </p>
                   </div>
                 </div>
@@ -571,7 +571,7 @@ export default function NewAgentPage() {
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">База знаний:</span>
                       <span className="text-sm font-medium">
-                        {form.kbFileName || 'Не загружена'}
+                        {form.knowledgeFileNames?.[0] || 'Не загружена'}
                       </span>
                     </div>
                   </div>
@@ -660,11 +660,11 @@ export default function NewAgentPage() {
                     <span className="text-gray-600">Прерывания:</span>
                     <span>{form.interruptionHandling ? 'Включены' : 'Отключены'}</span>
                   </div>
-                  {form.basePrompt && (
+                  {form.instruction && (
                     <div className="text-xs text-gray-600 mt-2">Инструкция задана</div>
                   )}
-                  {form.kbFileName && (
-                    <div className="text-xs text-gray-600">Документ: {form.kbFileName}</div>
+                  {form.knowledgeFileNames?.[0] && (
+                    <div className="text-xs text-gray-600">Документ: {form.knowledgeFileNames[0]}</div>
                   )}
                 </div>
               </div>

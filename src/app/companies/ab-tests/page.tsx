@@ -274,7 +274,6 @@ export default function CompaniesABTestsPage() {
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
               className="w-64"
-              prefix={<Search className="h-4 w-4 text-gray-400" />}
             />
             
             <Select value={statusFilter} onValueChange={setStatusFilter}>

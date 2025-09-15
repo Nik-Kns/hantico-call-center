@@ -47,14 +47,19 @@ const mockCampaigns = [
   { id: 'cmp-4', name: 'Опрос удовлетворенности', status: 'completed' },
 ]
 
+interface AgentWithCampaigns extends Agent {
+  campaignsCount?: number
+  campaignsDetails?: Array<{ id: string; name: string; status: string }>
+}
+
 export default function AgentsPage() {
   const router = useRouter()
   const [currentRole, setCurrentRole] = useState<UserRole>('admin')
-  const [agents] = useState<Agent[]>(mockAgents.map(agent => ({
+  const [agents] = useState<AgentWithCampaigns[]>(mockAgents.map(agent => ({
     ...agent,
     // Добавляем случайное количество кампаний для каждого агента
     campaignsCount: Math.floor(Math.random() * 5),
-    campaigns: mockCampaigns.slice(0, Math.floor(Math.random() * 4))
+    campaignsDetails: mockCampaigns.slice(0, Math.floor(Math.random() * 4))
   })))
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
@@ -131,7 +136,7 @@ export default function AgentsPage() {
     }
     
     // Проверяем, есть ли активные кампании
-    const activeCampaigns = agent.campaigns?.filter((c: any) => c.status === 'active')
+    const activeCampaigns = agent.campaignsDetails?.filter((c: any) => c.status === 'active')
     if (activeCampaigns && activeCampaigns.length > 0) {
       setDeleteDialog({ 
         show: true, 
@@ -155,7 +160,7 @@ export default function AgentsPage() {
     }
     
     // Проверяем, есть ли активные кампании
-    const activeCampaigns = agent.campaigns?.filter((c: any) => c.status === 'active')
+    const activeCampaigns = agent.campaignsDetails?.filter((c: any) => c.status === 'active')
     if (activeCampaigns && activeCampaigns.length > 0) {
       setDeleteDialog({ 
         show: true, 
@@ -460,7 +465,7 @@ export default function AgentsPage() {
                     
                     {/* Используется в кампаниях */}
                     <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                      {agent.campaigns && agent.campaigns.length > 0 ? (
+                      {agent.campaignsDetails && agent.campaignsDetails.length > 0 ? (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -468,7 +473,7 @@ export default function AgentsPage() {
                           className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
                         >
                           <Building2 className="h-4 w-4 mr-1" />
-                          {agent.campaigns.length} {agent.campaigns.length === 1 ? 'кампания' : 'кампаний'}
+                          {agent.campaignsDetails!.length} {agent.campaignsDetails!.length === 1 ? 'кампания' : 'кампаний'}
                           <ChevronRight className="h-3 w-3 ml-1" />
                         </Button>
                       ) : (
@@ -582,13 +587,13 @@ export default function AgentsPage() {
                 </AlertDescription>
               </Alert>
               
-              {deleteDialog.agent?.campaigns && deleteDialog.agent.campaigns.length > 0 && (
+              {deleteDialog.agent?.campaignsDetails && deleteDialog.agent.campaignsDetails.length > 0 && (
                 <div className="mt-4 space-y-3">
                   <p className="text-sm text-gray-600 font-medium">
                     Агент используется в кампаниях:
                   </p>
                   <div className="space-y-2 max-h-32 overflow-y-auto">
-                    {deleteDialog.agent.campaigns.map((campaign: any) => (
+                    {deleteDialog.agent.campaignsDetails.map((campaign: any) => (
                       <div 
                         key={campaign.id}
                         className="flex items-center justify-between p-2 border rounded-lg bg-gray-50"
@@ -632,7 +637,7 @@ export default function AgentsPage() {
                   <span>Невозможно {deleteDialog.action === 'delete' ? 'удалить' : 'архивировать'} агента</span>
                 </DialogTitle>
                 <DialogDescription>
-                  Агент "{deleteDialog.agent?.name}" используется в активных кампаниях
+                  Агент &ldquo;{deleteDialog.agent?.name}&rdquo; используется в активных кампаниях
                 </DialogDescription>
               </DialogHeader>
               
@@ -641,7 +646,7 @@ export default function AgentsPage() {
                   Для {deleteDialog.action === 'delete' ? 'удаления' : 'архивирования'} агента необходимо сначала отвязать его от следующих активных кампаний:
                 </p>
                 
-                {deleteDialog.agent?.campaigns?.filter((c: any) => c.status === 'active').map((campaign: any) => (
+                {deleteDialog.agent?.campaignsDetails?.filter((c: any) => c.status === 'active').map((campaign: any) => (
                   <div 
                     key={campaign.id}
                     className="flex items-center justify-between p-2 border rounded-lg bg-yellow-50 border-yellow-200"
@@ -683,7 +688,7 @@ export default function AgentsPage() {
       <Dialog open={showCampaignsDialog} onOpenChange={setShowCampaignsDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Кампании с агентом "{selectedAgentCampaigns?.name}"</DialogTitle>
+            <DialogTitle>Кампании с агентом &ldquo;{selectedAgentCampaigns?.name}&rdquo;</DialogTitle>
             <DialogDescription>
               Список кампаний, в которых используется данный агент
             </DialogDescription>

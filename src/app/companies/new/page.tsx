@@ -392,14 +392,6 @@ export default function NewCompanyPage() {
     }
   }
 
-  const handleSelectABTest = (test: ABTest) => {
-    handleInputChange('selectedABTest', test)
-    setShowABTests(false)
-  }
-
-  const handleRemoveABTest = () => {
-    handleInputChange('selectedABTest', undefined)
-  }
 
   const handleTestAgent = () => {
     // Открываем модальное окно вместо симуляции
