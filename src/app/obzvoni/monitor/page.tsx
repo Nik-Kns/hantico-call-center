@@ -14,7 +14,8 @@ import {
   Settings2,
   ChevronDown,
   Check,
-  X
+  X,
+  GitBranch
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -50,6 +51,12 @@ interface CompanyMonitor {
   refusalCount: number  // Отказы
   noAnswerCount: number  // Недозвоны
   voicemailCount: number  // Автоответчики (отдельная категория)
+  // A/B тестирование
+  hasABTest: boolean  // Есть ли активный A/B тест
+  abTestVariants?: {
+    A: { agent: string; calls: number; conversions: number }
+    B: { agent: string; calls: number; conversions: number }
+  }
   // Дополнительные данные
   lastActivity: Date
   agent: string
@@ -71,6 +78,11 @@ const mockCompanies: CompanyMonitor[] = [
     refusalCount: 312,
     noAnswerCount: 189,
     voicemailCount: 112,
+    hasABTest: true,
+    abTestVariants: {
+      A: { agent: 'Анна', calls: 924, conversions: 617 },
+      B: { agent: 'Елена', calls: 923, conversions: 617 }
+    },
     lastActivity: new Date(Date.now() - 5 * 60 * 1000),
     agent: 'Анна'
   },
@@ -88,6 +100,7 @@ const mockCompanies: CompanyMonitor[] = [
     refusalCount: 89,
     noAnswerCount: 78,
     voicemailCount: 55,
+    hasABTest: false,
     lastActivity: new Date(Date.now() - 2 * 60 * 60 * 1000),
     agent: 'Михаил'
   },
@@ -105,6 +118,11 @@ const mockCompanies: CompanyMonitor[] = [
     refusalCount: 178,
     noAnswerCount: 156,
     voicemailCount: 71,
+    hasABTest: true,
+    abTestVariants: {
+      A: { agent: 'Елена', calls: 425, conversions: 213 },
+      B: { agent: 'Ольга', calls: 425, conversions: 232 }
+    },
     lastActivity: new Date(Date.now() - 24 * 60 * 60 * 1000),
     agent: 'Елена'
   },
@@ -122,6 +140,7 @@ const mockCompanies: CompanyMonitor[] = [
     refusalCount: 23,
     noAnswerCount: 28,
     voicemailCount: 17,
+    hasABTest: false,
     lastActivity: new Date(Date.now() - 15 * 60 * 1000),
     agent: 'Дмитрий'
   },
@@ -139,6 +158,7 @@ const mockCompanies: CompanyMonitor[] = [
     refusalCount: 0,
     noAnswerCount: 0,
     voicemailCount: 0,
+    hasABTest: false,
     lastActivity: new Date(Date.now() - 48 * 60 * 60 * 1000),
     agent: 'Анна'
   }
@@ -149,6 +169,7 @@ const allColumns = [
   { id: 'select', label: '', fixed: true },
   { id: 'company', label: 'Кампания', fixed: true },
   { id: 'status', label: 'Статус', default: true },
+  { id: 'abTest', label: 'A/B тест', default: true },
   { id: 'transferred', label: 'Передано', default: true },
   { id: 'received', label: 'Получено', default: true },
   { id: 'processed', label: 'Обработано', default: true },
@@ -486,6 +507,11 @@ export default function ObzvoniMonitorPage() {
                       Статус
                     </th>
                   )}
+                  {visibleColumns.includes('abTest') && (
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                      A/B тест
+                    </th>
+                  )}
                   {visibleColumns.includes('transferred') && (
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
                       Передано
@@ -586,6 +612,32 @@ export default function ObzvoniMonitorPage() {
                       {visibleColumns.includes('status') && (
                         <td className="px-4 py-3">
                           {getStatusBadge(company.status)}
+                        </td>
+                      )}
+                      
+                      {/* A/B тест */}
+                      {visibleColumns.includes('abTest') && (
+                        <td className="px-4 py-3 text-center">
+                          {company.hasABTest ? (
+                            <div className="flex flex-col items-center space-y-1">
+                              <div className="flex items-center space-x-2">
+                                <GitBranch className="h-4 w-4 text-purple-600" />
+                                <span className="text-xs font-medium text-purple-600">Активен</span>
+                              </div>
+                              {company.abTestVariants && (
+                                <div className="flex space-x-1">
+                                  <Badge variant="outline" className="text-xs px-1 py-0">
+                                    A: {company.abTestVariants.A.agent.substring(0, 3)}
+                                  </Badge>
+                                  <Badge variant="outline" className="text-xs px-1 py-0">
+                                    B: {company.abTestVariants.B.agent.substring(0, 3)}
+                                  </Badge>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 text-xs">—</span>
+                          )}
                         </td>
                       )}
                       

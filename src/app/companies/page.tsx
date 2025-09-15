@@ -29,7 +29,8 @@ import {
   PhoneMissed,
   Bot,
   Download,
-  FileText
+  FileText,
+  GitBranch
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -66,6 +67,12 @@ interface ObzvonCampaign {
   noAnswers: number
   voicemails: number
   busyNumbers: number
+  // A/B тестирование
+  hasABTest?: boolean
+  abTestVariants?: {
+    A: { agent: string; calls: number; conversions: number }
+    B: { agent: string; calls: number; conversions: number }
+  }
 }
 
 const mockObzvonCampaigns: ObzvonCampaign[] = [
@@ -89,7 +96,12 @@ const mockObzvonCampaigns: ObzvonCampaign[] = [
     voicemails: 38,
     busyNumbers: 42,
     startTime: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 часа назад
-    progress: 68
+    progress: 68,
+    hasABTest: true,
+    abTestVariants: {
+      A: { agent: 'Анна', calls: 423, conversions: 222 },
+      B: { agent: 'Елена', calls: 424, conversions: 223 }
+    }
   },
   {
     id: 'obz-2',
@@ -111,7 +123,8 @@ const mockObzvonCampaigns: ObzvonCampaign[] = [
     voicemails: 22,
     busyNumbers: 18,
     startTime: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 часов назад
-    progress: 22
+    progress: 22,
+    hasABTest: false
   },
   {
     id: 'obz-3',
@@ -690,6 +703,9 @@ export default function ObzvoniPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Агент
                   </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    A/B тест
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Действия
                   </th>
@@ -724,6 +740,28 @@ export default function ObzvoniPage() {
                       <div className="text-sm text-gray-900">{campaign.agent}</div>
                       {campaign.agentStage && (
                         <div className="text-xs text-gray-500">Этап: {campaign.agentStage}</div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      {campaign.hasABTest ? (
+                        <div className="flex flex-col items-center space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <GitBranch className="h-4 w-4 text-purple-600" />
+                            <span className="text-xs font-medium text-purple-600">Активен</span>
+                          </div>
+                          {campaign.abTestVariants && (
+                            <div className="flex space-x-1">
+                              <Badge variant="outline" className="text-xs px-1 py-0">
+                                A: {campaign.abTestVariants.A.agent.substring(0, 3)}
+                              </Badge>
+                              <Badge variant="outline" className="text-xs px-1 py-0">
+                                B: {campaign.abTestVariants.B.agent.substring(0, 3)}
+                              </Badge>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-xs">—</span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
