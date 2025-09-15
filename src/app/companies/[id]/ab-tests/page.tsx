@@ -45,6 +45,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { mockCampaigns, mockAgents } from '@/lib/mock-data'
 
+// Интерфейс для A/B теста
+interface ABTest {
+  id: string
+  name: string
+  status: string
+  startDate: Date
+  endDate?: Date
+  variants: Array<{
+    id: string
+    name: string
+    agent: string
+    agentId: string
+    split: number
+    calls: number
+    conversions: number
+    conversionRate: number
+    avgCallDuration: number
+  }>
+  winner: string | null
+  confidence: number
+}
+
 // Mock данные A/B тестов
 const mockABTests = [
   {
@@ -160,6 +182,8 @@ export default function CampaignABTestsPage() {
   const [splitValues, setSplitValues] = useState<[number, number]>([50, 50])
   const [selectedAgentA, setSelectedAgentA] = useState('')
   const [selectedAgentB, setSelectedAgentB] = useState('')
+  const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const [selectedTestDetails, setSelectedTestDetails] = useState<ABTest | null>(null)
   
   if (!campaign) {
     return (
@@ -431,7 +455,10 @@ export default function CampaignABTestsPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => router.push(`/companies/${campaignId}/ab-tests/${test.id}`)}
+                          onClick={() => {
+                            setSelectedTestDetails(test)
+                            setShowDetailsModal(true)
+                          }}
                         >
                           <BarChart3 className="h-4 w-4" />
                         </Button>
@@ -584,6 +611,214 @@ export default function CampaignABTestsPage() {
             <Button onClick={handleSaveChanges}>
               Сохранить изменения
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Диалог детальной статистики A/B теста */}
+      <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <BarChart3 className="h-5 w-5" />
+              <span>Детальная статистика A/B теста</span>
+            </DialogTitle>
+            <DialogDescription>
+              {selectedTestDetails?.name} • Кампания: {campaign?.name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedTestDetails && (
+            <div className="space-y-6">
+              {/* Основные метрики */}
+              <div className="grid grid-cols-3 gap-4">
+                <Card>
+                  <CardContent className="p-4">
+                    <p className="text-sm text-gray-600 mb-1">Статус теста</p>
+                    {getStatusBadge(selectedTestDetails.status)}
+                    <p className="text-xs text-gray-500 mt-2">
+                      Начат {selectedTestDetails.startDate.toLocaleDateString('ru-RU')}
+                    </p>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardContent className="p-4">
+                    <p className="text-sm text-gray-600 mb-1">Уверенность</p>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {selectedTestDetails.confidence}%
+                    </p>
+                    <Progress value={selectedTestDetails.confidence} className="mt-2" />
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardContent className="p-4">
+                    <p className="text-sm text-gray-600 mb-1">Победитель</p>
+                    {selectedTestDetails.winner ? (
+                      <div className="flex items-center space-x-2">
+                        <TrendingUp className="h-5 w-5 text-green-600" />
+                        <span className="text-lg font-bold text-green-600">
+                          Вариант {selectedTestDetails.winner}
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="text-gray-500">Не определён</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Сравнение вариантов */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Сравнение вариантов</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {selectedTestDetails.variants.map((variant, index) => (
+                    <Card key={index} className={selectedTestDetails.winner === variant.id ? 'border-green-500' : ''}>
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-base">
+                            Вариант {variant.id}
+                            {selectedTestDetails.winner === variant.id && (
+                              <Badge className="ml-2 bg-green-100 text-green-800">Победитель</Badge>
+                            )}
+                          </CardTitle>
+                          <Badge variant="outline">{variant.split}% трафика</Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div>
+                          <p className="text-sm text-gray-600">Агент</p>
+                          <p className="font-medium">{variant.agent}</p>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-sm text-gray-600">Звонков</p>
+                            <p className="text-xl font-bold">{variant.calls.toLocaleString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600">Конверсий</p>
+                            <p className="text-xl font-bold text-green-600">{variant.conversions.toLocaleString()}</p>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <div className="flex justify-between mb-2">
+                            <span className="text-sm text-gray-600">Конверсия</span>
+                            <span className="text-lg font-bold">{variant.conversionRate}%</span>
+                          </div>
+                          <Progress value={variant.conversionRate} className="h-2" />
+                        </div>
+
+                        {/* Детальная статистика */}
+                        <div className="border-t pt-4 space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Средняя длительность</span>
+                            <span>{Math.round(variant.avgCallDuration || 120)}с</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Отказы</span>
+                            <span className="text-red-600">{Math.round(variant.calls * 0.15)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Недозвоны</span>
+                            <span className="text-gray-600">{Math.round(variant.calls * 0.1)}</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* График динамики */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Динамика конверсии</h3>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="h-64 bg-gray-50 rounded-lg flex items-center justify-center">
+                      <div className="text-center">
+                        <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                        <p className="text-gray-500">График динамики конверсии</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Вариант A: стабильный рост • Вариант B: высокая волатильность
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Статистическая значимость */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Статистическая значимость</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">P-value</span>
+                      <span className="font-mono text-sm">0.023</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Размер выборки</span>
+                      <span className="font-mono text-sm">
+                        {selectedTestDetails.variants.reduce((sum, v) => sum + v.calls, 0).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Минимальный детектируемый эффект</span>
+                      <span className="font-mono text-sm">2.5%</span>
+                    </div>
+                    <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                      <p className="text-sm text-blue-900">
+                        {selectedTestDetails.confidence >= 95 
+                          ? '✓ Результаты статистически значимы. Можно принимать решение.'
+                          : '⚠️ Требуется больше данных для статистической значимости.'}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Рекомендации */}
+              {selectedTestDetails.winner && (
+                <Card className="border-green-200 bg-green-50">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center">
+                      <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+                      Рекомендация
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-green-900">
+                      Рекомендуется применить настройки варианта {selectedTestDetails.winner} 
+                      ({selectedTestDetails.variants.find(v => v.id === selectedTestDetails.winner)?.agent}) 
+                      ко всей кампании. Это может увеличить конверсию на {' '}
+                      {Math.round(
+                        (selectedTestDetails.variants.find(v => v.id === selectedTestDetails.winner)?.conversionRate || 0) -
+                        (selectedTestDetails.variants.find(v => v.id !== selectedTestDetails.winner)?.conversionRate || 0)
+                      )}%.
+                    </p>
+                    <Button className="mt-3" size="sm">
+                      Применить победителя
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDetailsModal(false)}>
+              Закрыть
+            </Button>
+            {selectedTestDetails?.status === 'active' && (
+              <Button variant="destructive">
+                Остановить тест
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
