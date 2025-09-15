@@ -25,7 +25,8 @@ import {
   Bot,
   Calendar,
   Filter,
-  FileDown
+  FileDown,
+  GitBranch
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -84,6 +85,7 @@ interface CallRecord {
   transferredToErp: boolean  // Флаг "передано в ERP/B24"
   hasRecording: boolean
   hasTranscript: boolean
+  abVariant?: 'A' | 'B'  // Вариант A/B теста
 }
 
 // Моковые данные
@@ -164,7 +166,8 @@ const mockCallRecords: CallRecord[] = [
     hasRegistration: true,
     transferredToErp: true,
     hasRecording: true,
-    hasTranscript: true
+    hasTranscript: true,
+    abVariant: 'A'
   },
   {
     id: 'call-2',
@@ -178,7 +181,8 @@ const mockCallRecords: CallRecord[] = [
     hasRegistration: false,
     transferredToErp: false,
     hasRecording: true,
-    hasTranscript: true
+    hasTranscript: true,
+    abVariant: 'B'
   },
   {
     id: 'call-3',
@@ -192,7 +196,8 @@ const mockCallRecords: CallRecord[] = [
     hasRegistration: false,
     transferredToErp: false,
     hasRecording: false,
-    hasTranscript: false
+    hasTranscript: false,
+    abVariant: 'A'
   },
   {
     id: 'call-6',
@@ -206,7 +211,8 @@ const mockCallRecords: CallRecord[] = [
     hasRegistration: false,
     transferredToErp: false,
     hasRecording: false,
-    hasTranscript: false
+    hasTranscript: false,
+    abVariant: 'B'
   },
   {
     id: 'call-4',
@@ -220,7 +226,8 @@ const mockCallRecords: CallRecord[] = [
     hasRegistration: false,
     transferredToErp: false,
     hasRecording: false,
-    hasTranscript: false
+    hasTranscript: false,
+    abVariant: 'A'
   },
   {
     id: 'call-5',
@@ -234,7 +241,8 @@ const mockCallRecords: CallRecord[] = [
     hasRegistration: false,
     transferredToErp: true,
     hasRecording: true,
-    hasTranscript: true
+    hasTranscript: true,
+    abVariant: 'B'
   }
 ]
 
@@ -255,6 +263,13 @@ export default function CompanyDetailsPage() {
   const [showExportModal, setShowExportModal] = useState(false)
   const [exportPeriod, setExportPeriod] = useState('today')
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([])
+  
+  // Состояния для графика
+  const [selectedMetric, setSelectedMetric] = useState<'success' | 'refusal' | 'noAnswer' | 'voicemail' | 'robot'>('success')
+  const [chartDateFilter, setChartDateFilter] = useState<'day' | 'interval' | 'intraday'>('day')
+  const [isAbTest, setIsAbTest] = useState(false) // Мок для A/B теста
+  const [intervalStart, setIntervalStart] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+  const [intervalEnd, setIntervalEnd] = useState(new Date().toISOString().split('T')[0])
 
   const handleCompanyAction = async (action: 'start' | 'pause' | 'stop') => {
     if (!company) return
@@ -399,6 +414,14 @@ export default function CompanyDetailsPage() {
         
         <div className="flex items-center space-x-3">
           {getStatusBadge(company.status)}
+          
+          <Button 
+            variant="outline"
+            onClick={() => router.push(`/companies/${company.id}/ab-tests`)}
+          >
+            <GitBranch className="h-4 w-4 mr-2" />
+            A/B тесты
+          </Button>
           
           <div className="flex space-x-2">
             {company.status === 'draft' && (
@@ -602,13 +625,318 @@ export default function CompanyDetailsPage() {
         </Card>
       </div>
 
+      {/* График динамики метрик */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Динамика метрик</CardTitle>
+              <p className="text-sm text-gray-600 mt-1">
+                Процент от обзвоненных контактов
+              </p>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              {/* Чекбокс A/B теста */}
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="ab-test"
+                  checked={isAbTest}
+                  onCheckedChange={(checked) => setIsAbTest(checked as boolean)}
+                />
+                <Label htmlFor="ab-test" className="text-sm cursor-pointer">
+                  A/B тест
+                </Label>
+              </div>
+              
+              {/* Переключатель метрик */}
+              <div className="flex items-center space-x-2">
+                <Label className="text-sm">Метрика:</Label>
+                <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
+                  <Button
+                    size="sm"
+                    variant={selectedMetric === 'success' ? 'default' : 'ghost'}
+                    onClick={() => setSelectedMetric('success')}
+                    className={selectedMetric === 'success' ? 'bg-green-600 hover:bg-green-700' : ''}
+                  >
+                    Успех
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={selectedMetric === 'refusal' ? 'default' : 'ghost'}
+                    onClick={() => setSelectedMetric('refusal')}
+                    className={selectedMetric === 'refusal' ? 'bg-red-600 hover:bg-red-700' : ''}
+                  >
+                    Отказ
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={selectedMetric === 'noAnswer' ? 'default' : 'ghost'}
+                    onClick={() => setSelectedMetric('noAnswer')}
+                    className={selectedMetric === 'noAnswer' ? 'bg-gray-600 hover:bg-gray-700' : ''}
+                  >
+                    Недозвон
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={selectedMetric === 'voicemail' ? 'default' : 'ghost'}
+                    onClick={() => setSelectedMetric('voicemail')}
+                    className={selectedMetric === 'voicemail' ? 'bg-purple-600 hover:bg-purple-700' : ''}
+                  >
+                    Автоответчик
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={selectedMetric === 'robot' ? 'default' : 'ghost'}
+                    onClick={() => setSelectedMetric('robot')}
+                    className={selectedMetric === 'robot' ? 'bg-indigo-600 hover:bg-indigo-700' : ''}
+                  >
+                    Робот
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Фильтр даты */}
+              <div className="flex items-center space-x-2">
+                <Label className="text-sm">Период:</Label>
+                <Select value={chartDateFilter} onValueChange={(value: any) => setChartDateFilter(value)}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="day">День</SelectItem>
+                    <SelectItem value="interval">Интервал</SelectItem>
+                    <SelectItem value="intraday">Внутри дня</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                {/* Выбор дат для интервала */}
+                {chartDateFilter === 'interval' && (
+                  <>
+                    <Input
+                      type="date"
+                      value={intervalStart}
+                      onChange={(e) => setIntervalStart(e.target.value)}
+                      className="w-32"
+                    />
+                    <span className="text-sm text-gray-500">—</span>
+                    <Input
+                      type="date"
+                      value={intervalEnd}
+                      onChange={(e) => setIntervalEnd(e.target.value)}
+                      className="w-32"
+                    />
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {/* График динамики */}
+          <div className="space-y-4">
+            {/* Легенда для A/B теста */}
+            {isAbTest && chartDateFilter === 'interval' && (
+              <div className="flex items-center justify-end space-x-4 text-sm">
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-blue-500 rounded mr-2"></div>
+                  <span>Общий</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-green-500 rounded mr-2"></div>
+                  <span>Агент A</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-orange-500 rounded mr-2"></div>
+                  <span>Агент B</span>
+                </div>
+              </div>
+            )}
+            
+            {/* Область графика */}
+            <div className="bg-gray-50 rounded-lg p-6">
+              {/* График - линейный для интервала, столбчатый для остальных */}
+              <div className="relative h-64">
+                {chartDateFilter === 'interval' ? (
+                  /* Линейный график для интервала */
+                  <div className="absolute inset-0 flex flex-col">
+                    {/* Сетка Y-оси */}
+                    <div className="absolute inset-0 flex flex-col justify-between">
+                      {[100, 75, 50, 25, 0].map((value) => (
+                        <div key={value} className="flex items-center">
+                          <span className="text-xs text-gray-400 -ml-10 w-8 text-right">{value}%</span>
+                          <div className="flex-1 border-b border-gray-200 ml-2"></div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* SVG с графиком */}
+                    <svg className="absolute inset-0 w-full h-full" style={{ marginLeft: '0px' }}>
+                      {isAbTest ? (
+                        /* A/B тест - 3 линии */
+                        <>
+                          {/* Линия общая (синяя) */}
+                          <polyline
+                            points="10,35 90,30 170,33 250,28 330,31 410,26 490,29 570,24 650,27 730,22 810,25 890,20"
+                            fill="none"
+                            stroke="#3b82f6"
+                            strokeWidth="3"
+                          />
+                          
+                          {/* Линия Агент A (зеленая) */}
+                          <polyline
+                            points="10,40 90,33 170,37 250,31 330,34 410,29 490,32 570,27 650,30 730,26 810,28 890,25"
+                            fill="none"
+                            stroke="#10b981"
+                            strokeWidth="3"
+                          />
+                          
+                          {/* Линия Агент B (оранжевая) */}
+                          <polyline
+                            points="10,32 90,25 170,29 250,23 330,26 410,21 490,24 570,19 650,22 730,18 810,20 890,17"
+                            fill="none"
+                            stroke="#f97316"
+                            strokeWidth="3"
+                          />
+                        </>
+                      ) : (
+                        /* Обычный режим - одна линия */
+                        <polyline
+                          points="10,35 90,30 170,33 250,28 330,31 410,26 490,29 570,24 650,27 730,22 810,25 890,20"
+                          fill="none"
+                          stroke={
+                            selectedMetric === 'success' ? '#10b981' :
+                            selectedMetric === 'refusal' ? '#ef4444' :
+                            selectedMetric === 'noAnswer' ? '#6b7280' :
+                            selectedMetric === 'voicemail' ? '#a855f7' :
+                            '#6366f1'
+                          }
+                          strokeWidth="3"
+                        />
+                      )}
+                    </svg>
+                  </div>
+                ) : (
+                  /* Столбчатая диаграмма для остальных режимов */
+                  <div className="absolute inset-0 flex items-end justify-between gap-2">
+                    {[65, 72, 68, 74, 71, 76, 73, 78, 75, 79, 77, 80].map((value, index) => {
+                      const metricColors = {
+                        success: 'bg-green-500',
+                        refusal: 'bg-red-500',
+                        noAnswer: 'bg-gray-500',
+                        voicemail: 'bg-purple-500',
+                        robot: 'bg-indigo-500'
+                      }
+                      const mainColor = metricColors[selectedMetric]
+                      
+                      return (
+                        <div key={index} className="flex-1 flex flex-col justify-end items-center relative">
+                          {/* Значение над столбцом */}
+                          <span className="text-xs text-gray-600 absolute -top-5">
+                            {value}%
+                          </span>
+                          
+                          {/* Группа столбцов */}
+                          <div className="w-full flex items-end gap-0.5">
+                            {isAbTest ? (
+                              <>
+                                {/* A/B тест - 3 столбца */}
+                                <div 
+                                  className="flex-1 bg-blue-500 opacity-80 rounded-t"
+                                  style={{ height: `${(value / 100) * 160}px` }}
+                                  title={`Общий: ${value}%`}
+                                />
+                                <div 
+                                  className="flex-1 bg-green-500 opacity-80 rounded-t"
+                                  style={{ height: `${((value - 5) / 100) * 160}px` }}
+                                  title={`Агент A: ${value - 5}%`}
+                                />
+                                <div 
+                                  className="flex-1 bg-orange-500 opacity-80 rounded-t"
+                                  style={{ height: `${((value + 3) / 100) * 160}px` }}
+                                  title={`Агент B: ${value + 3}%`}
+                                />
+                              </>
+                            ) : (
+                              /* Обычный режим - один столбец */
+                              <div 
+                                className={`w-full ${mainColor} rounded-t transition-all duration-300`}
+                                style={{ height: `${(value / 100) * 160}px` }}
+                              />
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+                
+                {/* Горизонтальные линии сетки */}
+                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                  {[100, 75, 50, 25, 0].map((value) => (
+                    <div key={value} className="flex items-center">
+                      <span className="text-xs text-gray-400 -ml-10 w-8 text-right">{value}%</span>
+                      <div className="flex-1 border-b border-gray-200 ml-2"></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Ось X */}
+              <div className="flex justify-between mt-4 px-2 text-xs text-gray-500">
+                {chartDateFilter === 'intraday' ? (
+                  ['00:00', '02:00', '04:00', '06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'].map(time => (
+                    <span key={time}>{time}</span>
+                  ))
+                ) : chartDateFilter === 'interval' ? (
+                  ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт'].map((day, i) => (
+                    <span key={i}>{day}</span>
+                  ))
+                ) : (
+                  Array.from({ length: 12 }, (_, i) => (
+                    <span key={i}>{i + 1}</span>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {/* Показатель A/B теста */}
+          {isAbTest && (
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-900 font-medium">A/B тест активен</p>
+              <p className="text-xs text-blue-700 mt-1">
+                Агент A: конверсия {company.successfulConsent ? Math.round((company.successfulConsent / company.totalProcessed) * 100 * 0.95) : 0}% | 
+                Агент B: конверсия {company.successfulConsent ? Math.round((company.successfulConsent / company.totalProcessed) * 100 * 1.05) : 0}%
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Мониторинг/декомпозиция обработанных контактов по исходам */}
       <Card>
         <CardHeader>
-          <CardTitle>Мониторинг обработанных контактов по исходам</CardTitle>
-          <p className="text-sm text-gray-600 mt-1">
-            Всего обработано: {company.totalProcessed.toLocaleString()} контактов
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Мониторинг обработанных контактов по исходам</CardTitle>
+              <p className="text-sm text-gray-600 mt-1">
+                Всего обработано: {company.totalProcessed.toLocaleString()} контактов
+              </p>
+            </div>
+            {isAbTest && (
+              <div className="flex items-center space-x-4 text-sm">
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-green-500 rounded mr-2"></div>
+                  <span>Агент A</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-orange-500 rounded mr-2"></div>
+                  <span>Агент B</span>
+                </div>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -624,6 +952,14 @@ export default function CompanyDetailsPage() {
               <p className="text-xs text-gray-500 mt-1">
                 {Math.round((company.successfulConsent / company.totalProcessed) * 100)}% от обработанных
               </p>
+              {isAbTest && (
+                <div className="mt-3 pt-3 border-t border-green-200">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-green-700">A: {Math.round(company.successfulConsent * 0.48).toLocaleString()}</span>
+                    <span className="text-orange-700">B: {Math.round(company.successfulConsent * 0.52).toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="p-4 bg-red-50 rounded-lg border border-red-200">
@@ -637,6 +973,14 @@ export default function CompanyDetailsPage() {
               <p className="text-xs text-gray-500 mt-1">
                 {Math.round((company.refusals / company.totalProcessed) * 100)}% от обработанных
               </p>
+              {isAbTest && (
+                <div className="mt-3 pt-3 border-t border-red-200">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-green-700">A: {Math.round(company.refusals * 0.55).toLocaleString()}</span>
+                    <span className="text-orange-700">B: {Math.round(company.refusals * 0.45).toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -650,6 +994,14 @@ export default function CompanyDetailsPage() {
               <p className="text-xs text-gray-500 mt-1">
                 {Math.round((company.noAnswers / company.totalProcessed) * 100)}% от обработанных
               </p>
+              {isAbTest && (
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-green-700">A: {Math.round(company.noAnswers * 0.51).toLocaleString()}</span>
+                    <span className="text-orange-700">B: {Math.round(company.noAnswers * 0.49).toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
@@ -663,6 +1015,14 @@ export default function CompanyDetailsPage() {
               <p className="text-xs text-gray-500 mt-1">
                 {Math.round((company.voicemails / company.totalProcessed) * 100)}% от обработанных
               </p>
+              {isAbTest && (
+                <div className="mt-3 pt-3 border-t border-purple-200">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-green-700">A: {Math.round(company.voicemails * 0.47).toLocaleString()}</span>
+                    <span className="text-orange-700">B: {Math.round(company.voicemails * 0.53).toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-200">
@@ -676,6 +1036,14 @@ export default function CompanyDetailsPage() {
               <p className="text-xs text-gray-500 mt-1">
                 {Math.round((company.robotVoicemails / company.totalProcessed) * 100)}% от обработанных
               </p>
+              {isAbTest && (
+                <div className="mt-3 pt-3 border-t border-indigo-200">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-green-700">A: {Math.round(company.robotVoicemails * 0.50).toLocaleString()}</span>
+                    <span className="text-orange-700">B: {Math.round(company.robotVoicemails * 0.50).toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
@@ -745,6 +1113,11 @@ export default function CompanyDetailsPage() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     ID контакта
                   </th>
+                  {isAbTest && (
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                      A/B
+                    </th>
+                  )}
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Дата/время
                   </th>
@@ -790,6 +1163,18 @@ export default function CompanyDetailsPage() {
                         </Button>
                       </div>
                     </td>
+                    {isAbTest && (
+                      <td className="px-4 py-3 whitespace-nowrap text-center">
+                        <Badge 
+                          className={call.abVariant === 'A' 
+                            ? "bg-green-100 text-green-800" 
+                            : "bg-orange-100 text-orange-800"
+                          }
+                        >
+                          {call.abVariant || 'A'}
+                        </Badge>
+                      </td>
+                    )}
                     <td className="px-4 py-3 whitespace-nowrap text-sm">
                       <div>
                         <div className="flex items-center text-gray-900">

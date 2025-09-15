@@ -29,7 +29,8 @@ import {
   X,
   Edit,
   MessageSquare,
-  Shield
+  Shield,
+  Volume2
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -40,6 +41,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
 import { BaseType } from '@/lib/types'
 import { CallTestModal } from '@/components/call-test-modal'
 
@@ -60,7 +62,6 @@ interface CampaignForm {
   baseType: BaseType | ''
   agent: string
   voice: string
-  instructions: string
   knowledgeDoc?: File
   serviceReady: boolean
   balanceOk: boolean
@@ -68,7 +69,11 @@ interface CampaignForm {
   serviceAvailable: boolean
   testPhone: string
   isTestCalling: boolean
-  selectedABTest?: ABTest
+  // A/B тестирование
+  isABTestEnabled: boolean
+  agentA: string
+  agentB: string
+  trafficSplit: number
   // Время и повторы
   callWindow: {
     start: string
@@ -99,6 +104,8 @@ interface CampaignForm {
   consentRecording?: string
   dataProcessing?: string
   disclaimerText?: string
+  // Исходящий номер
+  outgoingNumber: string
 }
 
 const mockAgents = [
@@ -188,6 +195,14 @@ const mockAgents = [
   }
 ]
 
+const mockOutgoingNumbers = [
+  { id: 'num-1', number: '+7 (495) 123-45-67', description: 'Основной номер', status: 'active' },
+  { id: 'num-2', number: '+7 (499) 987-65-43', description: 'Дополнительный номер', status: 'active' },
+  { id: 'num-3', number: '+7 (800) 555-35-35', description: 'Бесплатная линия', status: 'active' },
+  { id: 'num-4', number: '+7 (495) 777-77-77', description: 'Корпоративный', status: 'inactive' },
+  { id: 'num-5', number: '+7 (499) 111-22-33', description: 'Тестовый номер', status: 'active' }
+]
+
 const mockVoices = [
   { id: 'voice-1', name: 'Женский дружелюбный', description: 'Теплый, располагающий' },
   { id: 'voice-2', name: 'Мужской деловой', description: 'Уверенный, профессиональный' },
@@ -244,14 +259,17 @@ export default function NewCompanyPage() {
     baseType: '',
     agent: '',
     voice: '',
-    instructions: '',
     serviceReady: false,
     balanceOk: false,
     telephonyOk: false,
     serviceAvailable: false,
     testPhone: '',
     isTestCalling: false,
-    selectedABTest: undefined,
+    // A/B тестирование
+    isABTestEnabled: false,
+    agentA: '',
+    agentB: '',
+    trafficSplit: 50,
     callWindow: {
       start: '09:00',
       end: '20:00'
@@ -265,7 +283,8 @@ export default function NewCompanyPage() {
     newAgentDescription: '',
     newAgentPrompt: '',
     agentTestStatus: 'idle',
-    agentTestFeedback: ''
+    agentTestFeedback: '',
+    outgoingNumber: ''
   })
 
   const [isLoading, setIsLoading] = useState(false)
@@ -321,8 +340,8 @@ export default function NewCompanyPage() {
   }
 
   useEffect(() => {
-    // Автоматическая проверка готовности при монтировании на 3 шаге
-    if (currentStep === 3) {
+    // Автоматическая проверка готовности при монтировании на 3 шаге и на резюме
+    if (currentStep === 3 || currentStep === 4) {
       checkServiceReadiness()
     }
   }, [currentStep])
@@ -407,25 +426,22 @@ export default function NewCompanyPage() {
   const isStepCompleted = (step: number) => {
     switch (step) {
       case 1:
-        return form.name.trim() !== '' && form.baseType !== ''
+        return form.name.trim() !== ''
       case 2:
         return form.callWindow.start !== '' && form.callWindow.end !== ''
       case 3:
-        return (form.agent !== '' || (form.createNewAgent && form.newAgentName !== '')) && 
+        return form.agent !== '' && 
                form.voice !== '' && 
-               form.instructions.trim() !== '' && 
                form.serviceReady
       case 4:
-        return true // A/B тесты опциональны
-      case 5:
-        return true // Резюме всегда доступно
+        return form.outgoingNumber !== '' // Исходящий номер обязателен
       default:
         return false
     }
   }
 
   const isFormValid = () => {
-    return isStepCompleted(1) && isStepCompleted(2) && isStepCompleted(3)
+    return isStepCompleted(1) && isStepCompleted(2) && isStepCompleted(3) && isStepCompleted(4)
   }
 
   const handleSave = async () => {
@@ -439,11 +455,10 @@ export default function NewCompanyPage() {
   }
 
   const steps = [
-    { id: 1, name: 'Название и тип', icon: Settings },
+    { id: 1, name: 'Название и настройки', icon: Settings },
     { id: 2, name: 'Время и повторы', icon: Clock },
     { id: 3, name: 'Настройка Агента', icon: Mic },
-    { id: 4, name: 'A/B тесты', icon: FlaskConical },
-    { id: 5, name: 'Резюме', icon: CheckCircle }
+    { id: 4, name: 'Резюме', icon: CheckCircle }
   ]
 
   return (
@@ -506,13 +521,13 @@ export default function NewCompanyPage() {
       {/* Содержимое шагов */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          {/* Шаг 1: Название компании */}
+          {/* Шаг 1: Название компании и A/B тест */}
           {currentStep === 1 && (
             <Card>
               <CardHeader>
-                <CardTitle>Название и тип кампании</CardTitle>
+                <CardTitle>Название кампании и настройки</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
                 <div>
                   <Label htmlFor="name">Название компании *</Label>
                   <Input
@@ -527,31 +542,96 @@ export default function NewCompanyPage() {
                   </p>
                 </div>
                 
-                <div>
-                  <Label htmlFor="baseType">Тип кампании *</Label>
-                  <Select value={form.baseType} onValueChange={(value) => {
-                    handleInputChange('baseType', value as BaseType)
-                    // Сбрасываем выбранного агента при смене типа
-                    if (form.agent) {
-                      const agent = mockAgents.find(a => a.id === form.agent)
-                      if (agent && agent.baseType !== value) {
-                        handleInputChange('agent', '')
-                      }
-                    }
-                  }}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Выберите тип кампании" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="registration">Регистрация</SelectItem>
-                      <SelectItem value="no_answer">Недозвон</SelectItem>
-                      <SelectItem value="refusals">Отказники</SelectItem>
-                      <SelectItem value="reactivation">Отклики/реактивация</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Тип кампании определяет, какие агенты будут доступны
-                  </p>
+                <Separator />
+                
+                {/* A/B тестирование */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <FlaskConical className="h-4 w-4 text-gray-600" />
+                      <Label 
+                        htmlFor="ab-test" 
+                        className="text-sm font-medium cursor-pointer"
+                      >
+                        A/B-тест
+                      </Label>
+                    </div>
+                    <Switch
+                      id="ab-test"
+                      checked={form.isABTestEnabled}
+                      onCheckedChange={(checked) => handleInputChange('isABTestEnabled', checked)}
+                      className="data-[state=checked]:bg-[#17a2b8] data-[state=unchecked]:bg-gray-200"
+                    />
+                  </div>
+                  
+                  {form.isABTestEnabled && (
+                    <div className="space-y-4 p-4 bg-teal-50 border border-teal-200 rounded-lg">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="agent-a">Агент A *</Label>
+                          <Select value={form.agentA} onValueChange={(value) => handleInputChange('agentA', value)}>
+                            <SelectTrigger id="agent-a" className="mt-1">
+                              <SelectValue placeholder="Выберите агента A" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {mockAgents
+                                .filter(agent => agent.id !== form.agentB)
+                                .map((agent) => (
+                                  <SelectItem key={agent.id} value={agent.id}>
+                                    <div>
+                                      <div className="font-medium">{agent.name}</div>
+                                      <div className="text-xs text-gray-500">{agent.description}</div>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="agent-b">Агент B *</Label>
+                          <Select value={form.agentB} onValueChange={(value) => handleInputChange('agentB', value)}>
+                            <SelectTrigger id="agent-b" className="mt-1">
+                              <SelectValue placeholder="Выберите агента B" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {mockAgents
+                                .filter(agent => agent.id !== form.agentA)
+                                .map((agent) => (
+                                  <SelectItem key={agent.id} value={agent.id}>
+                                    <div>
+                                      <div className="font-medium">{agent.name}</div>
+                                      <div className="text-xs text-gray-500">{agent.description}</div>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="traffic-split">Распределение трафика</Label>
+                        <div className="flex items-center space-x-4 mt-2">
+                          <span className="text-sm font-medium">Агент A: {form.trafficSplit}%</span>
+                          <input
+                            id="traffic-split"
+                            type="range"
+                            min="0"
+                            max="100"
+                            step="5"
+                            value={form.trafficSplit}
+                            onChange={(e) => handleInputChange('trafficSplit', parseInt(e.target.value))}
+                            className="flex-1"
+                          />
+                          <span className="text-sm font-medium">Агент B: {100 - form.trafficSplit}%</span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">
+                          Укажите, какой процент звонков будет направлен на каждого агента
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -651,7 +731,7 @@ export default function NewCompanyPage() {
             </Card>
           )}
 
-          {/* Шаг 3: Настройка Агента (объединенный) */}
+          {/* Шаг 3: Настройка Агента */}
           {currentStep === 3 && (
             <>
             {/* Выбор агента и голоса */}
@@ -663,136 +743,55 @@ export default function NewCompanyPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* Выбор агента */}
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <Label>Выберите или создайте агента *</Label>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant={form.createNewAgent ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => {
-                          handleInputChange('createNewAgent', !form.createNewAgent)
-                          if (!form.createNewAgent) {
-                            handleInputChange('agent', '')
-                          }
-                        }}
-                      >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Создать нового
-                      </Button>
-                    </div>
-                  </div>
+                  <Label>Выберите агента *</Label>
+                  <Select value={form.agent} onValueChange={(value) => handleInputChange('agent', value)}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Выберите агента для звонков" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {mockAgents
+                        .map((agent) => (
+                          <SelectItem key={agent.id} value={agent.id}>
+                            <div>
+                              <div className="font-medium">{agent.name}</div>
+                              <div className="text-xs text-gray-500">{agent.description}</div>
+                            </div>
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
                   
-                  {!form.baseType ? (
-                    <div className="mt-1 p-3 border border-yellow-200 bg-yellow-50 rounded-lg">
-                      <p className="text-sm text-yellow-800">
-                        Сначала выберите тип кампании на первом шаге
-                      </p>
-                    </div>
-                  ) : form.createNewAgent ? (
-                    <div className="space-y-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div>
-                        <Label htmlFor="new-agent-name">Имя агента *</Label>
-                        <Input
-                          id="new-agent-name"
-                          placeholder="Например: Анна"
-                          value={form.newAgentName}
-                          onChange={(e) => handleInputChange('newAgentName', e.target.value)}
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="new-agent-desc">Описание агента</Label>
-                        <Input
-                          id="new-agent-desc"
-                          placeholder="Например: Дружелюбный консультант"
-                          value={form.newAgentDescription}
-                          onChange={(e) => handleInputChange('newAgentDescription', e.target.value)}
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="agent-language">Язык и тон *</Label>
-                        <Select
-                          value={form.agentLanguage || ''}
-                          onValueChange={(value) => handleInputChange('agentLanguage', value)}
-                        >
-                          <SelectTrigger id="agent-language">
-                            <SelectValue placeholder="Выберите стиль общения" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="formal">Формальный</SelectItem>
-                            <SelectItem value="friendly">Дружелюбный</SelectItem>
-                            <SelectItem value="professional">Профессиональный</SelectItem>
-                            <SelectItem value="casual">Разговорный</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="new-agent-prompt">Настройка контекста разговора / промтинг *</Label>
-                        <Textarea
-                          id="new-agent-prompt"
-                          placeholder="Опишите контекст разговора, специфические правила, дополнительную информацию для агента..."
-                          value={form.newAgentPrompt}
-                          onChange={(e) => handleInputChange('newAgentPrompt', e.target.value)}
-                          className="mt-1 min-h-[120px]"
-                        />
-                      </div>
-                      <div className="flex space-x-2">
-                        <Button
-                          size="sm"
-                          onClick={handleCreateAgent}
-                          disabled={!form.newAgentName || !form.newAgentPrompt}
-                        >
-                          <Check className="h-4 w-4 mr-1" />
-                          Сохранить агента
-                        </Button>
+                  {/* Описание выбранного агента */}
+                  {form.agent && (
+                    <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-sm">{mockAgents.find(a => a.id === form.agent)?.name}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {mockAgents.find(a => a.id === form.agent)?.description}
+                          </p>
+                        </div>
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => {
-                            handleInputChange('createNewAgent', false)
-                            handleInputChange('newAgentName', '')
-                            handleInputChange('newAgentDescription', '')
-                            handleInputChange('newAgentPrompt', '')
-                          }}
+                          onClick={() => {}}
                         >
-                          <X className="h-4 w-4 mr-1" />
-                          Отмена
+                          <Volume2 className="h-4 w-4 mr-1" />
+                          Прослушать
                         </Button>
                       </div>
                     </div>
-                  ) : (
-                    <>
-                      <Select value={form.agent} onValueChange={(value) => handleInputChange('agent', value)}>
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Выберите агента для звонков" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {mockAgents
-                            .filter(agent => agent.baseType === form.baseType)
-                            .map((agent) => (
-                              <SelectItem key={agent.id} value={agent.id}>
-                                <div>
-                                  <div className="font-medium">{agent.name}</div>
-                                  <div className="text-xs text-gray-500">{agent.description}</div>
-                                </div>
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Доступны только агенты для типа кампании &quot;{form.baseType === 'registration' ? 'Регистрация' : form.baseType === 'no_answer' ? 'Недозвон' : form.baseType === 'refusals' ? 'Отказники' : 'Отклики/реактивация'}&quot;
-                      </p>
-                    </>
                   )}
                 </div>
 
+                {/* Голос агента */}
                 <div>
-                  <Label>Выберите голос *</Label>
+                  <Label>Голос агента *</Label>
                   <Select value={form.voice} onValueChange={(value) => handleInputChange('voice', value)}>
                     <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Выберите тип голоса" />
+                      <SelectValue placeholder="Выберите голос" />
                     </SelectTrigger>
                     <SelectContent>
                       {mockVoices.map((voice) => (
@@ -805,9 +804,6 @@ export default function NewCompanyPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Button variant="outline" size="sm" className="mt-2">
-                    Прослушать образец
-                  </Button>
                 </div>
 
                 {/* Инлайн-тест агента */}
@@ -890,79 +886,37 @@ export default function NewCompanyPage() {
               </CardContent>
             </Card>
 
-            {/* Инструкции агента */}
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <FileText className="h-5 w-5 mr-2" />
-                  Инструкции агента
-                </CardTitle>
-                <CardDescription>
-                  Промпт выбранного агента
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                
-                <Separator />
-                
-                {/* Промпт выбранного агента */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <div className="h-8 w-8 rounded-lg bg-purple-100 flex items-center justify-center">
-                        <Eye className="h-4 w-4 text-purple-600" />
-                      </div>
-                      <h3 className="font-semibold">Промпт агента</h3>
-                    </div>
-                    <Badge variant="outline">Инструкции</Badge>
-                  </div>
-                  
-                  <div className="pl-10">
+            {/* Настройки агента */}
+            {form.agent && (
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <FileText className="h-5 w-5 mr-2" />
+                    Настройки агента
+                  </CardTitle>
+                  <CardDescription>
+                    Промпт и инструкции (только для чтения)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Промпт агента - Read Only */}
+                  <div>
+                    <Label className="flex items-center space-x-2 mb-2">
+                      <Eye className="h-4 w-4" />
+                      <span>Промпт агента</span>
+                    </Label>
                     <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                      <pre className="text-sm text-gray-700 whitespace-pre-wrap">
-{form.agent ? mockAgents.find(a => a.id === form.agent)?.prompt || 'Агент не выбран' : 'Агент не выбран'}
+                      <pre className="text-sm text-gray-600 whitespace-pre-wrap font-mono">
+{mockAgents.find(a => a.id === form.agent)?.prompt || 'Промпт не найден'}
                       </pre>
                     </div>
                     <p className="text-xs text-gray-500 mt-2">
-                      Промпт выбранного агента определяет его поведение в разговоре
+                      Этот промпт определяет поведение агента во время звонка
                     </p>
                   </div>
-                </div>
-                
-                <Separator />
-
-                <div>
-                  <Label htmlFor="knowledge">Документ знаний (опционально)</Label>
-                  <div className="mt-1">
-                    <label htmlFor="file-upload" className="cursor-pointer">
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-gray-400 transition-colors">
-                        <div className="flex flex-col items-center">
-                          <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                          <p className="text-sm text-gray-600">
-                            {form.knowledgeDoc 
-                              ? form.knowledgeDoc.name 
-                              : 'Нажмите для загрузки документа'}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            PDF, DOCX, TXT до 10MB
-                          </p>
-                        </div>
-                      </div>
-                      <input
-                        id="file-upload"
-                        type="file"
-                        className="hidden"
-                        accept=".pdf,.docx,.txt"
-                        onChange={handleFileUpload}
-                      />
-                    </label>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Загрузите документ с дополнительной информацией о продукте или услуге
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Проверка готовности */}
             <Card className="mt-6">
@@ -1076,265 +1030,8 @@ export default function NewCompanyPage() {
             </>
           )}
 
-          {/* Шаг 4: A/B тесты */}
+          {/* Шаг 4: Резюме */}
           {currentStep === 4 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <FlaskConical className="h-5 w-5 mr-2" />
-                  A/B тестирование
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-gray-600">
-                  Настройте A/B тесты для сравнения эффективности разных сценариев и агентов (опционально)
-                </p>
-                
-                {form.selectedABTest ? (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <h4 className="font-medium text-blue-900">{form.selectedABTest.name}</h4>
-                          <Badge className={form.selectedABTest.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
-                            {form.selectedABTest.status === 'active' ? 'Активен' : 'Черновик'}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-blue-700 mb-3">
-                          {form.selectedABTest.description}
-                        </p>
-                        <div className="grid grid-cols-2 gap-3 text-sm">
-                          <div className="bg-white/50 rounded px-3 py-2">
-                            <span className="font-medium">Вариант A:</span>
-                            <p className="text-gray-700">{form.selectedABTest.variantA}</p>
-                          </div>
-                          <div className="bg-white/50 rounded px-3 py-2">
-                            <span className="font-medium">Вариант B:</span>
-                            <p className="text-gray-700">{form.selectedABTest.variantB}</p>
-                          </div>
-                        </div>
-                        <div className="mt-3 text-sm text-blue-600">
-                          Распределение трафика: {form.selectedABTest.splitRatio}% / {100 - form.selectedABTest.splitRatio}%
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleRemoveABTest}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setShowABTestSelection(true)
-                          setShowABTestCreation(false)
-                        }}
-                      >
-                        Изменить тест
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-sm text-gray-600 mb-4">
-                        A/B тесты помогут определить наиболее эффективные сценарии и агентов
-                      </p>
-                      
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            setShowABTestSelection(!showABTestSelection)
-                            setShowABTestCreation(false)
-                          }}
-                          className="flex-1"
-                        >
-                          <FlaskConical className="h-4 w-4 mr-2" />
-                          Выбрать A/B тест
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            setShowABTestCreation(!showABTestCreation)
-                            setShowABTestSelection(false)
-                          }}
-                          className="flex-1"
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Создать новый A/B тест
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Интерфейс выбора A/B теста */}
-                    {showABTestSelection && (
-                      <div className="border border-gray-200 rounded-lg p-4 space-y-4">
-                        <h4 className="font-medium flex items-center">
-                          <FlaskConical className="h-4 w-4 mr-2" />
-                          Доступные A/B тесты
-                        </h4>
-                        <div className="space-y-3">
-                          {mockABTests.map((test) => (
-                            <div key={test.id} className="border rounded-lg p-3 hover:bg-gray-50 cursor-pointer"
-                                 onClick={() => handleSelectABTest(test)}>
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <div className="flex items-center space-x-2 mb-1">
-                                    <h5 className="font-medium">{test.name}</h5>
-                                    <Badge className={test.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
-                                      {test.status === 'active' ? 'Активен' : 'Черновик'}
-                                    </Badge>
-                                  </div>
-                                  <p className="text-sm text-gray-600 mb-2">{test.description}</p>
-                                  <div className="flex items-center space-x-4 text-xs text-gray-500">
-                                    <span>Вариант A: {test.variantA}</span>
-                                    <span>•</span>
-                                    <span>Вариант B: {test.variantB}</span>
-                                    <span>•</span>
-                                    <span>Распределение: {test.splitRatio}%/{100-test.splitRatio}%</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Интерфейс создания нового A/B теста */}
-                    {showABTestCreation && (
-                      <div className="border border-blue-200 bg-blue-50 rounded-lg p-4 space-y-4">
-                        <h4 className="font-medium flex items-center">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Создание нового A/B теста
-                        </h4>
-                        
-                        <div className="space-y-4">
-                          <div>
-                            <Label htmlFor="ab-test-name">Название теста *</Label>
-                            <Input
-                              id="ab-test-name"
-                              placeholder="Например: Тест приветствия"
-                              value={newABTest.name}
-                              onChange={(e) => setNewABTest({...newABTest, name: e.target.value})}
-                              className="mt-1"
-                            />
-                          </div>
-                          
-                          <div>
-                            <Label htmlFor="ab-test-desc">Описание теста</Label>
-                            <Textarea
-                              id="ab-test-desc"
-                              placeholder="Опишите цель и гипотезу теста"
-                              value={newABTest.description}
-                              onChange={(e) => setNewABTest({...newABTest, description: e.target.value})}
-                              className="mt-1 min-h-[80px]"
-                            />
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <Label htmlFor="variant-a">Вариант A *</Label>
-                              <Input
-                                id="variant-a"
-                                placeholder="Описание варианта A"
-                                value={newABTest.variantA}
-                                onChange={(e) => setNewABTest({...newABTest, variantA: e.target.value})}
-                                className="mt-1"
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor="variant-b">Вариант B *</Label>
-                              <Input
-                                id="variant-b"
-                                placeholder="Описание варианта B"
-                                value={newABTest.variantB}
-                                onChange={(e) => setNewABTest({...newABTest, variantB: e.target.value})}
-                                className="mt-1"
-                              />
-                            </div>
-                          </div>
-                          
-                          <div>
-                            <Label htmlFor="split-ratio">Распределение трафика</Label>
-                            <div className="flex items-center space-x-4 mt-2">
-                              <span className="text-sm">Вариант A: {newABTest.splitRatio}%</span>
-                              <input
-                                type="range"
-                                min="10"
-                                max="90"
-                                value={newABTest.splitRatio}
-                                onChange={(e) => setNewABTest({...newABTest, splitRatio: parseInt(e.target.value)})}
-                                className="flex-1"
-                              />
-                              <span className="text-sm">Вариант B: {100 - newABTest.splitRatio}%</span>
-                            </div>
-                          </div>
-                          
-                          <div className="flex space-x-2">
-                            <Button
-                              onClick={() => {
-                                if (newABTest.name && newABTest.variantA && newABTest.variantB) {
-                                  const test = {
-                                    id: `ab-${Date.now()}`,
-                                    ...newABTest,
-                                    status: 'draft' as const
-                                  }
-                                  handleSelectABTest(test)
-                                  setNewABTest({
-                                    name: '',
-                                    description: '',
-                                    variantA: '',
-                                    variantB: '',
-                                    splitRatio: 50
-                                  })
-                                  setShowABTestCreation(false)
-                                }
-                              }}
-                              disabled={!newABTest.name || !newABTest.variantA || !newABTest.variantB}
-                            >
-                              <Check className="h-4 w-4 mr-2" />
-                              Создать и добавить
-                            </Button>
-                            <Button
-                              variant="outline"
-                              onClick={() => {
-                                setShowABTestCreation(false)
-                                setNewABTest({
-                                  name: '',
-                                  description: '',
-                                  variantA: '',
-                                  variantB: '',
-                                  splitRatio: 50
-                                })
-                              }}
-                            >
-                              <X className="h-4 w-4 mr-2" />
-                              Отмена
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-                
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-xs text-blue-700">
-                    💡 Совет: A/B тесты позволяют сравнить разные подходы и выбрать наиболее эффективный
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Шаг 5: Резюме */}
-          {currentStep === 5 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -1374,43 +1071,87 @@ export default function NewCompanyPage() {
 
                 <Separator />
 
+                {/* Обязательное поле - Исходящий номер */}
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <Label htmlFor="outgoing-number">Исходящий номер *</Label>
+                  <Select 
+                    value={form.outgoingNumber} 
+                    onValueChange={(value) => handleInputChange('outgoingNumber', value)}
+                  >
+                    <SelectTrigger id="outgoing-number" className="mt-2">
+                      <SelectValue placeholder="Выберите номер для исходящих звонков" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {mockOutgoingNumbers
+                        .filter(num => num.status === 'active')
+                        .map((num) => (
+                          <SelectItem key={num.id} value={num.id}>
+                            <div className="flex items-center justify-between w-full">
+                              <span className="font-medium">{num.number}</span>
+                              <span className="text-xs text-gray-500 ml-2">{num.description}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-600 mt-2">
+                    Номер Asterisk, с которого будут совершаться исходящие звонки
+                  </p>
+                </div>
+
+                <Separator />
+
                 <div className="space-y-4">
                   <div>
                     <p className="text-sm text-gray-600">Название компании</p>
                     <p className="font-medium text-lg">{form.name}</p>
                   </div>
 
+
+                  {form.isABTestEnabled ? (
+                    <div>
+                      <p className="text-sm text-gray-600 mb-2">A/B тестирование</p>
+                      <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-xs text-gray-600">Агент A ({form.trafficSplit}%)</p>
+                            <p className="font-medium">
+                              {mockAgents.find(a => a.id === form.agentA)?.name || 'Не выбран'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-600">Агент B ({100 - form.trafficSplit}%)</p>
+                            <p className="font-medium">
+                              {mockAgents.find(a => a.id === form.agentB)?.name || 'Не выбран'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-600">Агент</p>
+                        <p className="font-medium">
+                          {mockAgents.find(a => a.id === form.agent)?.name || 'Не выбран'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Голос</p>
+                        <p className="font-medium">
+                          {mockVoices.find(v => v.id === form.voice)?.name || 'Не выбран'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   <div>
-                    <p className="text-sm text-gray-600">Тип кампании</p>
+                    <p className="text-sm text-gray-600">Исходящий номер</p>
                     <p className="font-medium">
-                      {form.baseType === 'registration' ? 'Регистрация' : 
-                       form.baseType === 'no_answer' ? 'Недозвон' : 
-                       form.baseType === 'refusals' ? 'Отказники' : 
-                       form.baseType === 'reactivation' ? 'Отклики/реактивация' : 'Не выбран'}
+                      {mockOutgoingNumbers.find(n => n.id === form.outgoingNumber)?.number || 'Не выбран'}
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-600">Агент</p>
-                      <p className="font-medium">
-                        {mockAgents.find(a => a.id === form.agent)?.name || 'Не выбран'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Голос</p>
-                      <p className="font-medium">
-                        {mockVoices.find(v => v.id === form.voice)?.name || 'Не выбран'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-sm text-gray-600 mb-2">Инструкции</p>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-sm">{form.instructions || 'Не указаны'}</p>
-                    </div>
-                  </div>
 
                   {form.knowledgeDoc && (
                     <div>
@@ -1436,6 +1177,18 @@ export default function NewCompanyPage() {
                 </div>
 
                 {/* Проверка готовности сервиса */}
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-medium text-gray-700">Готовность сервиса</h3>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={checkServiceReadiness}
+                    disabled={isCheckingService}
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${isCheckingService ? 'animate-spin' : ''}`} />
+                    Обновить статусы
+                  </Button>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Телефония */}
                   <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
@@ -1584,8 +1337,8 @@ export default function NewCompanyPage() {
                   Предыдущий шаг
                 </Button>
                 <Button
-                  variant={currentStep < 5 ? 'default' : 'ghost'}
-                  disabled={currentStep === 5}
+                  variant={currentStep < 4 ? 'default' : 'ghost'}
+                  disabled={currentStep === 4}
                   onClick={() => setCurrentStep(currentStep + 1)}
                   className="w-full"
                 >
@@ -1603,7 +1356,7 @@ export default function NewCompanyPage() {
             <CardContent>
               {currentStep === 1 && (
                 <p className="text-sm text-gray-600">
-                  Выберите понятное название и тип кампании. Тип определяет, какие агенты будут доступны.
+                  Выберите понятное название для вашей кампании.
                 </p>
               )}
               {currentStep === 2 && (
@@ -1617,11 +1370,6 @@ export default function NewCompanyPage() {
                 </p>
               )}
               {currentStep === 4 && (
-                <p className="text-sm text-gray-600">
-                  Убедитесь, что все системы готовы перед созданием компании.
-                </p>
-              )}
-              {currentStep === 5 && (
                 <p className="text-sm text-gray-600">
                   После создания компании передайте Company ID в вашу ERP систему для привязки контактов.
                 </p>

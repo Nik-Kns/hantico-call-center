@@ -1,21 +1,24 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   Plus,
-  Edit,
   Archive,
   Play,
-  Pause,
-  Volume2,
   Users,
-  Settings,
   Search,
   Filter,
-  MoreVertical,
-  Eye,
-  Copy
+  Copy,
+  Building2,
+  ChevronRight,
+  Trash2,
+  AlertTriangle,
+  Phone,
+  FileText,
+  Volume2,
+  Lock,
+  XCircle
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -23,16 +26,63 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { mockAgents, mockVoices } from '@/lib/mock-data'
-import { Agent } from '@/lib/types'
+import { Agent, UserRole } from '@/lib/types'
+import { storage } from '@/lib/utils'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+
+// Мок данных кампаний для агентов
+const mockCampaigns = [
+  { id: 'cmp-1', name: 'Новогодняя акция 2025', status: 'active' },
+  { id: 'cmp-2', name: 'Привлечение новых клиентов', status: 'active' },
+  { id: 'cmp-3', name: 'Реактивация базы', status: 'paused' },
+  { id: 'cmp-4', name: 'Опрос удовлетворенности', status: 'completed' },
+]
 
 export default function AgentsPage() {
   const router = useRouter()
-  const [agents] = useState<Agent[]>(mockAgents)
+  const [currentRole, setCurrentRole] = useState<UserRole>('admin')
+  const [agents] = useState<Agent[]>(mockAgents.map(agent => ({
+    ...agent,
+    // Добавляем случайное количество кампаний для каждого агента
+    campaignsCount: Math.floor(Math.random() * 5),
+    campaigns: mockCampaigns.slice(0, Math.floor(Math.random() * 4))
+  })))
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterRole, setFilterRole] = useState<string>('all')
   const [filterBaseType, setFilterBaseType] = useState<string>('all')
+  const [selectedAgentCampaigns, setSelectedAgentCampaigns] = useState<any>(null)
+  const [showCampaignsDialog, setShowCampaignsDialog] = useState(false)
+  const [deleteDialog, setDeleteDialog] = useState<{show: boolean, agent: any, action?: 'delete' | 'archive'}>({
+    show: false,
+    agent: null,
+    action: 'delete'
+  })
+
+  // Загрузка текущей роли при монтировании
+  useEffect(() => {
+    const savedRole = storage.get<UserRole>('currentRole', 'admin')
+    setCurrentRole(savedRole)
+    
+    // Подписка на изменения роли
+    const interval = setInterval(() => {
+      const newRole = storage.get<UserRole>('currentRole', 'admin')
+      if (newRole !== currentRole) {
+        setCurrentRole(newRole)
+      }
+    }, 1000)
+    
+    return () => clearInterval(interval)
+  }, [currentRole])
 
   // Фильтрация агентов
   const filteredAgents = agents.filter(agent => {
@@ -50,11 +100,72 @@ export default function AgentsPage() {
       case 'active':
         return <Badge className="bg-green-100 text-green-800">Активен</Badge>
       case 'inactive':
-        return <Badge className="bg-yellow-100 text-yellow-800">Неактивен</Badge>
+        return <Badge className="bg-yellow-100 text-yellow-800">Черновик</Badge>
       case 'archived':
         return <Badge className="bg-gray-100 text-gray-800">Архив</Badge>
       default:
         return <Badge>Неизвестно</Badge>
+    }
+  }
+
+  const handleShowCampaigns = (agent: any) => {
+    setSelectedAgentCampaigns(agent)
+    setShowCampaignsDialog(true)
+  }
+
+  const handleCopyAgent = (agent: any) => {
+    // Логика копирования агента
+    console.log('Копирование агента:', agent.name)
+    // Можно добавить тост уведомление
+  }
+
+  const handleArchiveAgent = (agent: any) => {
+    // Проверка роли
+    if (currentRole === 'marketer') {
+      setDeleteDialog({ 
+        show: true, 
+        agent,
+        action: 'archive'
+      })
+      return
+    }
+    
+    // Проверяем, есть ли активные кампании
+    const activeCampaigns = agent.campaigns?.filter((c: any) => c.status === 'active')
+    if (activeCampaigns && activeCampaigns.length > 0) {
+      setDeleteDialog({ 
+        show: true, 
+        agent,
+        action: 'archive'
+      })
+    } else {
+      console.log(agent.status === 'archived' ? 'Активировать' : 'Архивировать', agent.name)
+    }
+  }
+
+  const handleDeleteAgent = (agent: any) => {
+    // Проверка роли
+    if (currentRole === 'marketer') {
+      setDeleteDialog({ 
+        show: true, 
+        agent,
+        action: 'delete'
+      })
+      return
+    }
+    
+    // Проверяем, есть ли активные кампании
+    const activeCampaigns = agent.campaigns?.filter((c: any) => c.status === 'active')
+    if (activeCampaigns && activeCampaigns.length > 0) {
+      setDeleteDialog({ 
+        show: true, 
+        agent,
+        action: 'delete'
+      })
+    } else {
+      if (confirm(`Удалить агента "${agent.name}"?`)) {
+        console.log('Удаление агента:', agent.name)
+      }
     }
   }
 
@@ -135,11 +246,11 @@ export default function AgentsPage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Users className="h-6 w-6 text-green-600" />
+              <div className="p-2 bg-gray-100 rounded-lg">
+                <Users className="h-6 w-6 text-gray-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Всего агентов</p>
+                <p className="text-sm font-medium text-gray-600">Всего</p>
                 <p className="text-2xl font-bold text-gray-900">{agents.length}</p>
               </div>
             </div>
@@ -149,8 +260,8 @@ export default function AgentsPage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Play className="h-6 w-6 text-blue-600" />
+              <div className="p-2 bg-green-100 rounded-lg">
+                <Play className="h-6 w-6 text-green-600" />
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Активные</p>
@@ -165,12 +276,14 @@ export default function AgentsPage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Volume2 className="h-6 w-6 text-purple-600" />
+              <div className="p-2 bg-yellow-100 rounded-lg">
+                <FileText className="h-6 w-6 text-yellow-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Голосов</p>
-                <p className="text-2xl font-bold text-gray-900">{mockVoices.length}</p>
+                <p className="text-sm font-medium text-gray-600">Черновики</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {agents.filter(a => a.status === 'inactive').length}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -179,13 +292,13 @@ export default function AgentsPage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <Settings className="h-6 w-6 text-orange-600" />
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <Archive className="h-6 w-6 text-purple-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">В кампаниях</p>
+                <p className="text-sm font-medium text-gray-600">Архив</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {agents.filter(a => a.campaigns.length > 0).length}
+                  {agents.filter(a => a.status === 'archived').length}
                 </p>
               </div>
             </div>
@@ -197,12 +310,51 @@ export default function AgentsPage() {
       <Card>
         <CardContent className="p-6">
           <div className="flex flex-col space-y-4">
-            <div className="flex items-center space-x-2">
-              <Filter className="h-4 w-4 text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">Фильтры и поиск:</span>
+            {/* Переключатель статусов */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Filter className="h-4 w-4 text-gray-500" />
+                <span className="text-sm font-medium text-gray-700">Фильтр по статусу:</span>
+              </div>
+              <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
+                <Button
+                  size="sm"
+                  variant={filterStatus === 'all' ? 'default' : 'ghost'}
+                  onClick={() => setFilterStatus('all')}
+                  className={filterStatus === 'all' ? '' : 'hover:bg-white'}
+                >
+                  Все
+                </Button>
+                <Button
+                  size="sm"
+                  variant={filterStatus === 'active' ? 'default' : 'ghost'}
+                  onClick={() => setFilterStatus('active')}
+                  className={filterStatus === 'active' ? 'bg-green-600 hover:bg-green-700' : 'hover:bg-white'}
+                >
+                  Активные
+                </Button>
+                <Button
+                  size="sm"
+                  variant={filterStatus === 'inactive' ? 'default' : 'ghost'}
+                  onClick={() => setFilterStatus('inactive')}
+                  className={filterStatus === 'inactive' ? 'bg-yellow-600 hover:bg-yellow-700' : 'hover:bg-white'}
+                >
+                  Черновики
+                </Button>
+                <Button
+                  size="sm"
+                  variant={filterStatus === 'archived' ? 'default' : 'ghost'}
+                  onClick={() => setFilterStatus('archived')}
+                  className={filterStatus === 'archived' ? 'bg-purple-600 hover:bg-purple-700' : 'hover:bg-white'}
+                >
+                  Архив
+                </Button>
+              </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              <div className="relative">
+            
+            {/* Дополнительные фильтры и поиск */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="relative md:col-span-2">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="Поиск по названию или описанию..."
@@ -211,18 +363,6 @@ export default function AgentsPage() {
                   className="pl-10"
                 />
               </div>
-              
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Статус" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все статусы</SelectItem>
-                  <SelectItem value="active">Активные</SelectItem>
-                  <SelectItem value="inactive">Неактивные</SelectItem>
-                  <SelectItem value="archived">Архивированные</SelectItem>
-                </SelectContent>
-              </Select>
 
               <Select value={filterRole} onValueChange={setFilterRole}>
                 <SelectTrigger>
@@ -233,19 +373,6 @@ export default function AgentsPage() {
                   <SelectItem value="registration_agent">Регистрация</SelectItem>
                   <SelectItem value="reactivation_agent">Реактивация</SelectItem>
                   <SelectItem value="cold_calling_agent">Холодные звонки</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={filterBaseType} onValueChange={setFilterBaseType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Тип базы" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все типы</SelectItem>
-                  <SelectItem value="registration">Регистрация</SelectItem>
-                  <SelectItem value="no_answer">Недозвон</SelectItem>
-                  <SelectItem value="refusals">Отказники</SelectItem>
-                  <SelectItem value="reactivation">Отклики/реактивация</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -276,22 +403,19 @@ export default function AgentsPage() {
               <thead className="bg-gray-50 border-b">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Агент
+                    Название
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Подзаголовок/описание
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Голос
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Роль
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Тип базы
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Кампании
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Статус
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Используется в кампаниях
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Действия
@@ -299,22 +423,28 @@ export default function AgentsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredAgents.map((agent) => (
-                  <tr key={agent.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {agent.name}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {agent.description}
-                        </div>
-                        <div className="text-xs text-gray-400 mt-1">
-                          v{agent.version} • {agent.prompts.length} промтов
-                        </div>
+                {filteredAgents.map((agent: any) => (
+                  <tr 
+                    key={agent.id} 
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => handleViewAgent(agent.id)}
+                  >
+                    {/* Название */}
+                    <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      <div className="text-sm font-medium text-gray-900">
+                        {agent.name}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    
+                    {/* Подзаголовок/описание */}
+                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                      <div className="text-sm text-gray-500">
+                        {agent.description}
+                      </div>
+                    </td>
+                    
+                    {/* Голос */}
+                    <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center">
                         <Volume2 className="h-4 w-4 text-gray-400 mr-2" />
                         <span className="text-sm text-gray-900">
@@ -322,59 +452,75 @@ export default function AgentsPage() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Badge variant="outline">
-                        {getRoleName(agent.role)}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getBaseTypeBadge(agent.baseType)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {agent.campaigns.length > 0 ? (
-                          <span>{agent.campaigns.length} кампаний</span>
-                        ) : (
-                          <span className="text-gray-400">Не назначен</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    
+                    {/* Статус */}
+                    <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       {getStatusBadge(agent.status)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center space-x-2">
+                    
+                    {/* Используется в кампаниях */}
+                    <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      {agent.campaigns && agent.campaigns.length > 0 ? (
                         <Button
+                          variant="ghost"
                           size="sm"
-                          variant="outline"
-                          onClick={() => handleViewAgent(agent.id)}
-                          title="Просмотр"
+                          onClick={() => handleShowCampaigns(agent)}
+                          className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
                         >
-                          <Eye className="h-4 w-4" />
+                          <Building2 className="h-4 w-4 mr-1" />
+                          {agent.campaigns.length} {agent.campaigns.length === 1 ? 'кампания' : 'кампаний'}
+                          <ChevronRight className="h-3 w-3 ml-1" />
                         </Button>
+                      ) : (
+                        <span className="text-sm text-gray-400">Не используется</span>
+                      )}
+                    </td>
+                    
+                    {/* Действия */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center space-x-1">
+                        {/* Протестировать */}
                         <Button
                           size="sm"
-                          variant="outline"
-                          onClick={() => handleEditPrompts(agent.id)}
-                          title="Промты"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleABTests(agent.id)}
-                          title="A/B тесты"
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
+                          variant="ghost"
                           onClick={() => handleTestAgent(agent.id)}
-                          title="Тестирование"
+                          title="Протестировать"
+                          className="hover:bg-blue-50"
                         >
-                          <Play className="h-4 w-4" />
+                          <Phone className="h-4 w-4 text-blue-600" />
+                        </Button>
+                        
+                        {/* Копировать */}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleCopyAgent(agent)}
+                          title="Копировать"
+                          className="hover:bg-green-50"
+                        >
+                          <Copy className="h-4 w-4 text-green-600" />
+                        </Button>
+                        
+                        {/* Архивировать/Активировать */}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleArchiveAgent(agent)}
+                          title={agent.status === 'archived' ? 'Активировать' : 'Архивировать'}
+                          className="hover:bg-yellow-50"
+                        >
+                          <Archive className={`h-4 w-4 ${agent.status === 'archived' ? 'text-green-600' : 'text-yellow-600'}`} />
+                        </Button>
+                        
+                        {/* Удалить */}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeleteAgent(agent)}
+                          title="Удалить"
+                          className="hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-600" />
                         </Button>
                       </div>
                     </td>
@@ -403,6 +549,183 @@ export default function AgentsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Диалог удаления с проверкой привязок и роли */}
+      <Dialog open={deleteDialog.show} onOpenChange={(open) => setDeleteDialog({ show: open, agent: null, action: 'delete' })}>
+        <DialogContent className="max-w-md">
+          {currentRole === 'marketer' ? (
+            /* Для маркетолога - показываем ограничение роли */
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center space-x-2">
+                  <Lock className="h-5 w-5 text-red-500" />
+                  <span>Действие недоступно</span>
+                </DialogTitle>
+                <DialogDescription>
+                  Ваша роль не позволяет {deleteDialog.action === 'delete' ? 'удалять' : 'архивировать'} агентов
+                </DialogDescription>
+              </DialogHeader>
+              
+              <Alert className="border-red-200 bg-red-50">
+                <XCircle className="h-4 w-4 text-red-600" />
+                <AlertDescription className="text-sm">
+                  <div className="space-y-2">
+                    <p className="font-medium text-red-800">
+                      Роль «Маркетолог» имеет ограниченные права:
+                    </p>
+                    <ul className="list-disc list-inside text-red-700 space-y-1">
+                      <li>Запуск и управление кампаниями</li>
+                      <li>Просмотр агентов и их настроек</li>
+                      <li className="font-medium">Создание/редактирование/удаление агентов недоступно</li>
+                    </ul>
+                  </div>
+                </AlertDescription>
+              </Alert>
+              
+              {deleteDialog.agent?.campaigns && deleteDialog.agent.campaigns.length > 0 && (
+                <div className="mt-4 space-y-3">
+                  <p className="text-sm text-gray-600 font-medium">
+                    Агент используется в кампаниях:
+                  </p>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {deleteDialog.agent.campaigns.map((campaign: any) => (
+                      <div 
+                        key={campaign.id}
+                        className="flex items-center justify-between p-2 border rounded-lg bg-gray-50"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <Building2 className="h-4 w-4 text-gray-500" />
+                          <div>
+                            <p className="font-medium text-sm">{campaign.name}</p>
+                            <p className="text-xs text-gray-500">ID: {campaign.id}</p>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className={
+                          campaign.status === 'active' ? 'text-green-700 border-green-300' :
+                          campaign.status === 'paused' ? 'text-yellow-700 border-yellow-300' :
+                          'text-gray-700 border-gray-300'
+                        }>
+                          {campaign.status === 'active' ? 'Активна' :
+                           campaign.status === 'paused' ? 'На паузе' : 'Завершена'}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setDeleteDialog({ show: false, agent: null, action: 'delete' })}
+                >
+                  Закрыть
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            /* Для других ролей - показываем привязки к кампаниям */
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center space-x-2">
+                  <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                  <span>Невозможно {deleteDialog.action === 'delete' ? 'удалить' : 'архивировать'} агента</span>
+                </DialogTitle>
+                <DialogDescription>
+                  Агент "{deleteDialog.agent?.name}" используется в активных кампаниях
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                <p className="text-sm text-gray-600">
+                  Для {deleteDialog.action === 'delete' ? 'удаления' : 'архивирования'} агента необходимо сначала отвязать его от следующих активных кампаний:
+                </p>
+                
+                {deleteDialog.agent?.campaigns?.filter((c: any) => c.status === 'active').map((campaign: any) => (
+                  <div 
+                    key={campaign.id}
+                    className="flex items-center justify-between p-2 border rounded-lg bg-yellow-50 border-yellow-200"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <Building2 className="h-4 w-4 text-yellow-600" />
+                      <div>
+                        <p className="font-medium text-sm">{campaign.name}</p>
+                        <p className="text-xs text-gray-500">ID: {campaign.id}</p>
+                      </div>
+                    </div>
+                    <Badge className="bg-green-100 text-green-800">Активна</Badge>
+                  </div>
+                ))}
+              </div>
+              
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setDeleteDialog({ show: false, agent: null, action: 'delete' })}
+                >
+                  Понятно
+                </Button>
+                <Button
+                  onClick={() => {
+                    handleShowCampaigns(deleteDialog.agent)
+                    setDeleteDialog({ show: false, agent: null, action: 'delete' })
+                  }}
+                >
+                  Посмотреть кампании
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Диалог со списком кампаний */}
+      <Dialog open={showCampaignsDialog} onOpenChange={setShowCampaignsDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Кампании с агентом "{selectedAgentCampaigns?.name}"</DialogTitle>
+            <DialogDescription>
+              Список кампаний, в которых используется данный агент
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {selectedAgentCampaigns?.campaigns?.map((campaign: any) => (
+              <div 
+                key={campaign.id}
+                className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                onClick={() => router.push(`/companies/${campaign.id}`)}
+              >
+                <div className="flex items-center space-x-3">
+                  <Building2 className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <p className="font-medium text-sm">{campaign.name}</p>
+                    <p className="text-xs text-gray-500">ID: {campaign.id}</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {campaign.status === 'active' && (
+                    <Badge className="bg-green-100 text-green-800">Активна</Badge>
+                  )}
+                  {campaign.status === 'paused' && (
+                    <Badge className="bg-yellow-100 text-yellow-800">На паузе</Badge>
+                  )}
+                  {campaign.status === 'completed' && (
+                    <Badge className="bg-gray-100 text-gray-800">Завершена</Badge>
+                  )}
+                  <ChevronRight className="h-4 w-4 text-gray-400" />
+                </div>
+              </div>
+            ))}
+            
+            {(!selectedAgentCampaigns?.campaigns || selectedAgentCampaigns.campaigns.length === 0) && (
+              <p className="text-center text-gray-500 py-4">
+                Агент пока не используется в кампаниях
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

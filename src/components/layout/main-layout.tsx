@@ -11,7 +11,10 @@ import {
   LogOut,
   Shield,
   Settings,
-  Phone
+  Phone,
+  Lock,
+  CheckCircle,
+  XCircle
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -169,18 +172,106 @@ export function MainLayout({ children }: MainLayoutProps) {
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuContent className="w-80" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">
-                        {roleLabels[currentRole]}
-                      </p>
-                      <p className="text-xs leading-none text-muted-foreground">
-                        user@example.com
-                      </p>
+                    <div className="flex flex-col space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Shield className="h-5 w-5 text-blue-600" />
+                        <div>
+                          <p className="text-sm font-medium leading-none">
+                            {roleLabels[currentRole]}
+                          </p>
+                          <p className="text-xs leading-none text-muted-foreground mt-1">
+                            user@example.com
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </DropdownMenuLabel>
+                  
                   <DropdownMenuSeparator />
+                  
+                  {/* Роль и права доступа */}
+                  <div className="px-2 py-3">
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <Lock className="h-4 w-4 text-gray-500" />
+                        <p className="text-xs font-medium text-gray-700">Права доступа:</p>
+                      </div>
+                      
+                      {currentRole === 'admin' ? (
+                        <div className="ml-6 space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                            <span className="text-xs text-gray-600">Полный доступ ко всем функциям</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                            <span className="text-xs text-gray-600">Создание и редактирование агентов</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                            <span className="text-xs text-gray-600">Запуск и управление кампаниями</span>
+                          </div>
+                        </div>
+                      ) : currentRole === 'marketer' ? (
+                        <div className="ml-6 space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                            <span className="text-xs text-gray-600">Запуск и управление кампаниями</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <XCircle className="h-3 w-3 text-red-600" />
+                            <span className="text-xs text-gray-600">Создание/правка агентов недоступна</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Lock className="h-3 w-3 text-orange-600" />
+                            <span className="text-xs text-gray-600">Промпты агентов только для чтения</span>
+                          </div>
+                        </div>
+                      ) : currentRole === 'supervisor' ? (
+                        <div className="ml-6 space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                            <span className="text-xs text-gray-600">Создание и настройка агентов</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                            <span className="text-xs text-gray-600">Редактирование промптов</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <XCircle className="h-3 w-3 text-red-600" />
+                            <span className="text-xs text-gray-600">Запуск кампаний недоступен</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="ml-6 space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                            <span className="text-xs text-gray-600">Просмотр кампаний и статистики</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <XCircle className="h-3 w-3 text-red-600" />
+                            <span className="text-xs text-gray-600">Редактирование недоступно</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {(currentRole === 'marketer' || currentRole === 'supervisor') && (
+                      <div className="mt-3 p-2 bg-blue-50 rounded-md">
+                        <p className="text-xs text-blue-700">
+                          {currentRole === 'marketer' 
+                            ? 'Роль «Запускает кампании»: фокус на управлении и мониторинге обзвонов'
+                            : 'Роль «Настраивает агентов»: фокус на создании и оптимизации AI-агентов'
+                          }
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <DropdownMenuSeparator />
+                  
                   <DropdownMenuItem>
                     <User className="mr-2 h-4 w-4" />
                     <span>Профиль</span>

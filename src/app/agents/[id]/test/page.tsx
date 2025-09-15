@@ -199,10 +199,7 @@ export default function AgentTestPage() {
           </div>
         </div>
         
-        <div className="flex items-center space-x-3">
-          <Badge className="bg-blue-100 text-blue-800">
-            {getStageTitle(currentStage)}
-          </Badge>
+        <div className="flex items-center">
           <Button variant="outline" onClick={handleReset}>
             <RotateCcw className="h-4 w-4 mr-2" />
             Сброс
@@ -391,45 +388,6 @@ export default function AgentTestPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Этапы диалога</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {agent.prompts.map((prompt) => (
-                <div 
-                  key={prompt.id} 
-                  className={`p-3 rounded-lg border ${
-                    currentStage === prompt.stage 
-                      ? 'border-blue-500 bg-blue-50' 
-                      : 'border-gray-200'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-medium">{prompt.title}</h4>
-                    {currentStage === prompt.stage && (
-                      <Badge className="bg-blue-600 text-white text-xs">Текущий</Badge>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                    {prompt.prompt}
-                  </p>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Советы по тестированию</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-gray-600 space-y-2">
-              <p>• Попробуйте разные варианты ответов: &quot;да&quot;, &quot;нет&quot;, &quot;может быть&quot;</p>
-              <p>• Протестируйте прерывания и паузы в разговоре</p>
-              <p>• Обратите внимание на переходы между этапами</p>
-              <p>• Проверьте работу fallback-сценариев</p>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

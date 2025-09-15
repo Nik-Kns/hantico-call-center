@@ -1,28 +1,38 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   ArrowLeft,
   Filter,
   Download,
   Eye,
-  Play,
-  Pause,
-  Square,
   Calendar,
   TrendingUp,
   TrendingDown,
-  Bot
+  Bot,
+  Settings2,
+  ChevronDown,
+  Check,
+  X
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem
+} from '@/components/ui/dropdown-menu'
 
 interface CompanyMonitor {
   id: string
@@ -30,7 +40,8 @@ interface CompanyMonitor {
   name: string
   status: 'active' | 'paused' | 'completed' | 'draft'
   // Основные метрики
-  totalReceived: number  // Передано контактов
+  totalTransferred: number  // Передано (от нас клиенту)
+  totalReceived: number  // Получено (принято клиентом)
   totalProcessed: number  // Обработано
   totalInProgress: number  // В работе
   completionPercent: number  // % выполнения
@@ -51,10 +62,11 @@ const mockCompanies: CompanyMonitor[] = [
     companyId: 'CMP-1A2B3C4D',
     name: 'Новогодняя акция 2025',
     status: 'active',
-    totalReceived: 2500,
+    totalTransferred: 2500,
+    totalReceived: 2487,
     totalProcessed: 1847,
-    totalInProgress: 653,
-    completionPercent: 73.88,
+    totalInProgress: 640,
+    completionPercent: 74.26,
     successCount: 1234,
     refusalCount: 312,
     noAnswerCount: 189,
@@ -67,10 +79,11 @@ const mockCompanies: CompanyMonitor[] = [
     companyId: 'CMP-5E6F7G8H',
     name: 'Реактивация клиентов',
     status: 'paused',
-    totalReceived: 1800,
+    totalTransferred: 1800,
+    totalReceived: 1795,
     totalProcessed: 456,
-    totalInProgress: 1344,
-    completionPercent: 25.33,
+    totalInProgress: 1339,
+    completionPercent: 25.40,
     successCount: 234,
     refusalCount: 89,
     noAnswerCount: 78,
@@ -83,6 +96,7 @@ const mockCompanies: CompanyMonitor[] = [
     companyId: 'CMP-9I0J1K2L',
     name: 'Холодная база январь',
     status: 'completed',
+    totalTransferred: 850,
     totalReceived: 850,
     totalProcessed: 850,
     totalInProgress: 0,
@@ -99,10 +113,11 @@ const mockCompanies: CompanyMonitor[] = [
     companyId: 'CMP-3M4N5O6P',
     name: 'VIP клиенты',
     status: 'active',
-    totalReceived: 450,
+    totalTransferred: 450,
+    totalReceived: 448,
     totalProcessed: 380,
-    totalInProgress: 70,
-    completionPercent: 84.44,
+    totalInProgress: 68,
+    completionPercent: 84.82,
     successCount: 312,
     refusalCount: 23,
     noAnswerCount: 28,
@@ -115,7 +130,8 @@ const mockCompanies: CompanyMonitor[] = [
     companyId: 'CMP-7Q8R9S0T',
     name: 'Повторные продажи',
     status: 'draft',
-    totalReceived: 1200,
+    totalTransferred: 1200,
+    totalReceived: 0,
     totalProcessed: 0,
     totalInProgress: 0,
     completionPercent: 0,
@@ -128,12 +144,36 @@ const mockCompanies: CompanyMonitor[] = [
   }
 ]
 
+// Определяем все возможные колонки
+const allColumns = [
+  { id: 'select', label: '', fixed: true },
+  { id: 'company', label: 'Кампания', fixed: true },
+  { id: 'status', label: 'Статус', default: true },
+  { id: 'transferred', label: 'Передано', default: true },
+  { id: 'received', label: 'Получено', default: true },
+  { id: 'processed', label: 'Обработано', default: true },
+  { id: 'inProgress', label: 'В работе', default: true },
+  { id: 'completion', label: '% выполнения', default: true },
+  { id: 'success', label: 'Успешные', default: false },
+  { id: 'refusals', label: 'Отказы', default: false },
+  { id: 'noAnswer', label: 'Недозвоны', default: false },
+  { id: 'conversion', label: 'Конверсия', default: true },
+  { id: 'voicemail', label: 'Автоответчики', default: true },
+  { id: 'lastActivity', label: 'Последняя активность', default: true },
+  { id: 'agent', label: 'Агент', default: false },
+  { id: 'actions', label: 'Действия', fixed: true }
+]
+
 export default function ObzvoniMonitorPage() {
   const router = useRouter()
   const [companies] = useState<CompanyMonitor[]>(mockCompanies)
-  const [periodFilter, setPeriodFilter] = useState('today')
-  const [statusFilter, setStatusFilter] = useState('all')
+  const [selectedCompanies, setSelectedCompanies] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState('')
+  
+  // Состояние для настройки колонок
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(
+    allColumns.filter(col => col.fixed || col.default).map(col => col.id)
+  )
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -167,20 +207,88 @@ export default function ObzvoniMonitorPage() {
     return Math.round((company.successCount / company.totalProcessed) * 100)
   }
 
-  // Фильтрация компаний
-  const filteredCompanies = companies.filter(company => {
-    if (statusFilter !== 'all' && company.status !== statusFilter) return false
-    if (searchQuery && !company.name.toLowerCase().includes(searchQuery.toLowerCase())) return false
-    return true
-  })
+  // Фильтрация компаний с учетом выбранных
+  const filteredCompanies = useMemo(() => {
+    let filtered = companies
 
-  // Подсчет агрегированных метрик
-  const totalMetrics = {
+    // Фильтр по выбранным кампаниям
+    if (selectedCompanies.length > 0) {
+      filtered = filtered.filter(c => selectedCompanies.includes(c.id))
+    }
+
+    // Фильтр по поиску
+    if (searchQuery) {
+      filtered = filtered.filter(c => 
+        c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.companyId.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    }
+
+    return filtered
+  }, [companies, selectedCompanies, searchQuery])
+
+  // Подсчет агрегированных метрик с учетом фильтров
+  const totalMetrics = useMemo(() => ({
+    transferred: filteredCompanies.reduce((sum, c) => sum + c.totalTransferred, 0),
     received: filteredCompanies.reduce((sum, c) => sum + c.totalReceived, 0),
     processed: filteredCompanies.reduce((sum, c) => sum + c.totalProcessed, 0),
     inProgress: filteredCompanies.reduce((sum, c) => sum + c.totalInProgress, 0),
     success: filteredCompanies.reduce((sum, c) => sum + c.successCount, 0),
     voicemail: filteredCompanies.reduce((sum, c) => sum + c.voicemailCount, 0)
+  }), [filteredCompanies])
+
+  // Обработчик выбора всех
+  const handleSelectAll = () => {
+    if (selectedCompanies.length === filteredCompanies.length) {
+      setSelectedCompanies([])
+    } else {
+      setSelectedCompanies(filteredCompanies.map(c => c.id))
+    }
+  }
+
+  // Обработчик выбора одной кампании
+  const handleSelectCompany = (companyId: string) => {
+    setSelectedCompanies(prev => 
+      prev.includes(companyId)
+        ? prev.filter(id => id !== companyId)
+        : [...prev, companyId]
+    )
+  }
+
+  // Обработчик изменения видимости колонки
+  const toggleColumnVisibility = (columnId: string) => {
+    const column = allColumns.find(col => col.id === columnId)
+    if (column?.fixed) return // Не позволяем скрывать фиксированные колонки
+    
+    setVisibleColumns(prev =>
+      prev.includes(columnId)
+        ? prev.filter(id => id !== columnId)
+        : [...prev, columnId]
+    )
+  }
+
+  // Экспорт с учетом фильтров
+  const handleExport = () => {
+    const dataToExport = filteredCompanies.map(company => ({
+      'Кампания': company.name,
+      'ID': company.companyId,
+      'Статус': company.status,
+      'Передано': company.totalTransferred,
+      'Получено': company.totalReceived,
+      'Обработано': company.totalProcessed,
+      'В работе': company.totalInProgress,
+      '% выполнения': company.completionPercent,
+      'Успешные': company.successCount,
+      'Отказы': company.refusalCount,
+      'Недозвоны': company.noAnswerCount,
+      'Автоответчики': company.voicemailCount,
+      'Конверсия %': getConversionRate(company),
+      'Агент': company.agent
+    }))
+    
+    // Здесь логика экспорта в CSV/Excel
+    console.log('Экспорт данных:', dataToExport)
+    alert(`Экспортировано ${dataToExport.length} кампаний`)
   }
 
   return (
@@ -194,20 +302,18 @@ export default function ObzvoniMonitorPage() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              Мониторинг компаний
+              Мониторинг кампаний
             </h1>
             <p className="text-gray-600">
-              Обзор состояния и метрик всех компаний
+              Обзор состояния и метрик всех кампаний (только просмотр)
             </p>
           </div>
         </div>
         
-        <div className="flex items-center space-x-2">
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Экспорт
-          </Button>
-        </div>
+        <Button variant="outline" onClick={handleExport}>
+          <Download className="h-4 w-4 mr-2" />
+          Экспорт ({selectedCompanies.length || filteredCompanies.length})
+        </Button>
       </div>
 
       {/* Фильтры */}
@@ -219,34 +325,50 @@ export default function ObzvoniMonitorPage() {
               <Label className="text-sm">Фильтры:</Label>
             </div>
             
-            <Select value={periodFilter} onValueChange={setPeriodFilter}>
-              <SelectTrigger className="w-36">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="today">Сегодня</SelectItem>
-                <SelectItem value="week">Неделя</SelectItem>
-                <SelectItem value="month">Месяц</SelectItem>
-                <SelectItem value="quarter">Квартал</SelectItem>
-                <SelectItem value="all">Все время</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-36">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все статусы</SelectItem>
-                <SelectItem value="active">Активные</SelectItem>
-                <SelectItem value="paused">На паузе</SelectItem>
-                <SelectItem value="completed">Завершенные</SelectItem>
-                <SelectItem value="draft">Черновики</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Мультивыбор кампаний */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="w-48">
+                  <span className="truncate">
+                    {selectedCompanies.length === 0 
+                      ? 'Все кампании'
+                      : `Выбрано: ${selectedCompanies.length}`
+                    }
+                  </span>
+                  <ChevronDown className="h-4 w-4 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-64">
+                <DropdownMenuLabel className="flex items-center justify-between">
+                  <span>Выбор кампаний</span>
+                  <Button 
+                    size="sm" 
+                    variant="ghost"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setSelectedCompanies([])
+                    }}
+                    className="h-auto p-1 text-xs"
+                  >
+                    Сбросить
+                  </Button>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {companies.map(company => (
+                  <DropdownMenuCheckboxItem
+                    key={company.id}
+                    checked={selectedCompanies.includes(company.id)}
+                    onCheckedChange={() => handleSelectCompany(company.id)}
+                    onSelect={(e) => e.preventDefault()}
+                  >
+                    {company.name}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <Input
-              placeholder="Поиск по названию..."
+              placeholder="Поиск по названию или ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-64"
@@ -255,18 +377,31 @@ export default function ObzvoniMonitorPage() {
             <div className="flex-1" />
 
             <div className="text-sm text-gray-600">
-              Найдено: <span className="font-medium">{filteredCompanies.length}</span> компаний
+              Найдено: <span className="font-medium">{filteredCompanies.length}</span> кампаний
+              {selectedCompanies.length > 0 && (
+                <span className="ml-2">
+                  (выбрано: {selectedCompanies.length})
+                </span>
+              )}
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Сводная статистика */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      {/* Сводная статистика (реагирует на фильтры) */}
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         <Card>
           <CardContent className="p-4">
             <p className="text-sm text-gray-600">Передано</p>
-            <p className="text-2xl font-bold">{totalMetrics.received.toLocaleString()}</p>
+            <p className="text-2xl font-bold">{totalMetrics.transferred.toLocaleString()}</p>
+            <p className="text-xs text-gray-500 mt-1">от нас клиенту</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-gray-600">Получено</p>
+            <p className="text-2xl font-bold text-green-600">{totalMetrics.received.toLocaleString()}</p>
+            <p className="text-xs text-gray-500 mt-1">принято клиентом</p>
           </CardContent>
         </Card>
         <Card>
@@ -295,46 +430,127 @@ export default function ObzvoniMonitorPage() {
         </Card>
       </div>
 
-      {/* Таблица компаний */}
+      {/* Таблица кампаний с горизонтальным скроллом */}
       <Card>
         <CardHeader>
-          <CardTitle>Список компаний</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Список кампаний</CardTitle>
+            
+            {/* Настройка видимости колонок */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Settings2 className="h-4 w-4 mr-2" />
+                  Колонки
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Видимость колонок</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {allColumns.filter(col => !col.fixed).map((column) => (
+                  <DropdownMenuCheckboxItem
+                    key={column.id}
+                    checked={visibleColumns.includes(column.id)}
+                    onCheckedChange={() => toggleColumnVisibility(column.id)}
+                  >
+                    {column.label}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b">
+            <table className="w-full min-w-[1200px]">
+              <thead className="bg-gray-50 border-b sticky top-0">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Компания
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Статус
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                    Передано
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                    Обработано
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                    В работе
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                    % выполнения
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                    Конверсия
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase" title="Автоответчики">
-                    <Bot className="h-4 w-4 mx-auto" />
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Последняя активность
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                    Действия
-                  </th>
+                  {/* Чекбокс для выбора всех */}
+                  {visibleColumns.includes('select') && (
+                    <th className="px-4 py-3 w-12">
+                      <Checkbox
+                        checked={selectedCompanies.length === filteredCompanies.length && filteredCompanies.length > 0}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </th>
+                  )}
+                  
+                  {/* Остальные колонки */}
+                  {visibleColumns.includes('company') && (
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sticky left-0 bg-gray-50">
+                      Кампания
+                    </th>
+                  )}
+                  {visibleColumns.includes('status') && (
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Статус
+                    </th>
+                  )}
+                  {visibleColumns.includes('transferred') && (
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                      Передано
+                    </th>
+                  )}
+                  {visibleColumns.includes('received') && (
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                      Получено
+                    </th>
+                  )}
+                  {visibleColumns.includes('processed') && (
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                      Обработано
+                    </th>
+                  )}
+                  {visibleColumns.includes('inProgress') && (
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                      В работе
+                    </th>
+                  )}
+                  {visibleColumns.includes('completion') && (
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                      % выполнения
+                    </th>
+                  )}
+                  {visibleColumns.includes('success') && (
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                      Успешные
+                    </th>
+                  )}
+                  {visibleColumns.includes('refusals') && (
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                      Отказы
+                    </th>
+                  )}
+                  {visibleColumns.includes('noAnswer') && (
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                      Недозвоны
+                    </th>
+                  )}
+                  {visibleColumns.includes('conversion') && (
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                      Конверсия
+                    </th>
+                  )}
+                  {visibleColumns.includes('voicemail') && (
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase" title="Автоответчики">
+                      <Bot className="h-4 w-4 mx-auto" />
+                    </th>
+                  )}
+                  {visibleColumns.includes('lastActivity') && (
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Последняя активность
+                    </th>
+                  )}
+                  {visibleColumns.includes('agent') && (
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Агент
+                    </th>
+                  )}
+                  {visibleColumns.includes('actions') && (
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                      Действия
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -342,100 +558,179 @@ export default function ObzvoniMonitorPage() {
                   const conversionRate = getConversionRate(company)
                   const isHighConversion = conversionRate > 60
                   const isLowConversion = conversionRate < 30
+                  const isSelected = selectedCompanies.includes(company.id)
 
                   return (
-                    <tr key={company.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <div>
-                          <p className="font-medium text-gray-900">{company.name}</p>
-                          <p className="text-xs text-gray-500">{company.companyId}</p>
-                          <p className="text-xs text-gray-500">Агент: {company.agent}</p>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        {getStatusBadge(company.status)}
-                      </td>
-                      <td className="px-4 py-3 text-center font-medium">
-                        {company.totalReceived.toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className="font-medium text-blue-600">
-                          {company.totalProcessed.toLocaleString()}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className="font-medium text-orange-600">
-                          {company.totalInProgress.toLocaleString()}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center space-x-2">
-                          <Progress value={company.completionPercent} className="flex-1" />
-                          <span className="text-sm font-medium min-w-[3rem] text-right">
-                            {company.completionPercent.toFixed(1)}%
+                    <tr key={company.id} className={`hover:bg-gray-50 ${isSelected ? 'bg-blue-50' : ''}`}>
+                      {/* Чекбокс */}
+                      {visibleColumns.includes('select') && (
+                        <td className="px-4 py-3">
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => handleSelectCompany(company.id)}
+                          />
+                        </td>
+                      )}
+                      
+                      {/* Кампания */}
+                      {visibleColumns.includes('company') && (
+                        <td className="px-4 py-3 sticky left-0 bg-white">
+                          <div>
+                            <p className="font-medium text-gray-900">{company.name}</p>
+                            <p className="text-xs text-gray-500">{company.companyId}</p>
+                          </div>
+                        </td>
+                      )}
+                      
+                      {/* Статус */}
+                      {visibleColumns.includes('status') && (
+                        <td className="px-4 py-3">
+                          {getStatusBadge(company.status)}
+                        </td>
+                      )}
+                      
+                      {/* Передано */}
+                      {visibleColumns.includes('transferred') && (
+                        <td className="px-4 py-3 text-center font-medium">
+                          {company.totalTransferred.toLocaleString()}
+                        </td>
+                      )}
+                      
+                      {/* Получено */}
+                      {visibleColumns.includes('received') && (
+                        <td className="px-4 py-3 text-center">
+                          <div>
+                            <span className="font-medium text-green-600">
+                              {company.totalReceived.toLocaleString()}
+                            </span>
+                            {company.totalTransferred !== company.totalReceived && (
+                              <p className="text-xs text-red-500">
+                                Δ {Math.abs(company.totalTransferred - company.totalReceived)}
+                              </p>
+                            )}
+                          </div>
+                        </td>
+                      )}
+                      
+                      {/* Обработано */}
+                      {visibleColumns.includes('processed') && (
+                        <td className="px-4 py-3 text-center">
+                          <span className="font-medium text-blue-600">
+                            {company.totalProcessed.toLocaleString()}
                           </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <div className="flex items-center justify-center space-x-1">
-                          {isHighConversion && <TrendingUp className="h-4 w-4 text-green-600" />}
-                          {isLowConversion && <TrendingDown className="h-4 w-4 text-red-600" />}
-                          <span className={`font-medium ${
-                            isHighConversion ? 'text-green-600' : 
-                            isLowConversion ? 'text-red-600' : 
-                            'text-gray-900'
-                          }`}>
-                            {conversionRate}%
+                        </td>
+                      )}
+                      
+                      {/* В работе */}
+                      {visibleColumns.includes('inProgress') && (
+                        <td className="px-4 py-3 text-center">
+                          <span className="font-medium text-orange-600">
+                            {company.totalInProgress.toLocaleString()}
                           </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {company.voicemailCount > 0 ? (
-                          <Badge className="bg-purple-100 text-purple-800">
-                            {company.voicemailCount}
-                          </Badge>
-                        ) : (
-                          <span className="text-gray-400">0</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        <div className="flex items-center">
-                          <Calendar className="h-3 w-3 mr-1 text-gray-400" />
-                          {formatLastActivity(company.lastActivity)}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-center space-x-1">
-                          {company.status === 'active' && (
-                            <Button size="sm" variant="ghost" title="Пауза">
-                              <Pause className="h-4 w-4" />
-                            </Button>
+                        </td>
+                      )}
+                      
+                      {/* % выполнения */}
+                      {visibleColumns.includes('completion') && (
+                        <td className="px-4 py-3">
+                          <div className="flex items-center space-x-2">
+                            <Progress value={company.completionPercent} className="flex-1 max-w-[100px]" />
+                            <span className="text-sm font-medium min-w-[3rem] text-right">
+                              {company.completionPercent.toFixed(1)}%
+                            </span>
+                          </div>
+                        </td>
+                      )}
+                      
+                      {/* Успешные */}
+                      {visibleColumns.includes('success') && (
+                        <td className="px-4 py-3 text-center">
+                          <span className="font-medium text-green-600">
+                            {company.successCount.toLocaleString()}
+                          </span>
+                        </td>
+                      )}
+                      
+                      {/* Отказы */}
+                      {visibleColumns.includes('refusals') && (
+                        <td className="px-4 py-3 text-center">
+                          <span className="font-medium text-red-600">
+                            {company.refusalCount.toLocaleString()}
+                          </span>
+                        </td>
+                      )}
+                      
+                      {/* Недозвоны */}
+                      {visibleColumns.includes('noAnswer') && (
+                        <td className="px-4 py-3 text-center">
+                          <span className="font-medium text-gray-600">
+                            {company.noAnswerCount.toLocaleString()}
+                          </span>
+                        </td>
+                      )}
+                      
+                      {/* Конверсия */}
+                      {visibleColumns.includes('conversion') && (
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex items-center justify-center space-x-1">
+                            {isHighConversion && <TrendingUp className="h-4 w-4 text-green-600" />}
+                            {isLowConversion && <TrendingDown className="h-4 w-4 text-red-600" />}
+                            <span className={`font-medium ${
+                              isHighConversion ? 'text-green-600' : 
+                              isLowConversion ? 'text-red-600' : 
+                              'text-gray-900'
+                            }`}>
+                              {conversionRate}%
+                            </span>
+                          </div>
+                        </td>
+                      )}
+                      
+                      {/* Автоответчики */}
+                      {visibleColumns.includes('voicemail') && (
+                        <td className="px-4 py-3 text-center">
+                          {company.voicemailCount > 0 ? (
+                            <Badge className="bg-purple-100 text-purple-800">
+                              {company.voicemailCount}
+                            </Badge>
+                          ) : (
+                            <span className="text-gray-400">0</span>
                           )}
-                          {company.status === 'paused' && (
-                            <Button size="sm" variant="ghost" title="Продолжить">
-                              <Play className="h-4 w-4" />
+                        </td>
+                      )}
+                      
+                      {/* Последняя активность */}
+                      {visibleColumns.includes('lastActivity') && (
+                        <td className="px-4 py-3 text-sm text-gray-600">
+                          <div className="flex items-center">
+                            <Calendar className="h-3 w-3 mr-1 text-gray-400" />
+                            {formatLastActivity(company.lastActivity)}
+                          </div>
+                        </td>
+                      )}
+                      
+                      {/* Агент */}
+                      {visibleColumns.includes('agent') && (
+                        <td className="px-4 py-3 text-sm">
+                          {company.agent}
+                        </td>
+                      )}
+                      
+                      {/* Действия (только просмотр) */}
+                      {visibleColumns.includes('actions') && (
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-center">
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              onClick={() => router.push(`/obzvoni/${company.id}`)}
+                              title="Подробнее"
+                            >
+                              <Eye className="h-4 w-4" />
                             </Button>
-                          )}
-                          {company.status === 'draft' && (
-                            <Button size="sm" variant="ghost" title="Запустить">
-                              <Play className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {company.status === 'completed' && (
-                            <Button size="sm" variant="ghost" disabled title="Завершено">
-                              <Square className="h-4 w-4" />
-                            </Button>
-                          )}
-                          <Button 
-                            size="sm" 
-                            variant="ghost"
-                            onClick={() => router.push(`/obzvoni/${company.id}`)}
-                            title="Подробнее"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   )
                 })}
@@ -444,7 +739,7 @@ export default function ObzvoniMonitorPage() {
             
             {filteredCompanies.length === 0 && (
               <div className="text-center py-12">
-                <p className="text-gray-500">Компании не найдены</p>
+                <p className="text-gray-500">Кампании не найдены</p>
               </div>
             )}
           </div>

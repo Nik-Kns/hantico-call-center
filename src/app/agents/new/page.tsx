@@ -16,7 +16,9 @@ import {
   Shield,
   Eye,
   Mic,
-  CheckSquare
+  CheckSquare,
+  Copy,
+  FileText
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -34,30 +36,17 @@ import { CallTestModal } from '@/components/call-test-modal'
 
 interface AgentForm {
   name: string
+  subtitle: string // Подзаголовок/описание назначения
   description: string
   role: string
-  baseType: BaseType | ''
   voiceId: string
   responseDelay: number
   interruptionHandling: boolean
-  basePrompt: string
-  kbFileName?: string | null
-  testPhone?: string
-  // Новые поля для структурированного промтинга
-  agentRole?: string
-  agentLanguage?: string
-  agentScript?: string
-  introTemplate?: string
-  customIntro?: string
-  conversationGoals?: string[]
-  objectionHandling?: string
-  maxAttempts?: number
-  forbiddenTopics?: string
-  consentRecording?: string
-  dataProcessing?: string
-  disclaimerText?: string
+  instruction: string // Инструкция (промт)
+  knowledgeFiles?: File[] | null // Файлы знаний
+  knowledgeFileNames?: string[] | null
+  createdBy?: string // Кто создал
   model?: string
-  additionalContext?: string
 }
 
 const agentRoles = [
@@ -70,15 +59,17 @@ export default function NewAgentPage() {
   const router = useRouter()
   const [form, setForm] = useState<AgentForm>({
     name: '',
+    subtitle: '',
     description: '',
     role: '',
-    baseType: '',
     voiceId: '',
     responseDelay: 500,
     interruptionHandling: true,
-    basePrompt: '',
-    kbFileName: null,
-    testPhone: ''
+    instruction: '',
+    knowledgeFiles: null,
+    knowledgeFileNames: null,
+    createdBy: 'admin@company.com', // Мок данные
+    model: 'gpt-4o'
   })
   const [isLoading, setIsLoading] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
@@ -111,7 +102,7 @@ export default function NewAgentPage() {
   const isStepCompleted = (step: number) => {
     switch (step) {
       case 1:
-        return form.name && form.description && form.role && form.baseType
+        return form.name && form.subtitle && form.role
       case 2:
         return form.voiceId
       case 3:
@@ -195,8 +186,19 @@ export default function NewAgentPage() {
         </div>
         
         <div className="flex space-x-3">
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              // Логика создания копии
+              console.log('Создание копии агента')
+            }}
+            disabled={!form.name}
+          >
+            <Copy className="h-4 w-4 mr-2" />
+            Создать копию
+          </Button>
           <Button variant="outline" onClick={() => handleSave(true)} disabled={isLoading}>
-            <Save className="h-4 w-4 mr-2" />
+            <FileText className="h-4 w-4 mr-2" />
             Сохранить как черновик
           </Button>
           <Button onClick={() => handleSave(false)} disabled={isLoading || !isStepCompleted(3)}>
@@ -251,12 +253,12 @@ export default function NewAgentPage() {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <User className="h-5 w-5 mr-2" />
-                  Роль и базовая информация
+                  Основная информация
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
-                  <Label htmlFor="name">Название агента *</Label>
+                  <Label htmlFor="name">Заголовок *</Label>
                   <Input
                     id="name"
                     placeholder="Например: Анна - Регистрация"
@@ -267,19 +269,18 @@ export default function NewAgentPage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="description">Описание *</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Опишите назначение и особенности агента..."
-                    value={form.description}
-                    onChange={(e) => handleInputChange('description', e.target.value)}
+                  <Label htmlFor="subtitle">Подзаголовок/описание назначения *</Label>
+                  <Input
+                    id="subtitle"
+                    placeholder="Краткое описание назначения агента"
+                    value={form.subtitle}
+                    onChange={(e) => handleInputChange('subtitle', e.target.value)}
                     className="mt-1"
-                    rows={3}
                   />
                 </div>
 
                 <div>
-                  <Label>Роль агента *</Label>
+                  <Label>Роль/этап *</Label>
                   <Select value={form.role} onValueChange={(value) => handleInputChange('role', value)}>
                     <SelectTrigger className="mt-2">
                       <SelectValue placeholder="Выберите роль агента" />
@@ -295,6 +296,14 @@ export default function NewAgentPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                {/* Поле "Кто создал" */}
+                <div className="pt-4 border-t">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Кто создал:</span>
+                    <span className="font-medium">{form.createdBy}</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -363,114 +372,129 @@ export default function NewAgentPage() {
 
           {/* Шаг 3: Промтинг и настройки */}
           {currentStep === 3 && (
-            <div className="space-y-4">
-              {/* Системные инструкции */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Системные инструкции</Label>
-                <Textarea
-                  id="systemPrompt"
-                  placeholder="Ты отвечаешь только тогда когда сообщение начинается с Мия, если не это условие не выполнено не пиши в ответе ни чего просто ставь пробел
-Режим 1: Ответ по триггеру"
-                  value={form.basePrompt}
-                  onChange={(e) => handleInputChange('basePrompt', e.target.value)}
-                  className="min-h-[120px] font-mono text-sm bg-gray-50 border-gray-200"
-                />
-              </div>
-
-              {/* Модель */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Модель</Label>
-                <Select
-                  value={form.model || 'gpt-4o'}
-                  onValueChange={(value) => handleInputChange('model', value)}
-                >
-                  <SelectTrigger className="bg-gray-50">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="gpt-4o">gpt-4o-2024-11-20</SelectItem>
-                    <SelectItem value="gpt-4">gpt-4-turbo</SelectItem>
-                    <SelectItem value="gpt-3.5">gpt-3.5-turbo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Документы */}
-              <div className="border-t pt-4">
-                <h3 className="text-sm font-medium mb-4">ДОКУМЕНТЫ</h3>
-                
-                {/* Документ знаний */}
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center">
-                      <FileUp className="h-5 w-5 text-gray-600" />
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Документ знаний</Label>
-                      <p className="text-xs text-gray-600">
-                        {form.kbFileName || 'Загрузить базу знаний'}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => document.getElementById('file-upload')?.click()}
-                  >
-                    + Файлы
-                  </Button>
-                  <input
-                    id="file-upload"
-                    type="file"
-                    className="hidden"
-                    accept=".txt,.pdf,.md"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0]
-                      handleInputChange('kbFileName', f ? f.name : null)
-                    }}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <MessageSquare className="h-5 w-5 mr-2" />
+                  Инструкция и файлы знаний
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Инструкция (промт) */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Инструкция (промт)</Label>
+                  <Textarea
+                    id="instruction"
+                    placeholder="Опишите инструкции для агента..."
+                    value={form.instruction}
+                    onChange={(e) => handleInputChange('instruction', e.target.value)}
+                    className="min-h-[200px] font-mono text-sm bg-gray-50 border-gray-200"
                   />
                 </div>
-              </div>
+
+
+                {/* Файлы знаний */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Файлы знаний</Label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                    <FileUp className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+                    <p className="text-sm text-gray-600 mb-2">
+                      Перетащите файлы сюда или кликните для выбора
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => document.getElementById('knowledge-files')?.click()}
+                    >
+                      Выбрать файлы
+                    </Button>
+                    <input
+                      id="knowledge-files"
+                      type="file"
+                      multiple
+                      className="hidden"
+                      accept=".txt,.pdf,.md,.doc,.docx"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || [])
+                        handleInputChange('knowledgeFiles', files.length > 0 ? files : null)
+                        handleInputChange('knowledgeFileNames', files.length > 0 ? files.map(f => f.name) : null)
+                      }}
+                    />
+                    {form.knowledgeFileNames && form.knowledgeFileNames.length > 0 && (
+                      <div className="mt-4 space-y-2">
+                        {form.knowledgeFileNames.map((fileName, index) => (
+                          <div key={index} className="flex items-center justify-between text-sm bg-gray-50 p-2 rounded">
+                            <span className="text-gray-700">{fileName}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newFiles = form.knowledgeFileNames?.filter((_, i) => i !== index)
+                                handleInputChange('knowledgeFileNames', newFiles?.length ? newFiles : null)
+                              }}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              Удалить
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               
-              {/* Финальный тест */}
-              <div className="border-t pt-4">
-                <h3 className="text-sm font-medium mb-4">ФИНАЛЬНЫЙ ТЕСТ</h3>
-                
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-sm font-medium">Номер для теста</Label>
-                    <div className="mt-2 flex space-x-2">
-                      <Input
-                        placeholder="Например: +7 900 000-00-00"
-                        value={form.testPhone}
-                        onChange={(e) => handleInputChange('testPhone', e.target.value)}
-                        className="flex-1"
-                      />
+                {/* Тестирование */}
+                <div className="border-t pt-6">
+                  <h3 className="text-sm font-medium mb-4">ТЕСТИРОВАНИЕ</h3>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Тест по телефону */}
+                    <Card className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-2">
+                          <Phone className="h-5 w-5 text-blue-600" />
+                          <Label className="text-sm font-medium">Тест по телефону</Label>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-600 mb-3">
+                        Используется тестовый номер из интеграций
+                      </p>
                       <Button
+                        className="w-full"
+                        variant="outline"
                         onClick={() => {
                           setCallStatus('calling')
                           setTimeout(() => setCallStatus('ringing'), 600)
                         }}
                       >
                         <Phone className="h-4 w-4 mr-2" />
-                        Запустить
+                        Запустить тест
                       </Button>
+                    </Card>
+
+                    {/* Тест через микрофон */}
+                    <Card className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-2">
+                          <Mic className="h-5 w-5 text-green-600" />
+                          <Label className="text-sm font-medium">Тест через микрофон</Label>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-600 mb-3">
+                        Голосовое взаимодействие в браузере
+                      </p>
                       <Button
+                        className="w-full"
                         variant="outline"
                         onClick={() => setIsCallModalOpen(true)}
                       >
                         <Mic className="h-4 w-4 mr-2" />
-                        Говорить через микрофон
+                        Начать разговор
                       </Button>
-                    </div>
-                  </div>
-                  
-                  <div className="text-sm text-gray-600">
-                    Статус: Готов к вызову
+                    </Card>
                   </div>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           )}
 
           {/* Шаг 4: Итоговые настройки */}
@@ -491,12 +515,12 @@ export default function NewAgentPage() {
                   <h3 className="text-sm font-semibold mb-3 text-gray-700">Основная информация</h3>
                   <div className="space-y-2 bg-gray-50 rounded-lg p-4">
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Название:</span>
+                      <span className="text-sm text-gray-600">Заголовок:</span>
                       <span className="text-sm font-medium">{form.name || 'Не указано'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Описание:</span>
-                      <span className="text-sm font-medium">{form.description || 'Не указано'}</span>
+                      <span className="text-sm text-gray-600">Подзаголовок:</span>
+                      <span className="text-sm font-medium">{form.subtitle || 'Не указано'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">Роль:</span>

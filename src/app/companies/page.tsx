@@ -27,7 +27,9 @@ import {
   UserCheck,
   PhoneOff,
   PhoneMissed,
-  Bot
+  Bot,
+  Download,
+  FileText
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -680,9 +682,6 @@ export default function ObzvoniPage() {
                     Тип базы
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    База номеров
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Размер базы
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -711,9 +710,6 @@ export default function ObzvoniPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getBaseTypeBadge(campaign.baseType)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{campaign.database}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
@@ -884,41 +880,187 @@ export default function ObzvoniPage() {
             </Card>
           </div>
 
-          {/* Активные звонки (таблица) - легкая версия */}
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold">Активные звонки в реальном времени</h3>
+          {/* Таблица звонков */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Таблица звонков</h3>
+              <Button variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Экспорт
+              </Button>
+            </div>
+            
+            {/* Фильтры для таблицы звонков */}
+            <div className="flex items-center space-x-3 mb-4">
+              <Select defaultValue="all">
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Кампания" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Все кампании</SelectItem>
+                  <SelectItem value="test">Тестовый обзвон базы</SelectItem>
+                  <SelectItem value="reactive">Реактивация неактивных</SelectItem>
+                  <SelectItem value="registration">База регистраций</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Select defaultValue="all">
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Статус" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Все статусы</SelectItem>
+                  <SelectItem value="talking">Разговор</SelectItem>
+                  <SelectItem value="completed">Завершен</SelectItem>
+                  <SelectItem value="voicemail">Автоответчик</SelectItem>
+                  <SelectItem value="connecting">Соединение</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Select defaultValue="all">
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Агент" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Все агенты</SelectItem>
+                  <SelectItem value="anna">Анна</SelectItem>
+                  <SelectItem value="mikhail">Михаил</SelectItem>
+                  <SelectItem value="elena">Елена</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-2 px-3 text-sm text-gray-600">Статус</th>
-                    <th className="text-left py-2 px-3 text-sm text-gray-600">Номер</th>
-                    <th className="text-left py-2 px-3 text-sm text-gray-600">Кампания</th>
-                    <th className="text-left py-2 px-3 text-sm text-gray-600">Агент</th>
-                    <th className="text-left py-2 px-3 text-sm text-gray-600">Этап</th>
-                    <th className="text-left py-2 px-3 text-sm text-gray-600">Длительность</th>
+                  <tr className="border-b bg-gray-50">
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">ID</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Статус</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Агент</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Дата/Время</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Длительность</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Теги</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Транскрибация</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Скачать аудио</th>
                   </tr>
                 </thead>
                 <tbody>
                   {[
-                    { status: 'talking', number: '+7 (999) 123-**-**', campaign: 'Тестовый обзвон базы', agent: 'Анна', step: 'Презентация предложения', duration: 120 },
-                    { status: 'voicemail', number: '+7 (999) 234-**-**', campaign: 'Реактивация неактивных', agent: 'Михаил', step: 'Автоответчик', duration: 90 },
-                    { status: 'connecting', number: '+7 (999) 345-**-**', campaign: 'Тестовый обзвон базы', agent: 'Елена', step: 'Соединение', duration: 30 },
-                  ].map((row, idx) => (
-                    <tr key={idx} className="border-b">
-                      <td className="py-2 px-3 text-sm">
+                    { 
+                      id: 'CNT-001234', 
+                      status: 'talking', 
+                      agent: 'Анна', 
+                      datetime: '15.09.2025 14:32', 
+                      duration: 120,
+                      tags: ['Презентация', 'Интерес'],
+                      transcription: 'Доступна',
+                      audioUrl: '#'
+                    },
+                    { 
+                      id: 'CNT-001235', 
+                      status: 'completed', 
+                      agent: 'Михаил', 
+                      datetime: '15.09.2025 14:28', 
+                      duration: 240,
+                      tags: ['Отказ', 'Перезвонить'],
+                      transcription: 'Доступна',
+                      audioUrl: '#'
+                    },
+                    { 
+                      id: 'CNT-001236', 
+                      status: 'voicemail', 
+                      agent: 'Елена', 
+                      datetime: '15.09.2025 14:25', 
+                      duration: 45,
+                      tags: ['Автоответчик'],
+                      transcription: 'Недоступна',
+                      audioUrl: '#'
+                    },
+                    { 
+                      id: 'CNT-001237', 
+                      status: 'connecting', 
+                      agent: 'Анна', 
+                      datetime: '15.09.2025 14:35', 
+                      duration: 5,
+                      tags: [],
+                      transcription: 'Недоступна',
+                      audioUrl: '#'
+                    },
+                    { 
+                      id: 'CNT-001238', 
+                      status: 'completed', 
+                      agent: 'Михаил', 
+                      datetime: '15.09.2025 14:20', 
+                      duration: 360,
+                      tags: ['Успех', 'SMS согласие'],
+                      transcription: 'Доступна',
+                      audioUrl: '#'
+                    },
+                  ].map((row) => (
+                    <tr key={row.id} className="border-b hover:bg-gray-50">
+                      <td className="py-3 px-4 text-sm font-mono text-gray-900">{row.id}</td>
+                      <td className="py-3 px-4 text-sm">
                         <div className="flex items-center space-x-2">
-                          {row.status === 'talking' ? <Volume2 className="h-4 w-4 text-green-600" /> : row.status === 'voicemail' ? <MessageSquare className="h-4 w-4 text-purple-600" /> : <Phone className="h-4 w-4 text-blue-600" />}
-                          <span className="text-gray-700">
-                            {row.status === 'talking' ? 'Разговор' : row.status === 'voicemail' ? 'Автоответчик' : 'Соединение'}
-                          </span>
+                          {row.status === 'talking' ? (
+                            <>
+                              <Volume2 className="h-4 w-4 text-green-600" />
+                              <span className="text-green-600">Разговор</span>
+                            </>
+                          ) : row.status === 'completed' ? (
+                            <>
+                              <CheckCircle className="h-4 w-4 text-blue-600" />
+                              <span className="text-blue-600">Завершен</span>
+                            </>
+                          ) : row.status === 'voicemail' ? (
+                            <>
+                              <MessageSquare className="h-4 w-4 text-purple-600" />
+                              <span className="text-purple-600">Автоответчик</span>
+                            </>
+                          ) : (
+                            <>
+                              <Phone className="h-4 w-4 text-orange-600" />
+                              <span className="text-orange-600">Соединение</span>
+                            </>
+                          )}
                         </div>
                       </td>
-                      <td className="py-2 px-3 text-sm font-mono">{row.number}</td>
-                      <td className="py-2 px-3 text-sm">{row.campaign}</td>
-                      <td className="py-2 px-3 text-sm">{row.agent}</td>
-                      <td className="py-2 px-3 text-sm">{row.step}</td>
-                      <td className="py-2 px-3 text-sm font-medium">{formatCallDuration(row.duration)}</td>
+                      <td className="py-3 px-4 text-sm text-gray-700">{row.agent}</td>
+                      <td className="py-3 px-4 text-sm text-gray-600">{row.datetime}</td>
+                      <td className="py-3 px-4 text-sm font-medium text-gray-700">{formatCallDuration(row.duration)}</td>
+                      <td className="py-3 px-4 text-sm">
+                        <div className="flex flex-wrap gap-1">
+                          {row.tags.map((tag, idx) => (
+                            <Badge 
+                              key={idx} 
+                              variant="outline" 
+                              className={
+                                tag === 'Успех' || tag === 'SMS согласие' ? 'text-green-700 border-green-300' :
+                                tag === 'Отказ' ? 'text-red-700 border-red-300' :
+                                tag === 'Автоответчик' ? 'text-purple-700 border-purple-300' :
+                                'text-gray-700 border-gray-300'
+                              }
+                            >
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-sm">
+                        {row.transcription === 'Доступна' ? (
+                          <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800">
+                            <FileText className="h-4 w-4 mr-1" />
+                            Открыть
+                          </Button>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-sm">
+                        <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800">
+                          <Download className="h-4 w-4 mr-1" />
+                          Скачать
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
