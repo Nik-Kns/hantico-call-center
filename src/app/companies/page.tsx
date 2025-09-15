@@ -47,6 +47,7 @@ import { getStatusColor, getStatusText, calculatePercentage } from '@/lib/utils'
 interface ObzvonCampaign {
   id: string
   name: string
+  description: string
   baseType: BaseType
   agent: string
   agentStage?: string
@@ -79,6 +80,7 @@ const mockObzvonCampaigns: ObzvonCampaign[] = [
   {
     id: 'obz-1',
     name: 'Тестовый обзвон 2',
+    description: 'Тестирование новых скриптов для регистрации',
     baseType: 'registration',
     agent: 'Анна (голос 1)',
     agentStage: 'Приветствие',
@@ -106,6 +108,7 @@ const mockObzvonCampaigns: ObzvonCampaign[] = [
   {
     id: 'obz-2',
     name: 'Реактивация неактивных',
+    description: 'Возвращение клиентов, неактивных более 90 дней',
     baseType: 'reactivation',
     agent: 'Михаил (голос 2)',
     agentStage: 'Напоминание',
@@ -129,6 +132,7 @@ const mockObzvonCampaigns: ObzvonCampaign[] = [
   {
     id: 'obz-3',
     name: 'Холодная база январь',
+    description: 'Обзвон новых лидов из январской выгрузки',
     baseType: 'registration',
     agent: 'Елена (голос 3)',
     agentStage: 'Холодный звонок',
@@ -150,6 +154,7 @@ const mockObzvonCampaigns: ObzvonCampaign[] = [
   {
     id: 'obz-4',
     name: 'Работа с отказниками',
+    description: 'Переубеждение клиентов с особыми условиями',
     baseType: 'refusals',
     agent: 'Ольга (голос 4)',
     agentStage: 'Переубеждение',
@@ -692,6 +697,9 @@ export default function ObzvoniPage() {
                     Название
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Описание
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Тип базы
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -722,6 +730,11 @@ export default function ObzvoniPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
                         {campaign.name}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-600 max-w-xs truncate">
+                        {campaign.description}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

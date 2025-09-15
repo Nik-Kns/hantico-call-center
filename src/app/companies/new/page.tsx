@@ -58,6 +58,7 @@ interface ABTest {
 
 interface CampaignForm {
   name: string
+  description: string
   companyId: string
   baseType: BaseType | ''
   agent: string
@@ -255,6 +256,7 @@ export default function NewCompanyPage() {
   const router = useRouter()
   const [form, setForm] = useState<CampaignForm>({
     name: '',
+    description: '',
     companyId: `CMP-${Date.now().toString(36).toUpperCase()}`,
     baseType: '',
     agent: '',
@@ -531,6 +533,20 @@ export default function NewCompanyPage() {
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Введите понятное название для идентификации компании
+                  </p>
+                </div>
+                
+                <div>
+                  <Label htmlFor="description">Описание кампании *</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Опишите цель и задачи кампании обзвона..."
+                    value={form.description}
+                    onChange={(e) => handleInputChange('description', e.target.value)}
+                    className="mt-1 min-h-[100px]"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Введите описание кампании для лучшего понимания ее целей
                   </p>
                 </div>
               </CardContent>
