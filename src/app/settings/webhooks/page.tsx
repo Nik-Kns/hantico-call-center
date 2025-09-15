@@ -170,12 +170,13 @@ const mockEvents: WebhookEvent[] = [
 ]
 
 const stats = {
-  total24h: 12456,
-  delivered: 11890,
-  failed: 456,
-  retrying: 110,
-  avgResponseTime: 125,
-  successRate: 95.5
+  campaignsSent: 45,      // Выслано кампаний на обзвон
+  callsMade: 12456,       // Совершено звонков
+  connected: 8934,        // Дозвоны
+  notConnected: 3522,     // Недозвоны
+  answered: 7850,         // Дозвонившихся (успешные разговоры)
+  dataSaved: 7623,        // Данные сохранены
+  resultRetrieved: 7401   // Забрали результат к себе в ERP
 }
 
 export default function WebhooksPage() {
@@ -362,10 +363,11 @@ export default function WebhooksPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Всего/24ч</p>
-                <p className="text-2xl font-bold">{stats.total24h.toLocaleString()}</p>
+                <p className="text-sm text-gray-600">Выслано кампаний</p>
+                <p className="text-2xl font-bold">{stats.campaignsSent.toLocaleString()}</p>
+                <p className="text-xs text-gray-500 mt-1">на обзвон</p>
               </div>
-              <Activity className="h-8 w-8 text-blue-600 opacity-60" />
+              <Send className="h-8 w-8 text-blue-600 opacity-60" />
             </div>
           </CardContent>
         </Card>
@@ -373,8 +375,31 @@ export default function WebhooksPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Доставлено</p>
-                <p className="text-2xl font-bold text-green-600">{stats.delivered.toLocaleString()}</p>
+                <p className="text-sm text-gray-600">Совершено звонков</p>
+                <p className="text-2xl font-bold text-indigo-600">{stats.callsMade.toLocaleString()}</p>
+              </div>
+              <Phone className="h-8 w-8 text-indigo-600 opacity-60" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Дозвоны / Недозвоны</p>
+                <p className="text-lg font-bold text-green-600">{stats.connected.toLocaleString()} / <span className="text-red-600">{stats.notConnected.toLocaleString()}</span></p>
+              </div>
+              <Activity className="h-8 w-8 text-gray-600 opacity-60" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Дозвонившихся</p>
+                <p className="text-2xl font-bold text-green-600">{stats.answered.toLocaleString()}</p>
+                <p className="text-xs text-gray-500 mt-1">успешные разговоры</p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-600 opacity-60" />
             </div>
@@ -384,10 +409,10 @@ export default function WebhooksPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Ошибки</p>
-                <p className="text-2xl font-bold text-red-600">{stats.failed}</p>
+                <p className="text-sm text-gray-600">Данные сохранены</p>
+                <p className="text-2xl font-bold text-purple-600">{stats.dataSaved.toLocaleString()}</p>
               </div>
-              <XCircle className="h-8 w-8 text-red-600 opacity-60" />
+              <Database className="h-8 w-8 text-purple-600 opacity-60" />
             </div>
           </CardContent>
         </Card>
@@ -395,32 +420,11 @@ export default function WebhooksPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">В повторе</p>
-                <p className="text-2xl font-bold text-yellow-600">{stats.retrying}</p>
+                <p className="text-sm text-gray-600">Забрали в ERP</p>
+                <p className="text-2xl font-bold text-emerald-600">{stats.resultRetrieved.toLocaleString()}</p>
+                <p className="text-xs text-gray-500 mt-1">результаты</p>
               </div>
-              <RefreshCw className="h-8 w-8 text-yellow-600 opacity-60" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Ср. время</p>
-                <p className="text-2xl font-bold">{stats.avgResponseTime}ms</p>
-              </div>
-              <Clock className="h-8 w-8 text-purple-600 opacity-60" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Успешность</p>
-                <p className="text-2xl font-bold text-emerald-600">{stats.successRate}%</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-emerald-600 opacity-60" />
+              <Download className="h-8 w-8 text-emerald-600 opacity-60" />
             </div>
           </CardContent>
         </Card>
