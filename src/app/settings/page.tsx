@@ -9,7 +9,8 @@ import {
   Activity,
   Shield,
   CheckSquare,
-  Database
+  Database,
+  Bell
 } from 'lucide-react'
 
 const settingsSections = [
@@ -28,6 +29,14 @@ const settingsSections = [
     href: '/settings/webhooks',
     color: 'text-purple-600',
     bgColor: 'bg-purple-50'
+  },
+  {
+    title: 'Уведомления и ошибки',
+    description: 'Мониторинг ошибок, ретраев и критических событий с таймлайном',
+    icon: Bell,
+    href: '/settings/notifications',
+    color: 'text-red-600',
+    bgColor: 'bg-red-50'
   }
 ]
 

@@ -36,7 +36,12 @@ import {
   Eye,
   EyeOff,
   Server,
-  UserCheck
+  UserCheck,
+  Clock,
+  Filter,
+  Search,
+  Calendar,
+  History
 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 
@@ -410,69 +415,229 @@ export default function IntegrationsPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Notifications Block */}
-      <Card className="mt-6">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
-                <AlertCircle className="h-6 w-6 text-red-600" />
+      {/* Negative Events and Error Timeline */}
+      <div className="mt-6 space-y-6">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
+                  <AlertCircle className="h-6 w-6 text-red-600" />
+                </div>
+                <div>
+                  <CardTitle>Негативные события и ошибки</CardTitle>
+                  <CardDescription>
+                    Мониторинг ошибок, ретраев и критических событий с таймлайном
+                  </CardDescription>
+                </div>
               </div>
-              <div>
-                <CardTitle>Уведомления</CardTitle>
-                <CardDescription>
-                  Последние ошибки и критические события
-                </CardDescription>
+              <div className="flex space-x-2">
+                <Button variant="outline" size="sm">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Последние 24ч
+                </Button>
+                <Button variant="outline" size="sm">
+                  Очистить все
+                </Button>
               </div>
             </div>
-            <Button variant="outline" size="sm">
-              Очистить все
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-start space-x-3 p-3 bg-red-50 rounded-lg">
-              <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-red-900">
-                  Ошибка подключения к Asterisk
-                </p>
-                <p className="text-xs text-red-700 mt-1">
-                  Не удается установить соединение с сервером pbx.yourcompany.com:5060
-                </p>
-                <p className="text-xs text-red-600 mt-2">5 минут назад</p>
+          </CardHeader>
+          <CardContent>
+            {/* Quick Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div className="p-4 bg-red-50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-red-600">Критичные</p>
+                    <p className="text-2xl font-bold text-red-700">3</p>
+                  </div>
+                  <XCircle className="h-6 w-6 text-red-600 opacity-60" />
+                </div>
+              </div>
+              <div className="p-4 bg-yellow-50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-yellow-600">Предупреждения</p>
+                    <p className="text-2xl font-bold text-yellow-700">7</p>
+                  </div>
+                  <AlertCircle className="h-6 w-6 text-yellow-600 opacity-60" />
+                </div>
+              </div>
+              <div className="p-4 bg-orange-50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-orange-600">Ретраи</p>
+                    <p className="text-2xl font-bold text-orange-700">12</p>
+                  </div>
+                  <RefreshCw className="h-6 w-6 text-orange-600 opacity-60" />
+                </div>
+              </div>
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-blue-600">Всего за 24ч</p>
+                    <p className="text-2xl font-bold text-blue-700">22</p>
+                  </div>
+                  <Activity className="h-6 w-6 text-blue-600 opacity-60" />
+                </div>
               </div>
             </div>
             
-            <div className="flex items-start space-x-3 p-3 bg-yellow-50 rounded-lg">
-              <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-yellow-900">
-                  Превышен лимит API запросов
-                </p>
-                <p className="text-xs text-yellow-700 mt-1">
-                  ERP API вернул ошибку 429: Too Many Requests
-                </p>
-                <p className="text-xs text-yellow-600 mt-2">15 минут назад</p>
+            {/* Filters */}
+            <div className="flex items-center space-x-4 mb-6 p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <Filter className="h-4 w-4 text-gray-500" />
+                <span className="text-sm text-gray-600">Фильтры:</span>
+              </div>
+              
+              <Select defaultValue="all">
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Все типы</SelectItem>
+                  <SelectItem value="critical">Критичные</SelectItem>
+                  <SelectItem value="warning">Предупреждения</SelectItem>
+                  <SelectItem value="retry">Ретраи</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Select defaultValue="all">
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Все системы</SelectItem>
+                  <SelectItem value="asterisk">Asterisk</SelectItem>
+                  <SelectItem value="erp">ERP API</SelectItem>
+                  <SelectItem value="webhook">Webhooks</SelectItem>
+                  <SelectItem value="sip">SIP</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <div className="relative flex-1 max-w-xs">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Поиск по описанию..."
+                  className="pl-9"
+                />
               </div>
             </div>
             
-            <div className="flex items-start space-x-3 p-3 bg-orange-50 rounded-lg">
-              <AlertCircle className="h-5 w-5 text-orange-600 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-orange-900">
-                  Недостаточно SIP-каналов
-                </p>
-                <p className="text-xs text-orange-700 mt-1">
-                  Все 10 каналов заняты, новые звонки поставлены в очередь
-                </p>
-                <p className="text-xs text-orange-600 mt-2">1 час назад</p>
+            {/* Timeline */}
+            <div className="space-y-4">
+              <h3 className="font-medium flex items-center">
+                <History className="h-4 w-4 mr-2" />
+                Таймлайн событий
+              </h3>
+              
+              <div className="relative">
+                {/* Timeline line */}
+                <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+                
+                {/* Events */}
+                <div className="space-y-6">
+                  {/* Critical Error */}
+                  <div className="relative flex items-start space-x-4">
+                    <div className="flex-shrink-0 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center relative z-10">
+                      <XCircle className="h-6 w-6 text-red-600" />
+                    </div>
+                    <div className="flex-1 bg-red-50 rounded-lg p-4 border border-red-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium text-red-900">Ошибка подключения к Asterisk</h4>
+                        <div className="flex items-center space-x-2">
+                          <Badge className="bg-red-100 text-red-800">Критично</Badge>
+                          <span className="text-xs text-red-600">5 мин назад</span>
+                        </div>
+                      </div>
+                      <p className="text-sm text-red-700 mb-3">
+                        Не удается установить соединение с pbx.yourcompany.com:5060
+                      </p>
+                      <div className="flex items-center space-x-4 text-xs text-red-600">
+                        <span>Код ошибки: CONNECTION_TIMEOUT</span>
+                        <span>Попытка: 3/5</span>
+                        <span>Следующая попытка: 15:45</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Warning */}
+                  <div className="relative flex items-start space-x-4">
+                    <div className="flex-shrink-0 w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center relative z-10">
+                      <AlertCircle className="h-6 w-6 text-yellow-600" />
+                    </div>
+                    <div className="flex-1 bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium text-yellow-900">Превышен лимит API запросов</h4>
+                        <div className="flex items-center space-x-2">
+                          <Badge className="bg-yellow-100 text-yellow-800">Предупреждение</Badge>
+                          <span className="text-xs text-yellow-600">15 мин назад</span>
+                        </div>
+                      </div>
+                      <p className="text-sm text-yellow-700 mb-3">
+                        ERP API вернул ошибку 429: Too Many Requests. Текущий RPS: 150/100
+                      </p>
+                      <div className="flex items-center space-x-4 text-xs text-yellow-600">
+                        <span>Endpoint: /api/hantico/results</span>
+                        <span>Отклонено запросов: 23</span>
+                        <span>Сброс лимита: 16:00</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Retry Event */}
+                  <div className="relative flex items-start space-x-4">
+                    <div className="flex-shrink-0 w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center relative z-10">
+                      <RefreshCw className="h-6 w-6 text-orange-600" />
+                    </div>
+                    <div className="flex-1 bg-orange-50 rounded-lg p-4 border border-orange-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium text-orange-900">Недостаточно SIP-каналов</h4>
+                        <div className="flex items-center space-x-2">
+                          <Badge className="bg-orange-100 text-orange-800">Ретрай</Badge>
+                          <span className="text-xs text-orange-600">1 час назад</span>
+                        </div>
+                      </div>
+                      <p className="text-sm text-orange-700 mb-3">
+                        Все 10 каналов заняты. 45 звонков поставлено в очередь
+                      </p>
+                      <div className="flex items-center space-x-4 text-xs text-orange-600">
+                        <span>Занято каналов: 10/10</span>
+                        <span>Очередь: 45 звонков</span>
+                        <span>Прогноз освобождения: 16:30</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Resolved Event */}
+                  <div className="relative flex items-start space-x-4">
+                    <div className="flex-shrink-0 w-12 h-12 bg-green-100 rounded-full flex items-center justify-center relative z-10">
+                      <CheckCircle className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div className="flex-1 bg-green-50 rounded-lg p-4 border border-green-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium text-green-900">Проблема с webhook&apos;ами устранена</h4>
+                        <div className="flex items-center space-x-2">
+                          <Badge className="bg-green-100 text-green-800">Решено</Badge>
+                          <span className="text-xs text-green-600">2 часа назад</span>
+                        </div>
+                      </div>
+                      <p className="text-sm text-green-700 mb-3">
+                        Восстановлено соединение с crm.company.ru. Обработано 156 отложенных событий
+                      </p>
+                      <div className="flex items-center space-x-4 text-xs text-green-600">
+                        <span>Время простоя: 23 мин</span>
+                        <span>Обработано событий: 156</span>
+                        <span>Последний response: 200 OK</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

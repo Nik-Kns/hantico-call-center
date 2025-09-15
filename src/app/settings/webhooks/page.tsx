@@ -38,13 +38,18 @@ import {
   TrendingDown,
   MoreVertical,
   Search,
-  Calendar
+  Calendar,
+  Package,
+  Phone,
+  Database,
+  Download,
+  Info
 } from 'lucide-react'
 
 interface WebhookEvent {
   id: string
   timestamp: string
-  type: 'call_started' | 'call_ended' | 'sms_sent' | 'registration_completed' | 'consent_given'
+  type: 'numbers_received' | 'call_started' | 'call_status' | 'result_saved' | 'result_retrieved'
   status: 'delivered' | 'failed' | 'pending' | 'retrying'
   campaign: string
   endpoint: string
@@ -54,68 +59,113 @@ interface WebhookEvent {
   responseCode?: number
   responseTime?: number
   error?: string
+  priority: 'high' | 'medium' | 'low'
+  retryPolicy?: 'exponential' | 'linear' | 'none'
 }
 
 const mockEvents: WebhookEvent[] = [
   {
     id: 'evt_1',
-    timestamp: '2024-01-09 11:03:45',
-    type: 'call_ended',
+    timestamp: '2025-09-15 11:03:45',
+    type: 'result_retrieved',
     status: 'delivered',
     campaign: 'Новогодняя кампания',
-    endpoint: 'https://crm.company.ru/webhook',
-    payload: { leadId: 12345, duration: 180, status: 'success' },
+    endpoint: 'https://crm.company.ru/api/results',
+    payload: { 
+      batchId: 'batch_789', 
+      resultsCount: 150, 
+      clientId: 'client_123',
+      format: 'json',
+      downloadUrl: 'https://storage/results/batch_789.json'
+    },
     attempts: 1,
     responseCode: 200,
-    responseTime: 145
+    responseTime: 89,
+    priority: 'high',
+    retryPolicy: 'exponential'
   },
   {
     id: 'evt_2',
-    timestamp: '2024-01-09 11:02:30',
-    type: 'sms_sent',
-    status: 'failed',
+    timestamp: '2025-09-15 11:02:30',
+    type: 'result_saved',
+    status: 'delivered',
     campaign: 'Реактивация клиентов',
-    endpoint: 'https://crm.company.ru/webhook',
-    payload: { phone: '+7900***1234', template: 'registration_link' },
-    attempts: 3,
-    nextRetry: '11:15:00',
-    error: 'Connection timeout'
+    endpoint: 'https://storage.company.ru/webhook',
+    payload: {
+      leadId: 'LEAD-001234',
+      result: 'success',
+      duration: 180,
+      recordingUrl: 'https://storage/recordings/rec_456.mp3',
+      transcriptUrl: 'https://storage/transcripts/trans_456.txt',
+      abVariant: 'A'
+    },
+    attempts: 1,
+    responseCode: 200,
+    responseTime: 145,
+    priority: 'medium',
+    retryPolicy: 'linear'
   },
   {
     id: 'evt_3',
-    timestamp: '2024-01-09 11:01:15',
-    type: 'registration_completed',
-    status: 'delivered',
-    campaign: 'Новогодняя кампания',
-    endpoint: 'https://analytics.company.ru/track',
-    payload: { userId: 'usr_789', source: 'sms_link' },
-    attempts: 1,
-    responseCode: 200,
-    responseTime: 89
+    timestamp: '2025-09-15 11:01:15',
+    type: 'call_status',
+    status: 'failed',
+    campaign: 'Обзвон базы',
+    endpoint: 'https://crm.company.ru/webhook/status',
+    payload: {
+      leadId: 'LEAD-001235',
+      callId: 'call_789',
+      status: 'no_answer',
+      attempts: 3,
+      nextRetryAt: '2025-09-15T12:00:00Z'
+    },
+    attempts: 2,
+    nextRetry: '11:05:00',
+    error: 'Connection timeout',
+    priority: 'medium',
+    retryPolicy: 'exponential'
   },
   {
     id: 'evt_4',
-    timestamp: '2024-01-09 11:00:00',
-    type: 'consent_given',
-    status: 'retrying',
-    campaign: 'Обзвон базы',
-    endpoint: 'https://crm.company.ru/webhook',
-    payload: { leadId: 67890, consentType: 'sms_marketing' },
-    attempts: 2,
-    nextRetry: '11:05:00',
-    error: 'Server returned 503'
-  },
-  {
-    id: 'evt_5',
-    timestamp: '2024-01-09 10:58:30',
+    timestamp: '2025-09-15 11:00:00',
     type: 'call_started',
     status: 'delivered',
     campaign: 'VIP сегмент',
-    endpoint: 'https://crm.company.ru/webhook',
-    payload: { leadId: 11111, agentId: 'ai_001' },
+    endpoint: 'https://crm.company.ru/webhook/calls',
+    payload: {
+      leadId: 'LEAD-001236',
+      phone: '+7900XXXXXXX',
+      agentId: 'agent_anna',
+      abVariant: 'B',
+      startTime: '2025-09-15T11:00:00Z',
+      campaignId: 'camp_001'
+    },
     attempts: 1,
     responseCode: 200,
-    responseTime: 67
+    responseTime: 67,
+    priority: 'high',
+    retryPolicy: 'linear'
+  },
+  {
+    id: 'evt_5',
+    timestamp: '2025-09-15 10:58:30',
+    type: 'numbers_received',
+    status: 'delivered',
+    campaign: 'Холодная база',
+    endpoint: 'https://queue.company.ru/webhook/numbers',
+    payload: {
+      batchId: 'batch_456',
+      numbersCount: 1250,
+      source: 'external_provider',
+      validationStatus: 'completed',
+      duplicatesRemoved: 45,
+      blacklistFiltered: 12
+    },
+    attempts: 1,
+    responseCode: 200,
+    responseTime: 234,
+    priority: 'low',
+    retryPolicy: 'none'
   }
 ]
 
@@ -181,11 +231,11 @@ export default function WebhooksPage() {
 
   const getTypeLabel = (type: string) => {
     switch (type) {
-      case 'call_started': return 'Звонок начат'
-      case 'call_ended': return 'Звонок завершен'
-      case 'sms_sent': return 'SMS отправлена'
-      case 'registration_completed': return 'Регистрация завершена'
-      case 'consent_given': return 'Согласие получено'
+      case 'numbers_received': return 'Получен пакет номеров'
+      case 'call_started': return 'Начат звонок'
+      case 'call_status': return 'Статус дозвона'
+      case 'result_saved': return 'Сохранён результат'
+      case 'result_retrieved': return 'Клиент забрал результат'
       default: return type
     }
   }
@@ -229,6 +279,82 @@ export default function WebhooksPage() {
           </div>
         </div>
       </div>
+
+      {/* Event Types Documentation */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Info className="h-5 w-5 mr-2" />
+            Событийная модель системы
+          </CardTitle>
+          <CardDescription>
+            Формализованные события жизненного цикла обзвона и их структура
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="p-4 border rounded-lg">
+              <div className="flex items-center mb-2">
+                <Package className="h-5 w-5 text-blue-600 mr-2" />
+                <h4 className="font-medium">Получен пакет номеров</h4>
+              </div>
+              <p className="text-sm text-gray-600 mb-2">numbers_received</p>
+              <p className="text-xs text-gray-500">
+                Триггер: Загрузка новой базы номеров в систему. 
+                Содержит информацию о количестве, валидации и фильтрации.
+              </p>
+            </div>
+            
+            <div className="p-4 border rounded-lg">
+              <div className="flex items-center mb-2">
+                <Phone className="h-5 w-5 text-green-600 mr-2" />
+                <h4 className="font-medium">Начат звонок</h4>
+              </div>
+              <p className="text-sm text-gray-600 mb-2">call_started</p>
+              <p className="text-xs text-gray-500">
+                Триггер: Инициация исходящего звонка. 
+                Содержит ID контакта, агента, A/B вариант.
+              </p>
+            </div>
+            
+            <div className="p-4 border rounded-lg">
+              <div className="flex items-center mb-2">
+                <Activity className="h-5 w-5 text-orange-600 mr-2" />
+                <h4 className="font-medium">Статус дозвона</h4>
+              </div>
+              <p className="text-sm text-gray-600 mb-2">call_status</p>
+              <p className="text-xs text-gray-500">
+                Триггер: Изменение статуса звонка (отвечен, занято, не отвечает). 
+                Включает информацию о повторных попытках.
+              </p>
+            </div>
+            
+            <div className="p-4 border rounded-lg">
+              <div className="flex items-center mb-2">
+                <Database className="h-5 w-5 text-purple-600 mr-2" />
+                <h4 className="font-medium">Сохранён результат</h4>
+              </div>
+              <p className="text-sm text-gray-600 mb-2">result_saved</p>
+              <p className="text-xs text-gray-500">
+                Триггер: Завершение обработки звонка и сохранение результата. 
+                Содержит запись, транскрипт, метрики.
+              </p>
+            </div>
+            
+            <div className="p-4 border rounded-lg">
+              <div className="flex items-center mb-2">
+                <Download className="h-5 w-5 text-indigo-600 mr-2" />
+                <h4 className="font-medium">Клиент забрал результат</h4>
+              </div>
+              <p className="text-sm text-gray-600 mb-2">result_retrieved</p>
+              <p className="text-xs text-gray-500">
+                Триггер: Скачивание результатов клиентом через API или интерфейс. 
+                Отслеживает потребление данных.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
@@ -343,11 +469,11 @@ export default function WebhooksPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Все типы</SelectItem>
-                  <SelectItem value="call_started">Звонок начат</SelectItem>
-                  <SelectItem value="call_ended">Звонок завершен</SelectItem>
-                  <SelectItem value="sms_sent">SMS отправлена</SelectItem>
-                  <SelectItem value="registration_completed">Регистрация</SelectItem>
-                  <SelectItem value="consent_given">Согласие</SelectItem>
+                  <SelectItem value="numbers_received">Получен пакет номеров</SelectItem>
+                  <SelectItem value="call_started">Начат звонок</SelectItem>
+                  <SelectItem value="call_status">Статус дозвона</SelectItem>
+                  <SelectItem value="result_saved">Сохранён результат</SelectItem>
+                  <SelectItem value="result_retrieved">Клиент забрал результат</SelectItem>
                 </SelectContent>
               </Select>
             </div>
