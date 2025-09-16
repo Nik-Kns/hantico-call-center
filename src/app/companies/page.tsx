@@ -188,45 +188,9 @@ export default function ObzvoniPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [decompositionPeriod, setDecompositionPeriod] = useState<string>('all')
 
-  // Фильтрация кампаний по периоду для декомпозиции
-  const getFilteredCampaignsByPeriod = (period: string) => {
-    const now = new Date()
-    return campaigns.filter(campaign => {
-      if (campaign.status !== 'active') return false
-      if (period === 'all') return true
-      if (!campaign.startTime) return false
-      
-      const campaignDate = campaign.startTime
-      
-      switch (period) {
-        case 'today':
-          return campaignDate.toDateString() === now.toDateString()
-        case 'week':
-          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-          return campaignDate >= weekAgo
-        case 'month':
-          const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-          return campaignDate >= monthAgo
-        default:
-          return true
-      }
-    })
-  }
 
   // Статистика в реальном времени (только по активным кампаниям)
   const activeCampaigns = campaigns.filter(c => c.status === 'active')
-  const filteredForDecomposition = getFilteredCampaignsByPeriod(decompositionPeriod)
-  
-  const totalActive = activeCampaigns.length
-  const totalCalls = filteredForDecomposition.reduce((sum, c) => sum + c.calledNumbers, 0)
-  const totalSuccess = filteredForDecomposition.reduce((sum, c) => sum + c.successfulConnections, 0)
-  const totalSmsAgreements = filteredForDecomposition.reduce((sum, c) => sum + c.smsAgreements, 0)
-  const totalRefusals = filteredForDecomposition.reduce((sum, c) => sum + (c.refusals || 0), 0)
-  const totalNoAnswers = filteredForDecomposition.reduce((sum, c) => sum + (c.noAnswers || 0), 0)
-  const totalVoicemails = filteredForDecomposition.reduce((sum, c) => sum + (c.voicemails || 0), 0)
-  const totalBusy = filteredForDecomposition.reduce((sum, c) => sum + (c.busyNumbers || 0), 0)
-  const totalReceived = activeCampaigns.reduce((sum, c) => sum + c.totalNumbers, 0)
-  const totalInProgress = activeCampaigns.reduce((sum, c) => sum + (c.totalNumbers - c.calledNumbers), 0)
 
   const handleRefresh = async () => {
     setIsLoading(true)
@@ -322,6 +286,44 @@ export default function ObzvoniPage() {
 
     return matchesStatus && matchesAgent && matchesBaseType && matchesSearch && matchesId && matchesDate
   })
+
+  // Вычисляем статистику на основе отфильтрованных кампаний с учетом периода декомпозиции
+  const getFilteredForDecomposition = () => {
+    return filteredCampaigns.filter(campaign => {
+      if (campaign.status !== 'active') return false
+      if (decompositionPeriod === 'all') return true
+      if (!campaign.startTime) return false
+      
+      const now = new Date()
+      const campaignDate = campaign.startTime
+      
+      switch (decompositionPeriod) {
+        case 'today':
+          return campaignDate.toDateString() === now.toDateString()
+        case 'week':
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+          return campaignDate >= weekAgo
+        case 'month':
+          const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+          return campaignDate >= monthAgo
+        default:
+          return true
+      }
+    })
+  }
+
+  const filteredForDecomposition = getFilteredForDecomposition()
+  
+  const totalActive = filteredCampaigns.filter(c => c.status === 'active').length
+  const totalCalls = filteredForDecomposition.reduce((sum, c) => sum + c.calledNumbers, 0)
+  const totalSuccess = filteredForDecomposition.reduce((sum, c) => sum + c.successfulConnections, 0)
+  const totalSmsAgreements = filteredForDecomposition.reduce((sum, c) => sum + c.smsAgreements, 0)
+  const totalRefusals = filteredForDecomposition.reduce((sum, c) => sum + (c.refusals || 0), 0)
+  const totalNoAnswers = filteredForDecomposition.reduce((sum, c) => sum + (c.noAnswers || 0), 0)
+  const totalVoicemails = filteredForDecomposition.reduce((sum, c) => sum + (c.voicemails || 0), 0)
+  const totalBusy = filteredForDecomposition.reduce((sum, c) => sum + (c.busyNumbers || 0), 0)
+  const totalReceived = filteredCampaigns.filter(c => c.status === 'active').reduce((sum, c) => sum + c.totalNumbers, 0)
+  const totalInProgress = filteredCampaigns.filter(c => c.status === 'active').reduce((sum, c) => sum + (c.totalNumbers - c.calledNumbers), 0)
 
   return (
     <div className="space-y-6">
@@ -435,7 +437,7 @@ export default function ObzvoniPage() {
               <div>
                 <CardTitle>Декомпозиция обработанных контактов по исходам</CardTitle>
                 <p className="text-sm text-gray-600 mt-1">
-                  Суммарная статистика по {filteredForDecomposition.length} активным кампаниям. Всего обработано: {totalCalls.toLocaleString()} контактов
+                  Статистика по {filteredForDecomposition.length} из {totalActive} активных кампаний (с учетом фильтров). Всего обработано: {totalCalls.toLocaleString()} контактов
                 </p>
               </div>
               <Select value={decompositionPeriod} onValueChange={setDecompositionPeriod}>
