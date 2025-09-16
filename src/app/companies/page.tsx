@@ -290,7 +290,7 @@ export default function ObzvoniPage() {
   // Вычисляем статистику на основе отфильтрованных кампаний с учетом периода декомпозиции
   const getFilteredForDecomposition = () => {
     return filteredCampaigns.filter(campaign => {
-      if (campaign.status !== 'active') return false
+      // Применяем только дополнительный фильтр по периоду декомпозиции
       if (decompositionPeriod === 'all') return true
       if (!campaign.startTime) return false
       
@@ -314,6 +314,7 @@ export default function ObzvoniPage() {
 
   const filteredForDecomposition = getFilteredForDecomposition()
   
+  // Подсчет статистики на основе отфильтрованных кампаний
   const totalActive = filteredCampaigns.filter(c => c.status === 'active').length
   const totalCalls = filteredForDecomposition.reduce((sum, c) => sum + c.calledNumbers, 0)
   const totalSuccess = filteredForDecomposition.reduce((sum, c) => sum + c.successfulConnections, 0)
@@ -322,8 +323,8 @@ export default function ObzvoniPage() {
   const totalNoAnswers = filteredForDecomposition.reduce((sum, c) => sum + (c.noAnswers || 0), 0)
   const totalVoicemails = filteredForDecomposition.reduce((sum, c) => sum + (c.voicemails || 0), 0)
   const totalBusy = filteredForDecomposition.reduce((sum, c) => sum + (c.busyNumbers || 0), 0)
-  const totalReceived = filteredCampaigns.filter(c => c.status === 'active').reduce((sum, c) => sum + c.totalNumbers, 0)
-  const totalInProgress = filteredCampaigns.filter(c => c.status === 'active').reduce((sum, c) => sum + (c.totalNumbers - c.calledNumbers), 0)
+  const totalReceived = filteredForDecomposition.reduce((sum, c) => sum + c.totalNumbers, 0)
+  const totalInProgress = filteredForDecomposition.reduce((sum, c) => sum + (c.totalNumbers - c.calledNumbers), 0)
 
   return (
     <div className="space-y-6">
@@ -429,15 +430,15 @@ export default function ObzvoniPage() {
         </Card>
       </div>
 
-      {/* Декомпозиция обработанных контактов по исходам (суммарно по всем активным кампаниям) */}
-      {totalActive > 0 && (
+      {/* Декомпозиция обработанных контактов по исходам */}
+      {filteredForDecomposition.length > 0 && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>Декомпозиция обработанных контактов по исходам</CardTitle>
                 <p className="text-sm text-gray-600 mt-1">
-                  Статистика по {filteredForDecomposition.length} из {totalActive} активных кампаний (с учетом фильтров). Всего обработано: {totalCalls.toLocaleString()} контактов
+                  Статистика по {filteredForDecomposition.length} кампаний (с учетом всех фильтров). Всего обработано: {totalCalls.toLocaleString()} контактов
                 </p>
               </div>
               <Select value={decompositionPeriod} onValueChange={setDecompositionPeriod}>
