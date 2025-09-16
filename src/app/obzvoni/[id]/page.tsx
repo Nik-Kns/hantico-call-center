@@ -292,6 +292,53 @@ export default function CompanyDetailsPage() {
     }
   }
 
+  // Фильтрованные записи звонков
+  const filteredCallRecords = callRecords.filter((call) => {
+    // Фильтр по статусу результата
+    if (resultFilter !== 'all' && call.result !== resultFilter) {
+      return false
+    }
+    // Фильтр по поиску Lead ID
+    if (searchFilter && !call.leadId.toLowerCase().includes(searchFilter.toLowerCase())) {
+      return false
+    }
+    // Фильтр по периоду
+    if (dateFilter !== 'all') {
+      const callDate = new Date(call.dateTime)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      
+      switch (dateFilter) {
+        case 'today':
+          const todayEnd = new Date(today)
+          todayEnd.setDate(todayEnd.getDate() + 1)
+          if (callDate < today || callDate >= todayEnd) return false
+          break
+        case 'week':
+          const weekAgo = new Date(today)
+          weekAgo.setDate(weekAgo.getDate() - 7)
+          if (callDate < weekAgo) return false
+          break
+        case 'month':
+          const monthAgo = new Date(today)
+          monthAgo.setMonth(monthAgo.getMonth() - 1)
+          if (callDate < monthAgo) return false
+          break
+      }
+    }
+    return true
+  })
+
+  // Вычисляем статистику на основе отфильтрованных записей
+  const filteredStats = {
+    totalProcessed: filteredCallRecords.length,
+    successfulConsent: filteredCallRecords.filter(c => c.result === 'success').length,
+    refusals: filteredCallRecords.filter(c => c.result === 'refused').length,
+    noAnswers: filteredCallRecords.filter(c => c.result === 'no_answer').length,
+    voicemails: filteredCallRecords.filter(c => c.result === 'voicemail').length,
+    robotVoicemails: filteredCallRecords.filter(c => c.result === 'robot_voicemail').length,
+  }
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
@@ -921,7 +968,7 @@ export default function CompanyDetailsPage() {
             <div>
               <CardTitle>Мониторинг обработанных контактов по исходам</CardTitle>
               <p className="text-sm text-gray-600 mt-1">
-                Всего обработано: {company.totalProcessed.toLocaleString()} контактов
+                Всего обработано: {filteredStats.totalProcessed.toLocaleString()} контактов
               </p>
             </div>
             {isAbTest && (
@@ -946,17 +993,17 @@ export default function CompanyDetailsPage() {
                 <Badge className="bg-green-100 text-green-800">SMS</Badge>
               </div>
               <p className="text-2xl font-bold text-green-600">
-                {company.successfulConsent.toLocaleString()}
+                {filteredStats.successfulConsent.toLocaleString()}
               </p>
               <p className="text-sm text-gray-600">Успешные/согласие</p>
               <p className="text-xs text-gray-500 mt-1">
-                {Math.round((company.successfulConsent / company.totalProcessed) * 100)}% от обработанных
+                {filteredStats.totalProcessed > 0 ? Math.round((filteredStats.successfulConsent / filteredStats.totalProcessed) * 100) : 0}% от обработанных
               </p>
               {isAbTest && (
                 <div className="mt-3 pt-3 border-t border-green-200">
                   <div className="flex justify-between text-xs">
-                    <span className="text-green-700">A: {Math.round(company.successfulConsent * 0.48).toLocaleString()}</span>
-                    <span className="text-orange-700">B: {Math.round(company.successfulConsent * 0.52).toLocaleString()}</span>
+                    <span className="text-green-700">A: {Math.round(filteredStats.successfulConsent * 0.48).toLocaleString()}</span>
+                    <span className="text-orange-700">B: {Math.round(filteredStats.successfulConsent * 0.52).toLocaleString()}</span>
                   </div>
                 </div>
               )}
@@ -967,17 +1014,17 @@ export default function CompanyDetailsPage() {
                 <XCircle className="h-5 w-5 text-red-600" />
               </div>
               <p className="text-2xl font-bold text-red-600">
-                {company.refusals.toLocaleString()}
+                {filteredStats.refusals.toLocaleString()}
               </p>
               <p className="text-sm text-gray-600">Отказы</p>
               <p className="text-xs text-gray-500 mt-1">
-                {Math.round((company.refusals / company.totalProcessed) * 100)}% от обработанных
+                {filteredStats.totalProcessed > 0 ? Math.round((filteredStats.refusals / filteredStats.totalProcessed) * 100) : 0}% от обработанных
               </p>
               {isAbTest && (
                 <div className="mt-3 pt-3 border-t border-red-200">
                   <div className="flex justify-between text-xs">
-                    <span className="text-green-700">A: {Math.round(company.refusals * 0.55).toLocaleString()}</span>
-                    <span className="text-orange-700">B: {Math.round(company.refusals * 0.45).toLocaleString()}</span>
+                    <span className="text-green-700">A: {Math.round(filteredStats.refusals * 0.55).toLocaleString()}</span>
+                    <span className="text-orange-700">B: {Math.round(filteredStats.refusals * 0.45).toLocaleString()}</span>
                   </div>
                 </div>
               )}
@@ -988,17 +1035,17 @@ export default function CompanyDetailsPage() {
                 <PhoneOff className="h-5 w-5 text-gray-600" />
               </div>
               <p className="text-2xl font-bold text-gray-600">
-                {company.noAnswers.toLocaleString()}
+                {filteredStats.noAnswers.toLocaleString()}
               </p>
               <p className="text-sm text-gray-600">Недозвоны</p>
               <p className="text-xs text-gray-500 mt-1">
-                {Math.round((company.noAnswers / company.totalProcessed) * 100)}% от обработанных
+                {filteredStats.totalProcessed > 0 ? Math.round((filteredStats.noAnswers / filteredStats.totalProcessed) * 100) : 0}% от обработанных
               </p>
               {isAbTest && (
                 <div className="mt-3 pt-3 border-t border-gray-200">
                   <div className="flex justify-between text-xs">
-                    <span className="text-green-700">A: {Math.round(company.noAnswers * 0.51).toLocaleString()}</span>
-                    <span className="text-orange-700">B: {Math.round(company.noAnswers * 0.49).toLocaleString()}</span>
+                    <span className="text-green-700">A: {Math.round(filteredStats.noAnswers * 0.51).toLocaleString()}</span>
+                    <span className="text-orange-700">B: {Math.round(filteredStats.noAnswers * 0.49).toLocaleString()}</span>
                   </div>
                 </div>
               )}
@@ -1009,17 +1056,17 @@ export default function CompanyDetailsPage() {
                 <Volume2 className="h-5 w-5 text-purple-600" />
               </div>
               <p className="text-2xl font-bold text-purple-600">
-                {company.voicemails.toLocaleString()}
+                {filteredStats.voicemails.toLocaleString()}
               </p>
               <p className="text-sm text-gray-600">Автоответчики</p>
               <p className="text-xs text-gray-500 mt-1">
-                {Math.round((company.voicemails / company.totalProcessed) * 100)}% от обработанных
+                {filteredStats.totalProcessed > 0 ? Math.round((filteredStats.voicemails / filteredStats.totalProcessed) * 100) : 0}% от обработанных
               </p>
               {isAbTest && (
                 <div className="mt-3 pt-3 border-t border-purple-200">
                   <div className="flex justify-between text-xs">
-                    <span className="text-green-700">A: {Math.round(company.voicemails * 0.47).toLocaleString()}</span>
-                    <span className="text-orange-700">B: {Math.round(company.voicemails * 0.53).toLocaleString()}</span>
+                    <span className="text-green-700">A: {Math.round(filteredStats.voicemails * 0.47).toLocaleString()}</span>
+                    <span className="text-orange-700">B: {Math.round(filteredStats.voicemails * 0.53).toLocaleString()}</span>
                   </div>
                 </div>
               )}
@@ -1030,17 +1077,17 @@ export default function CompanyDetailsPage() {
                 <Bot className="h-5 w-5 text-indigo-600" />
               </div>
               <p className="text-2xl font-bold text-indigo-600">
-                {company.robotVoicemails.toLocaleString()}
+                {filteredStats.robotVoicemails.toLocaleString()}
               </p>
               <p className="text-sm text-gray-600">Роботы</p>
               <p className="text-xs text-gray-500 mt-1">
-                {Math.round((company.robotVoicemails / company.totalProcessed) * 100)}% от обработанных
+                {filteredStats.totalProcessed > 0 ? Math.round((filteredStats.robotVoicemails / filteredStats.totalProcessed) * 100) : 0}% от обработанных
               </p>
               {isAbTest && (
                 <div className="mt-3 pt-3 border-t border-indigo-200">
                   <div className="flex justify-between text-xs">
-                    <span className="text-green-700">A: {Math.round(company.robotVoicemails * 0.50).toLocaleString()}</span>
-                    <span className="text-orange-700">B: {Math.round(company.robotVoicemails * 0.50).toLocaleString()}</span>
+                    <span className="text-green-700">A: {Math.round(filteredStats.robotVoicemails * 0.50).toLocaleString()}</span>
+                    <span className="text-orange-700">B: {Math.round(filteredStats.robotVoicemails * 0.50).toLocaleString()}</span>
                   </div>
                 </div>
               )}
@@ -1136,19 +1183,7 @@ export default function CompanyDetailsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {callRecords
-                  .filter((call) => {
-                    // Фильтр по статусу результата
-                    if (resultFilter !== 'all' && call.result !== resultFilter) {
-                      return false
-                    }
-                    // Фильтр по поиску Lead ID
-                    if (searchFilter && !call.leadId.toLowerCase().includes(searchFilter.toLowerCase())) {
-                      return false
-                    }
-                    return true
-                  })
-                  .map((call) => (
+                {filteredCallRecords.map((call) => (
                   <tr key={call.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center">
