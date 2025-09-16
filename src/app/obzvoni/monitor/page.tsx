@@ -41,6 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { DateFilter } from '@/components/ui/date-filter'
 
 interface CompanyMonitor {
   id: string
@@ -205,9 +206,9 @@ export default function ObzvoniMonitorPage() {
   
   // Состояния для графика
   const [selectedMetric, setSelectedMetric] = useState<'transferred' | 'received' | 'processed' | 'success' | 'voicemail'>('transferred')
-  const [chartDateFilter, setChartDateFilter] = useState<'today' | 'period'>('today')
-  const [intervalStart, setIntervalStart] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
-  const [intervalEnd, setIntervalEnd] = useState(new Date().toISOString().split('T')[0])
+  const [chartDateFilter, setChartDateFilter] = useState('today')
+  const [chartDateIntervalStart, setChartDateIntervalStart] = useState('')
+  const [chartDateIntervalEnd, setChartDateIntervalEnd] = useState('')
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -524,37 +525,18 @@ export default function ObzvoniMonitorPage() {
                 </div>
                 
                 {/* Фильтр времени */}
-                <div className="flex items-center space-x-2">
-                  <Label className="text-sm">Период:</Label>
-                  <Select value={chartDateFilter} onValueChange={(value: any) => setChartDateFilter(value)}>
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="today">Сегодня</SelectItem>
-                      <SelectItem value="period">Период</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  
-                  {/* Выбор дат для периода */}
-                  {chartDateFilter === 'period' && (
-                    <>
-                      <Input
-                        type="date"
-                        value={intervalStart}
-                        onChange={(e) => setIntervalStart(e.target.value)}
-                        className="w-32"
-                      />
-                      <span className="text-sm text-gray-500">—</span>
-                      <Input
-                        type="date"
-                        value={intervalEnd}
-                        onChange={(e) => setIntervalEnd(e.target.value)}
-                        className="w-32"
-                      />
-                    </>
-                  )}
-                </div>
+                <DateFilter
+                  value={chartDateFilter}
+                  onValueChange={setChartDateFilter}
+                  intervalStart={chartDateIntervalStart}
+                  intervalEnd={chartDateIntervalEnd}
+                  onIntervalChange={(start, end) => {
+                    setChartDateIntervalStart(start)
+                    setChartDateIntervalEnd(end)
+                  }}
+                  label="Период:"
+                  className="w-40"
+                />
               </div>
             </div>
           </CardHeader>
@@ -563,7 +545,7 @@ export default function ObzvoniMonitorPage() {
               {/* Область графика */}
               <div className="bg-gray-50 rounded-lg p-6">
                 <div className="relative h-64">
-                  {chartDateFilter === 'period' ? (
+                  {chartDateFilter === 'interval' ? (
                     /* Линейный график для периода */
                     <div className="absolute inset-0 flex flex-col">
                       {/* Сетка Y-оси */}

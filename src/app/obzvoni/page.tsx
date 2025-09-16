@@ -33,6 +33,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Input } from '@/components/ui/input'
+import { DateFilter } from '@/components/ui/date-filter'
 import { mockCampaigns } from '@/lib/mock-data'
 import { Campaign, CampaignState } from '@/lib/types'
 import { getStatusColor, getStatusText, calculatePercentage } from '@/lib/utils'
@@ -115,6 +116,8 @@ export default function ObzvoniPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterAgent, setFilterAgent] = useState<string>('all')
   const [filterDate, setFilterDate] = useState<string>('all')
+  const [filterDateIntervalStart, setFilterDateIntervalStart] = useState('')
+  const [filterDateIntervalEnd, setFilterDateIntervalEnd] = useState('')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -177,22 +180,30 @@ export default function ObzvoniPage() {
     
     const matchesDate = (() => {
       if (filterDate === 'all') return true
-      if (!campaign.startTime) return filterDate === 'not_started'
+      if (!campaign.startTime) return false
       
       const now = new Date()
-      const campaignDate = campaign.startTime
+      now.setHours(0, 0, 0, 0)
+      const campaignDate = new Date(campaign.startTime)
+      campaignDate.setHours(0, 0, 0, 0)
       
       switch (filterDate) {
         case 'today':
-          return campaignDate.toDateString() === now.toDateString()
+          return campaignDate.getTime() === now.getTime()
         case 'week':
-          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+          const weekAgo = new Date(now)
+          weekAgo.setDate(weekAgo.getDate() - 7)
           return campaignDate >= weekAgo
         case 'month':
-          const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+          const monthAgo = new Date(now)
+          monthAgo.setMonth(monthAgo.getMonth() - 1)
           return campaignDate >= monthAgo
-        case 'not_started':
-          return !campaign.startTime
+        case 'interval':
+          if (!filterDateIntervalStart || !filterDateIntervalEnd) return true
+          const start = new Date(filterDateIntervalStart)
+          const end = new Date(filterDateIntervalEnd)
+          end.setHours(23, 59, 59, 999)
+          return campaignDate >= start && campaignDate <= end
         default:
           return true
       }
@@ -343,19 +354,18 @@ export default function ObzvoniPage() {
               </Select>
 
               {/* Фильтр по дате */}
-              <Select value={filterDate} onValueChange={setFilterDate}>
-                <SelectTrigger>
-                  <Calendar className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Все периоды" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все периоды</SelectItem>
-                  <SelectItem value="today">Сегодня</SelectItem>
-                  <SelectItem value="week">За неделю</SelectItem>
-                  <SelectItem value="month">За месяц</SelectItem>
-                  <SelectItem value="not_started">Не запущены</SelectItem>
-                </SelectContent>
-              </Select>
+              <DateFilter
+                value={filterDate}
+                onValueChange={setFilterDate}
+                intervalStart={filterDateIntervalStart}
+                intervalEnd={filterDateIntervalEnd}
+                onIntervalChange={(start, end) => {
+                  setFilterDateIntervalStart(start)
+                  setFilterDateIntervalEnd(end)
+                }}
+                label=""
+                className="w-full"
+              />
 
               {/* Кнопка сброса фильтров */}
               <Button 
@@ -383,7 +393,14 @@ export default function ObzvoniPage() {
                   <Badge variant="outline">Агент: {filterAgent}</Badge>
                 )}
                 {filterDate !== 'all' && (
-                  <Badge variant="outline">Период: {filterDate}</Badge>
+                  <Badge variant="outline">
+                    Период: {filterDate === 'interval' && filterDateIntervalStart && filterDateIntervalEnd 
+                      ? `${new Date(filterDateIntervalStart).toLocaleDateString()} - ${new Date(filterDateIntervalEnd).toLocaleDateString()}`
+                      : filterDate === 'today' ? 'День'
+                      : filterDate === 'week' ? 'Неделя'
+                      : filterDate === 'month' ? 'Месяц'
+                      : filterDate}
+                  </Badge>
                 )}
                 {searchQuery !== '' && (
                   <Badge variant="outline">Поиск: &quot;{searchQuery}&quot;</Badge>

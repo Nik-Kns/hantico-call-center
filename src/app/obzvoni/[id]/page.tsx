@@ -39,6 +39,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
+import { DateFilter } from '@/components/ui/date-filter'
 import {
   Dialog,
   DialogContent,
@@ -258,6 +259,8 @@ export default function CompanyDetailsPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
   const [dateFilter, setDateFilter] = useState('today')
+  const [dateFilterIntervalStart, setDateFilterIntervalStart] = useState('')
+  const [dateFilterIntervalEnd, setDateFilterIntervalEnd] = useState('')
   const [searchFilter, setSearchFilter] = useState('')
   const [resultFilter, setResultFilter] = useState('all')
   const [showExportModal, setShowExportModal] = useState(false)
@@ -323,6 +326,13 @@ export default function CompanyDetailsPage() {
           const monthAgo = new Date(today)
           monthAgo.setMonth(monthAgo.getMonth() - 1)
           if (callDate < monthAgo) return false
+          break
+        case 'interval':
+          if (!dateFilterIntervalStart || !dateFilterIntervalEnd) return true
+          const start = new Date(dateFilterIntervalStart)
+          const end = new Date(dateFilterIntervalEnd)
+          end.setHours(23, 59, 59, 999)
+          if (callDate < start || callDate > end) return false
           break
       }
     }
@@ -1102,20 +1112,18 @@ export default function CompanyDetailsPage() {
           <div className="flex items-center justify-between">
             <CardTitle>Таблица звонков</CardTitle>
             <div className="flex items-center space-x-2">
-              <div className="flex items-center space-x-2">
-                <Label htmlFor="date-filter" className="text-sm">Период:</Label>
-                <Select value={dateFilter} onValueChange={setDateFilter}>
-                  <SelectTrigger id="date-filter" className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="today">Сегодня</SelectItem>
-                    <SelectItem value="week">Неделя</SelectItem>
-                    <SelectItem value="month">Месяц</SelectItem>
-                    <SelectItem value="all">Все время</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <DateFilter
+                value={dateFilter}
+                onValueChange={setDateFilter}
+                intervalStart={dateFilterIntervalStart}
+                intervalEnd={dateFilterIntervalEnd}
+                onIntervalChange={(start, end) => {
+                  setDateFilterIntervalStart(start)
+                  setDateFilterIntervalEnd(end)
+                }}
+                label="Период:"
+                className="w-40"
+              />
               
               <div className="flex items-center space-x-2">
                 <Label htmlFor="result-filter" className="text-sm">Статус:</Label>
