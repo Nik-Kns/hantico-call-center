@@ -343,8 +343,8 @@ export default function NewCompanyPage() {
   }
 
   useEffect(() => {
-    // Автоматическая проверка готовности при монтировании на 3 шаге и на резюме
-    if (currentStep === 3 || currentStep === 4) {
+    // Автоматическая проверка готовности при монтировании на резюме
+    if (currentStep === 4) {
       checkServiceReadiness()
     }
   }, [currentStep])
@@ -913,118 +913,6 @@ export default function NewCompanyPage() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Проверка готовности */}
-            {currentStep === 3 && (
-            <Card className="mt-6">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center">
-                    <CheckSquare className="h-5 w-5 mr-2" />
-                    Проверка готовности
-                  </CardTitle>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={checkServiceReadiness}
-                    disabled={isCheckingService}
-                  >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${isCheckingService ? 'animate-spin' : ''}`} />
-                    Проверить
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Проверка готовности сервиса */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Телефония */}
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className={`p-2 rounded-full ${form.telephonyOk ? 'bg-green-100' : 'bg-red-100'}`}>
-                        {form.telephonyOk ? (
-                          <CheckCircle className="h-5 w-5 text-green-600" />
-                        ) : (
-                          <XCircle className="h-5 w-5 text-red-600" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-medium">Телефония</p>
-                        <p className="text-sm text-gray-600">
-                          {form.telephonyOk ? 'Подключена' : 'Не настроена'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Баланс */}
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className={`p-2 rounded-full ${form.balanceOk ? 'bg-green-100' : 'bg-red-100'}`}>
-                        {form.balanceOk ? (
-                          <CheckCircle className="h-5 w-5 text-green-600" />
-                        ) : (
-                          <XCircle className="h-5 w-5 text-red-600" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-medium">Баланс</p>
-                        <p className="text-sm text-gray-600">
-                          {form.balanceOk ? '> 0 ₽' : 'Недостаточно средств'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* API/Интеграции */}
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className={`p-2 rounded-full ${form.serviceAvailable ? 'bg-green-100' : 'bg-yellow-100'}`}>
-                        {form.serviceAvailable ? (
-                          <CheckCircle className="h-5 w-5 text-green-600" />
-                        ) : (
-                          <AlertCircle className="h-5 w-5 text-yellow-600" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-medium">API/Интеграции</p>
-                        <p className="text-sm text-gray-600">
-                          {form.serviceAvailable ? 'Доступны' : 'Ограниченный доступ'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {!form.serviceReady && (
-                  <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <div className="flex items-start space-x-3">
-                      <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-yellow-900">Требуется внимание</p>
-                        <p className="text-sm text-yellow-700 mt-1">
-                          Некоторые компоненты системы не готовы. Проверьте настройки перед запуском.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {form.serviceReady && (
-                  <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
-                    <div className="flex items-start space-x-3">
-                      <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-green-900">Все системы готовы</p>
-                        <p className="text-sm text-green-700 mt-1">
-                          Сервис готов к запуску компании.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            )}
             </>
           )}
 
