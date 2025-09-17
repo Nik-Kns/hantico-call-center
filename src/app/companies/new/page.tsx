@@ -30,7 +30,8 @@ import {
   Edit,
   MessageSquare,
   Shield,
-  Volume2
+  Volume2,
+  UserCheck
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -458,8 +459,8 @@ export default function NewCompanyPage() {
   return (
     <>
       <div className="space-y-6">
-      {/* Заголовок */}
-      <div className="flex items-center justify-between">
+        {/* Заголовок */}
+        <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Button variant="outline" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -650,7 +651,6 @@ export default function NewCompanyPage() {
           {/* Шаг 3: Настройка Агента */}
           {currentStep === 3 && (
             <>
-            {/* Выбор агента и голоса */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -659,72 +659,91 @@ export default function NewCompanyPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Выбор агента */}
-                <div>
-                  <Label>Выберите агента *</Label>
-                  <Select value={form.agent} onValueChange={(value) => handleInputChange('agent', value)}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Выберите агента для звонков" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {mockAgents
-                        .map((agent) => (
-                          <SelectItem key={agent.id} value={agent.id}>
-                            <div>
-                              <div className="font-medium">{agent.name}</div>
-                              <div className="text-xs text-gray-500">{agent.description}</div>
-                            </div>
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  
-                  {/* Описание выбранного агента */}
-                  {form.agent && (
-                    <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-sm">{mockAgents.find(a => a.id === form.agent)?.name}</p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {mockAgents.find(a => a.id === form.agent)?.description}
-                          </p>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {}}
-                        >
-                          <Volume2 className="h-4 w-4 mr-1" />
-                          Прослушать
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+                {/* Переключатель режима кампании */}
+                <div className="space-y-4">
+                  <Label>Режим кампании</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleInputChange('isABTestEnabled', false)}
+                      className={`p-4 rounded-lg border-2 transition-all ${
+                        !form.isABTestEnabled 
+                          ? 'border-blue-500 bg-blue-50 text-blue-700' 
+                          : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                      }`}
+                    >
+                      <UserCheck className="h-5 w-5 mx-auto mb-2" />
+                      <div className="font-medium">1 кампания</div>
+                      <div className="text-xs mt-1">Один агент для всех звонков</div>
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={() => handleInputChange('isABTestEnabled', true)}
+                      className={`p-4 rounded-lg border-2 transition-all ${
+                        form.isABTestEnabled 
+                          ? 'border-teal-500 bg-teal-50 text-teal-700' 
+                          : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                      }`}
+                    >
+                      <FlaskConical className="h-5 w-5 mx-auto mb-2" />
+                      <div className="font-medium">А/Б тест</div>
+                      <div className="text-xs mt-1">Сравнение двух агентов</div>
+                    </button>
+                  </div>
                 </div>
 
                 <Separator />
                 
-                {/* A/B тестирование */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-2">
-                      <FlaskConical className="h-4 w-4 text-gray-600" />
-                      <Label 
-                        htmlFor="ab-test" 
-                        className="text-sm font-medium cursor-pointer"
-                      >
-                        A/B-тест
-                      </Label>
+                {/* Интерфейс для одной кампании */}
+                {!form.isABTestEnabled && (
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Выберите агента *</Label>
+                      <Select value={form.agent} onValueChange={(value) => handleInputChange('agent', value)}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Выберите агента для звонков" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {mockAgents
+                            .map((agent) => (
+                              <SelectItem key={agent.id} value={agent.id}>
+                                <div>
+                                  <div className="font-medium">{agent.name}</div>
+                                  <div className="text-xs text-gray-500">{agent.description}</div>
+                                </div>
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                      
+                      {/* Описание выбранного агента */}
+                      {form.agent && (
+                        <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium text-sm">{mockAgents.find(a => a.id === form.agent)?.name}</p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {mockAgents.find(a => a.id === form.agent)?.description}
+                              </p>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {}}
+                            >
+                              <Volume2 className="h-4 w-4 mr-1" />
+                              Прослушать
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <Switch
-                      id="ab-test"
-                      checked={form.isABTestEnabled}
-                      onCheckedChange={(checked) => handleInputChange('isABTestEnabled', checked)}
-                      className="data-[state=checked]:bg-[#17a2b8] data-[state=unchecked]:bg-gray-200"
-                    />
                   </div>
-                  
-                  {form.isABTestEnabled && (
+                )}
+                
+                {/* Интерфейс для A/B теста */}
+                {form.isABTestEnabled && (
                     <div className="space-y-4 p-4 bg-teal-50 border border-teal-200 rounded-lg">
                       <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -814,7 +833,6 @@ export default function NewCompanyPage() {
                       )}
                     </div>
                   )}
-                </div>
 
                 {/* Инлайн-тест агента */}
                 <Separator />
@@ -896,8 +914,8 @@ export default function NewCompanyPage() {
               </CardContent>
             </Card>
 
-
             {/* Проверка готовности */}
+            {currentStep === 3 && (
             <Card className="mt-6">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -1006,6 +1024,7 @@ export default function NewCompanyPage() {
                 )}
               </CardContent>
             </Card>
+            )}
             </>
           )}
 
@@ -1086,11 +1105,27 @@ export default function NewCompanyPage() {
                     <p className="font-medium text-lg">{form.name}</p>
                   </div>
 
+                  <div>
+                    <p className="text-sm text-gray-600">Режим кампании</p>
+                    <p className="font-medium flex items-center">
+                      {form.isABTestEnabled ? (
+                        <>
+                          <FlaskConical className="h-4 w-4 mr-2 text-teal-600" />
+                          А/Б тест
+                        </>
+                      ) : (
+                        <>
+                          <UserCheck className="h-4 w-4 mr-2 text-blue-600" />
+                          1 кампания
+                        </>
+                      )}
+                    </p>
+                  </div>
 
                   {form.isABTestEnabled ? (
                     <div>
-                      <p className="text-sm text-gray-600 mb-2">A/B тестирование</p>
-                      <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                      <p className="text-sm text-gray-600 mb-2">Агенты для тестирования</p>
+                      <div className="bg-teal-50 rounded-lg p-3 space-y-2">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <p className="text-xs text-gray-600">Агент A ({form.trafficSplit}%)</p>
@@ -1108,19 +1143,11 @@ export default function NewCompanyPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-600">Агент</p>
-                        <p className="font-medium">
-                          {mockAgents.find(a => a.id === form.agent)?.name || 'Не выбран'}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Голос</p>
-                        <p className="font-medium">
-                          {mockVoices.find(v => v.id === form.voice)?.name || 'Не выбран'}
-                        </p>
-                      </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Выбранный агент</p>
+                      <p className="font-medium">
+                        {mockAgents.find(a => a.id === form.agent)?.name || 'Не выбран'}
+                      </p>
                     </div>
                   )}
 
