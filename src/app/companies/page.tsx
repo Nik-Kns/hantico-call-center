@@ -58,7 +58,7 @@ interface ObzvonCampaign {
   totalNumbers: number
   calledNumbers: number
   successfulConnections: number
-  smsAgreements: number
+  transferredSuccessfully: number
   transfers: number
   retries: number
   startTime?: Date
@@ -91,7 +91,7 @@ const mockObzvonCampaigns: ObzvonCampaign[] = [
     totalNumbers: 1250,
     calledNumbers: 847,
     successfulConnections: 623,
-    smsAgreements: 445,
+    transferredSuccessfully: 445,
     transfers: 89,
     retries: 156,
     refusals: 178,
@@ -119,7 +119,7 @@ const mockObzvonCampaigns: ObzvonCampaign[] = [
     totalNumbers: 2100,
     calledNumbers: 456,
     successfulConnections: 298,
-    smsAgreements: 156,
+    transferredSuccessfully: 156,
     transfers: 34,
     retries: 89,
     refusals: 142,
@@ -143,7 +143,7 @@ const mockObzvonCampaigns: ObzvonCampaign[] = [
     totalNumbers: 850,
     calledNumbers: 0,
     successfulConnections: 0,
-    smsAgreements: 0,
+    transferredSuccessfully: 0,
     transfers: 0,
     retries: 0,
     refusals: 0,
@@ -165,7 +165,7 @@ const mockObzvonCampaigns: ObzvonCampaign[] = [
     totalNumbers: 1800,
     calledNumbers: 1245,
     successfulConnections: 856,
-    smsAgreements: 312,
+    transferredSuccessfully: 312,
     transfers: 156,
     retries: 389,
     refusals: 544,
@@ -182,16 +182,14 @@ export default function ObzvoniPage() {
   const [campaigns, setCampaigns] = useState<ObzvonCampaign[]>(mockObzvonCampaigns)
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterAgent, setFilterAgent] = useState<string>('all')
-  const [filterDate, setFilterDate] = useState<string>('all')
-  const [filterDateIntervalStart, setFilterDateIntervalStart] = useState<string>('')
-  const [filterDateIntervalEnd, setFilterDateIntervalEnd] = useState<string>('')
   const [filterBaseType, setFilterBaseType] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [searchIdQuery, setSearchIdQuery] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
-  const [decompositionPeriod, setDecompositionPeriod] = useState<string>('all')
-  const [decompositionIntervalStart, setDecompositionIntervalStart] = useState<string>('')
-  const [decompositionIntervalEnd, setDecompositionIntervalEnd] = useState<string>('')
+  // Единый период для всей страницы
+  const [globalPeriod, setGlobalPeriod] = useState<string>('all')
+  const [globalIntervalStart, setGlobalIntervalStart] = useState<string>('')
+  const [globalIntervalEnd, setGlobalIntervalEnd] = useState<string>('')
 
 
   // Статистика в реальном времени (только по активным кампаниям)
@@ -266,51 +264,19 @@ export default function ObzvoniPage() {
     const matchesId = searchIdQuery === '' || 
       campaign.id.toLowerCase().includes(searchIdQuery.toLowerCase())
     
-    const matchesDate = (() => {
-      if (filterDate === 'all') return true
-      if (!campaign.startTime) return false
-      
-      const now = new Date()
-      now.setHours(0, 0, 0, 0)
-      const campaignDate = new Date(campaign.startTime)
-      campaignDate.setHours(0, 0, 0, 0)
-      
-      switch (filterDate) {
-        case 'today':
-          return campaignDate.getTime() === now.getTime()
-        case 'week':
-          const weekAgo = new Date(now)
-          weekAgo.setDate(weekAgo.getDate() - 7)
-          return campaignDate >= weekAgo
-        case 'month':
-          const monthAgo = new Date(now)
-          monthAgo.setMonth(monthAgo.getMonth() - 1)
-          return campaignDate >= monthAgo
-        case 'interval':
-          if (!filterDateIntervalStart || !filterDateIntervalEnd) return true
-          const start = new Date(filterDateIntervalStart)
-          const end = new Date(filterDateIntervalEnd)
-          end.setHours(23, 59, 59, 999)
-          return campaignDate >= start && campaignDate <= end
-        default:
-          return true
-      }
-    })()
-
-    return matchesStatus && matchesAgent && matchesBaseType && matchesSearch && matchesId && matchesDate
+    return matchesStatus && matchesAgent && matchesBaseType && matchesSearch && matchesId
   })
 
-  // Вычисляем статистику на основе отфильтрованных кампаний с учетом периода декомпозиции
-  const getFilteredForDecomposition = () => {
-    return filteredCampaigns.filter(campaign => {
-      // Применяем только дополнительный фильтр по периоду декомпозиции
-      if (decompositionPeriod === 'all') return true
+  // Применяем глобальный период ко всем данным
+  const getFilteredByPeriod = (campaigns: ObzvonCampaign[]) => {
+    return campaigns.filter(campaign => {
+      if (globalPeriod === 'all') return true
       if (!campaign.startTime) return false
       
       const now = new Date()
       const campaignDate = campaign.startTime
       
-      switch (decompositionPeriod) {
+      switch (globalPeriod) {
         case 'today':
           const today = new Date()
           today.setHours(0, 0, 0, 0)
@@ -326,9 +292,9 @@ export default function ObzvoniPage() {
           monthAgo.setMonth(monthAgo.getMonth() - 1)
           return campaignDate >= monthAgo
         case 'interval':
-          if (!decompositionIntervalStart || !decompositionIntervalEnd) return true
-          const start = new Date(decompositionIntervalStart)
-          const end = new Date(decompositionIntervalEnd)
+          if (!globalIntervalStart || !globalIntervalEnd) return true
+          const start = new Date(globalIntervalStart)
+          const end = new Date(globalIntervalEnd)
           end.setHours(23, 59, 59, 999)
           return campaignDate >= start && campaignDate <= end
         default:
@@ -337,19 +303,19 @@ export default function ObzvoniPage() {
     })
   }
 
-  const filteredForDecomposition = getFilteredForDecomposition()
+  const filteredByPeriod = getFilteredByPeriod(filteredCampaigns)
   
-  // Подсчет статистики на основе отфильтрованных кампаний
-  const totalActive = filteredCampaigns.filter(c => c.status === 'active').length
-  const totalCalls = filteredForDecomposition.reduce((sum, c) => sum + c.calledNumbers, 0)
-  const totalSuccess = filteredForDecomposition.reduce((sum, c) => sum + c.successfulConnections, 0)
-  const totalSmsAgreements = filteredForDecomposition.reduce((sum, c) => sum + c.smsAgreements, 0)
-  const totalRefusals = filteredForDecomposition.reduce((sum, c) => sum + (c.refusals || 0), 0)
-  const totalNoAnswers = filteredForDecomposition.reduce((sum, c) => sum + (c.noAnswers || 0), 0)
-  const totalVoicemails = filteredForDecomposition.reduce((sum, c) => sum + (c.voicemails || 0), 0)
-  const totalBusy = filteredForDecomposition.reduce((sum, c) => sum + (c.busyNumbers || 0), 0)
-  const totalReceived = filteredForDecomposition.reduce((sum, c) => sum + c.totalNumbers, 0)
-  const totalInProgress = filteredForDecomposition.reduce((sum, c) => sum + (c.totalNumbers - c.calledNumbers), 0)
+  // Подсчет статистики на основе отфильтрованных кампаний С УЧЕТОМ ПЕРИОДА
+  const totalActive = filteredByPeriod.filter(c => c.status === 'active').length
+  const totalCalls = filteredByPeriod.reduce((sum, c) => sum + c.calledNumbers, 0)
+  const totalSuccess = filteredByPeriod.reduce((sum, c) => sum + c.successfulConnections, 0)
+  const totalTransferredSuccessfully = filteredByPeriod.reduce((sum, c) => sum + c.transferredSuccessfully, 0)
+  const totalRefusals = filteredByPeriod.reduce((sum, c) => sum + (c.refusals || 0), 0)
+  const totalNoAnswers = filteredByPeriod.reduce((sum, c) => sum + (c.noAnswers || 0), 0)
+  const totalVoicemails = filteredByPeriod.reduce((sum, c) => sum + (c.voicemails || 0), 0)
+  const totalBusy = filteredByPeriod.reduce((sum, c) => sum + (c.busyNumbers || 0), 0)
+  const totalReceived = filteredByPeriod.reduce((sum, c) => sum + c.totalNumbers, 0)
+  const totalInProgress = filteredByPeriod.reduce((sum, c) => sum + (c.totalNumbers - c.calledNumbers), 0)
 
   return (
     <div className="space-y-6">
@@ -447,8 +413,8 @@ export default function ObzvoniPage() {
                 <UserCheck className="h-6 w-6 text-yellow-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Согласия SMS</p>
-                <p className="text-2xl font-bold text-gray-900">{totalSmsAgreements.toLocaleString()}</p>
+                <p className="text-sm font-medium text-gray-600">Передано успешно</p>
+                <p className="text-2xl font-bold text-gray-900">{totalTransferredSuccessfully.toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
@@ -456,27 +422,28 @@ export default function ObzvoniPage() {
       </div>
 
       {/* Декомпозиция обработанных контактов по исходам */}
-      {filteredForDecomposition.length > 0 && (
+      {filteredByPeriod.length > 0 && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>Декомпозиция обработанных контактов по исходам</CardTitle>
                 <p className="text-sm text-gray-600 mt-1">
-                  Статистика по {filteredForDecomposition.length} кампаний (с учетом всех фильтров). Всего обработано: {totalCalls.toLocaleString()} контактов
+                  Статистика по {filteredByPeriod.length} кампаний (с учетом всех фильтров). Всего обработано: {totalCalls.toLocaleString()} контактов
                 </p>
               </div>
-              <Select value={decompositionPeriod} onValueChange={setDecompositionPeriod}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Период" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все время</SelectItem>
-                  <SelectItem value="today">Сегодня</SelectItem>
-                  <SelectItem value="week">За неделю</SelectItem>
-                  <SelectItem value="month">За месяц</SelectItem>
-                </SelectContent>
-              </Select>
+              <DateFilter
+                value={globalPeriod}
+                onValueChange={setGlobalPeriod}
+                intervalStart={globalIntervalStart}
+                intervalEnd={globalIntervalEnd}
+                onIntervalChange={(start, end) => {
+                  setGlobalIntervalStart(start)
+                  setGlobalIntervalEnd(end)
+                }}
+                label=""
+                className="w-[180px]"
+              />
             </div>
           </CardHeader>
           <CardContent>
@@ -484,14 +451,14 @@ export default function ObzvoniPage() {
               <div className="p-4 bg-green-50 rounded-lg border border-green-200">
                 <div className="flex items-center justify-between mb-2">
                   <MessageSquare className="h-5 w-5 text-green-600" />
-                  <Badge className="bg-green-100 text-green-800">SMS</Badge>
+                  <Badge className="bg-green-100 text-green-800">Передано</Badge>
                 </div>
                 <p className="text-2xl font-bold text-green-600">
-                  {totalSmsAgreements.toLocaleString()}
+                  {totalTransferredSuccessfully.toLocaleString()}
                 </p>
-                <p className="text-sm text-gray-600">Успешные/согласие</p>
+                <p className="text-sm text-gray-600">Успешные/передано</p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {totalCalls > 0 ? Math.round((totalSmsAgreements / totalCalls) * 100) : 0}% от обработанных
+                  {totalCalls > 0 ? Math.round((totalTransferredSuccessfully / totalCalls) * 100) : 0}% от обработанных
                 </p>
               </div>
 
@@ -553,7 +520,7 @@ export default function ObzvoniPage() {
                 <div className="text-sm text-gray-600">
                   <span className="font-medium">Общая конверсия:</span>
                   <span className="ml-2 text-lg font-bold text-green-600">
-                    {totalCalls > 0 ? ((totalSmsAgreements / totalCalls) * 100).toFixed(1) : 0}%
+                    {totalCalls > 0 ? ((totalTransferredSuccessfully / totalCalls) * 100).toFixed(1) : 0}%
                   </span>
                 </div>
                 <div className="text-sm text-gray-600">
@@ -568,42 +535,43 @@ export default function ObzvoniPage() {
         </Card>
       )}
 
-      {/* Фильтры и поиск */}
+      {/* Фильтры в линию */}
       <Card>
-        <CardContent className="p-6">
-          <div className="flex flex-col space-y-4">
-            <div className="flex items-center space-x-2">
-              <Filter className="h-4 w-4 text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">Фильтры и поиск:</span>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-3">
-              {/* Поиск */}
-              <div className="relative">
+        <CardContent className="p-4">
+          <div className="flex flex-col space-y-3">
+            <div className="flex items-center space-x-3">
+              {/* Поиск по названию/ID */}
+              <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Поиск по названию..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              
-              {/* Поиск по ID */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Поиск по ID..."
-                  value={searchIdQuery}
-                  onChange={(e) => setSearchIdQuery(e.target.value)}
-                  className="pl-10"
+                  placeholder="Поиск по названию или ID..."
+                  value={searchQuery || searchIdQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value)
+                    setSearchIdQuery(e.target.value)
+                  }}
+                  className="pl-10 h-9"
                 />
               </div>
 
+              {/* Фильтр периода (глобальный) */}
+              <DateFilter
+                value={globalPeriod}
+                onValueChange={setGlobalPeriod}
+                intervalStart={globalIntervalStart}
+                intervalEnd={globalIntervalEnd}
+                onIntervalChange={(start, end) => {
+                  setGlobalIntervalStart(start)
+                  setGlobalIntervalEnd(end)
+                }}
+                label=""
+                className="w-[160px]"
+              />
+
               {/* Фильтр по статусу */}
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Все статусы" />
+                <SelectTrigger className="w-[150px] h-9">
+                  <SelectValue placeholder="Статус" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Все статусы</SelectItem>
@@ -616,101 +584,85 @@ export default function ObzvoniPage() {
 
               {/* Фильтр по агенту */}
               <Select value={filterAgent} onValueChange={setFilterAgent}>
-                <SelectTrigger>
-                  <User className="h-4 w-4 mr-1" />
-                  <SelectValue placeholder="Агенты" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все агенты</SelectItem>
-                  {uniqueAgents.map((agent) => (
-                    <SelectItem key={agent} value={agent}>
-                      {agent}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <SelectTrigger className="w-[180px] h-9">
+                  <SelectValue placeholder="Агент" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все агенты</SelectItem>
+                {uniqueAgents.map((agent) => (
+                  <SelectItem key={agent} value={agent}>
+                    {agent}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-              {/* Фильтр по типу базы */}
-              <Select value={filterBaseType} onValueChange={setFilterBaseType}>
-                <SelectTrigger>
-                  <Users className="h-4 w-4 mr-1" />
-                  <SelectValue placeholder="Тип базы" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все типы</SelectItem>
-                  <SelectItem value="registration">Регистрация</SelectItem>
-                  <SelectItem value="no_answer">Недозвон</SelectItem>
-                  <SelectItem value="refusals">Отказники</SelectItem>
-                  <SelectItem value="reactivation">Реактивация</SelectItem>
-                </SelectContent>
-              </Select>
+            {/* Фильтр по типу базы */}
+            <Select value={filterBaseType} onValueChange={setFilterBaseType}>
+              <SelectTrigger className="w-[150px] h-9">
+                <SelectValue placeholder="Тип базы" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все типы</SelectItem>
+                <SelectItem value="registration">Регистрация</SelectItem>
+                <SelectItem value="no_answer">Недозвон</SelectItem>
+                <SelectItem value="refusals">Отказники</SelectItem>
+                <SelectItem value="reactivation">Реактивация</SelectItem>
+              </SelectContent>
+            </Select>
 
-              {/* Фильтр по дате */}
-              <DateFilter
-                value={filterDate}
-                onValueChange={setFilterDate}
-                intervalStart={filterDateIntervalStart}
-                intervalEnd={filterDateIntervalEnd}
-                onIntervalChange={(start, end) => {
-                  setFilterDateIntervalStart(start)
-                  setFilterDateIntervalEnd(end)
-                }}
-                label=""
-                className="w-full"
-              />
-
-              {/* Кнопка сброса фильтров */}
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setFilterStatus('all')
-                  setFilterAgent('all')
-                  setFilterDate('all')
-                  setFilterBaseType('all')
-                  setSearchQuery('')
-                  setSearchIdQuery('')
-                }}
-                className="whitespace-nowrap"
-              >
-                Сбросить
-              </Button>
-            </div>
-
-            {/* Индикатор активных фильтров */}
-            {(filterStatus !== 'all' || filterAgent !== 'all' || filterDate !== 'all' || filterBaseType !== 'all' || searchQuery !== '' || searchIdQuery !== '') && (
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <span>Активные фильтры:</span>
-                {filterStatus !== 'all' && (
-                  <Badge variant="outline">Статус: {filterStatus}</Badge>
-                )}
-                {filterAgent !== 'all' && (
-                  <Badge variant="outline">Агент: {filterAgent}</Badge>
-                )}
-                {filterBaseType !== 'all' && (
-                  <Badge variant="outline">Тип базы: {filterBaseType}</Badge>
-                )}
-                {filterDate !== 'all' && (
-                  <Badge variant="outline">
-                    Период: {filterDate === 'interval' && filterDateIntervalStart && filterDateIntervalEnd 
-                      ? `${new Date(filterDateIntervalStart).toLocaleDateString()} - ${new Date(filterDateIntervalEnd).toLocaleDateString()}`
-                      : filterDate === 'today' ? 'День'
-                      : filterDate === 'week' ? 'Неделя'
-                      : filterDate === 'month' ? 'Месяц'
-                      : filterDate}
-                  </Badge>
-                )}
-                {searchQuery !== '' && (
-                  <Badge variant="outline">Поиск: &quot;{searchQuery}&quot;</Badge>
-                )}
-                {searchIdQuery !== '' && (
-                  <Badge variant="outline">ID: &quot;{searchIdQuery}&quot;</Badge>
-                )}
-                <span className="text-gray-500">
-                  Показано: {filteredCampaigns.length} из {campaigns.length}
-                </span>
-              </div>
-            )}
+            {/* Кнопка сброса фильтров */}
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                setFilterStatus('all')
+                setFilterAgent('all')
+                setFilterBaseType('all')
+                setSearchQuery('')
+                setSearchIdQuery('')
+                setGlobalPeriod('all')
+                setGlobalIntervalStart('')
+                setGlobalIntervalEnd('')
+              }}
+              className="whitespace-nowrap"
+            >
+              Сбросить
+            </Button>
           </div>
+
+          {/* Индикатор активных фильтров */}
+          {(filterStatus !== 'all' || filterAgent !== 'all' || filterBaseType !== 'all' || searchQuery !== '' || searchIdQuery !== '' || globalPeriod !== 'all') && (
+            <div className="flex items-center space-x-2 text-sm text-gray-600">
+              <span>Активные фильтры:</span>
+              {filterStatus !== 'all' && (
+                <Badge variant="outline">Статус: {filterStatus}</Badge>
+              )}
+              {filterAgent !== 'all' && (
+                <Badge variant="outline">Агент: {filterAgent}</Badge>
+              )}
+              {filterBaseType !== 'all' && (
+                <Badge variant="outline">Тип базы: {filterBaseType}</Badge>
+              )}
+              {globalPeriod !== 'all' && (
+                <Badge variant="outline">
+                  Период: {globalPeriod === 'interval' && globalIntervalStart && globalIntervalEnd 
+                    ? `${new Date(globalIntervalStart).toLocaleDateString()} - ${new Date(globalIntervalEnd).toLocaleDateString()}`
+                    : globalPeriod === 'today' ? 'День'
+                    : globalPeriod === 'week' ? 'Неделя'
+                    : globalPeriod === 'month' ? 'Месяц'
+                    : globalPeriod}
+                </Badge>
+              )}
+              {searchQuery !== '' && (
+                <Badge variant="outline">Поиск: &quot;{searchQuery}&quot;</Badge>
+              )}
+              <span className="text-gray-500">
+                Показано: {filteredCampaigns.length} из {campaigns.length}
+              </span>
+            </div>
+          )}
+        </div>
         </CardContent>
       </Card>
 
@@ -1077,7 +1029,7 @@ export default function ObzvoniPage() {
                       agent: 'Михаил', 
                       datetime: '15.09.2025 14:20', 
                       duration: 360,
-                      tags: ['Успех', 'SMS согласие'],
+                      tags: ['Успех', 'Передано успешно'],
                       transcription: 'Доступна',
                       audioUrl: '#'
                     },
@@ -1119,7 +1071,7 @@ export default function ObzvoniPage() {
                               key={idx} 
                               variant="outline" 
                               className={
-                                tag === 'Успех' || tag === 'SMS согласие' ? 'text-green-700 border-green-300' :
+                                tag === 'Успех' || tag === 'Передано успешно' ? 'text-green-700 border-green-300' :
                                 tag === 'Отказ' ? 'text-red-700 border-red-300' :
                                 tag === 'Автоответчик' ? 'text-purple-700 border-purple-300' :
                                 'text-gray-700 border-gray-300'

@@ -49,7 +49,7 @@ interface ObzvonCampaign {
   totalNumbers: number
   calledNumbers: number
   successfulConnections: number
-  smsAgreements: number
+  transferredSuccessfully: number
   transfers: number
   retries: number
   startTime?: Date
@@ -69,7 +69,7 @@ const mockObzvonCampaigns: ObzvonCampaign[] = [
     totalNumbers: 1250,
     calledNumbers: 847,
     successfulConnections: 623,
-    smsAgreements: 445,
+    transferredSuccessfully: 445,
     transfers: 89,
     retries: 156,
     startTime: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 часа назад
@@ -86,7 +86,7 @@ const mockObzvonCampaigns: ObzvonCampaign[] = [
     totalNumbers: 2100,
     calledNumbers: 456,
     successfulConnections: 298,
-    smsAgreements: 156,
+    transferredSuccessfully: 156,
     transfers: 34,
     retries: 89,
     startTime: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 часов назад
@@ -103,7 +103,7 @@ const mockObzvonCampaigns: ObzvonCampaign[] = [
     totalNumbers: 850,
     calledNumbers: 0,
     successfulConnections: 0,
-    smsAgreements: 0,
+    transferredSuccessfully: 0,
     transfers: 0,
     retries: 0,
     progress: 0
@@ -125,7 +125,7 @@ export default function ObzvoniPage() {
   const totalActive = campaigns.filter(c => c.status === 'active').length
   const totalCalls = campaigns.reduce((sum, c) => sum + c.calledNumbers, 0)
   const totalSuccess = campaigns.reduce((sum, c) => sum + c.successfulConnections, 0)
-  const totalSmsAgreements = campaigns.reduce((sum, c) => sum + c.smsAgreements, 0)
+  const totalTransferredSuccessfully = campaigns.reduce((sum, c) => sum + c.transferredSuccessfully, 0)
 
   const handleRefresh = async () => {
     setIsLoading(true)
@@ -294,8 +294,8 @@ export default function ObzvoniPage() {
                 <Users className="h-6 w-6 text-orange-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Согласия на SMS</p>
-                <p className="text-2xl font-bold text-gray-900">{totalSmsAgreements.toLocaleString()}</p>
+                <p className="text-sm font-medium text-gray-600">Передано успешно</p>
+                <p className="text-2xl font-bold text-gray-900">{totalTransferredSuccessfully.toLocaleString()}</p>
               </div>
             </div>
           </CardContent>

@@ -62,7 +62,7 @@ interface CompanyDetails {
   totalProcessed: number  // Сколько обработано
   totalInProgress: number  // Сколько в работе
   // Декомпозиция обработанных
-  successfulConsent: number  // Успешные/согласие (SMS)
+  successfulTransferred: number  // Успешно передано
   refusals: number  // Отказы
   noAnswers: number  // Недозвоны
   voicemails: number  // Автоответчики (человек)
@@ -80,7 +80,7 @@ interface CallRecord {
   result: 'success' | 'refused' | 'no_answer' | 'voicemail' | 'robot_voicemail' | 'busy'
   category: string  // Категория результата
   duration: number
-  hasSms: boolean
+  hasTransferred: boolean
   hasLinkClick: boolean
   hasRegistration: boolean
   transferredToErp: boolean  // Флаг "передано в ERP/B24"
@@ -102,7 +102,7 @@ const mockCompanyDetails: { [key: string]: CompanyDetails } = {
     totalReceived: 2500,
     totalProcessed: 1847,
     totalInProgress: 653,
-    successfulConsent: 1234,
+    successfulTransferred: 1234,
     refusals: 312,
     noAnswers: 189,
     voicemails: 71,
@@ -122,7 +122,7 @@ const mockCompanyDetails: { [key: string]: CompanyDetails } = {
     totalReceived: 1800,
     totalProcessed: 456,
     totalInProgress: 1344,
-    successfulConsent: 234,
+    successfulTransferred: 234,
     refusals: 89,
     noAnswers: 78,
     voicemails: 35,
@@ -142,7 +142,7 @@ const mockCompanyDetails: { [key: string]: CompanyDetails } = {
     totalReceived: 850,
     totalProcessed: 850,
     totalInProgress: 0,
-    successfulConsent: 445,
+    successfulTransferred: 445,
     refusals: 178,
     noAnswers: 156,
     voicemails: 51,
@@ -160,9 +160,9 @@ const mockCallRecords: CallRecord[] = [
     leadId: 'LEAD-001234',
     dateTime: new Date(Date.now() - 2 * 60 * 60 * 1000),
     result: 'success',
-    category: 'Согласие',
+    category: 'Передано успешно',
     duration: 245,
-    hasSms: true,
+    hasTransferred: true,
     hasLinkClick: true,
     hasRegistration: true,
     transferredToErp: true,
@@ -177,7 +177,7 @@ const mockCallRecords: CallRecord[] = [
     result: 'refused',
     category: 'Отказ',
     duration: 89,
-    hasSms: false,
+    hasTransferred: false,
     hasLinkClick: false,
     hasRegistration: false,
     transferredToErp: false,
@@ -192,7 +192,7 @@ const mockCallRecords: CallRecord[] = [
     result: 'voicemail',
     category: 'Автоответчик',
     duration: 15,
-    hasSms: false,
+    hasTransferred: false,
     hasLinkClick: false,
     hasRegistration: false,
     transferredToErp: false,
@@ -207,7 +207,7 @@ const mockCallRecords: CallRecord[] = [
     result: 'robot_voicemail',
     category: 'Робот-автоответчик',
     duration: 5,
-    hasSms: false,
+    hasTransferred: false,
     hasLinkClick: false,
     hasRegistration: false,
     transferredToErp: false,
@@ -222,7 +222,7 @@ const mockCallRecords: CallRecord[] = [
     result: 'no_answer',
     category: 'Недозвон',
     duration: 0,
-    hasSms: false,
+    hasTransferred: false,
     hasLinkClick: false,
     hasRegistration: false,
     transferredToErp: false,
@@ -235,9 +235,9 @@ const mockCallRecords: CallRecord[] = [
     leadId: 'LEAD-006789',
     dateTime: new Date(Date.now() - 6 * 60 * 60 * 1000),
     result: 'success',
-    category: 'Согласие',
+    category: 'Передано успешно',
     duration: 312,
-    hasSms: true,
+    hasTransferred: true,
     hasLinkClick: false,
     hasRegistration: false,
     transferredToErp: true,
@@ -346,9 +346,9 @@ export default function CompanyDetailsPage() {
     })
 
     // Создаем CSV строку БЕЗ номеров телефонов
-    const csvHeader = 'lead_id,call_id,datetime,result,category,duration_seconds,has_sms,has_link_click,has_registration,transferred_to_erp\n'
+    const csvHeader = 'lead_id,call_id,datetime,result,category,duration_seconds,has_transferred,has_link_click,has_registration,transferred_to_erp\n'
     const csvRows = filteredData.map(call => 
-      `${call.leadId},${call.id},${call.dateTime.toISOString()},${call.result},${call.category},${call.duration},${call.hasSms},${call.hasLinkClick},${call.hasRegistration},${call.transferredToErp}`
+      `${call.leadId},${call.id},${call.dateTime.toISOString()},${call.result},${call.category},${call.duration},${call.hasTransferred},${call.hasLinkClick},${call.hasRegistration},${call.transferredToErp}`
     ).join('\n')
     
     const csvContent = csvHeader + csvRows
@@ -616,10 +616,10 @@ export default function CompanyDetailsPage() {
                    'Реактивации'}
                 </p>
                 <p className="text-2xl font-bold text-green-600">
-                  {company.successfulConsent.toLocaleString()}
+                  {company.successfulTransferred.toLocaleString()}
                 </p>
                 <p className="text-xs text-gray-500">
-                  {Math.round((company.successfulConsent / company.totalProcessed) * 100)}% конверсия
+                  {Math.round((company.successfulTransferred / company.totalProcessed) * 100)}% конверсия
                 </p>
               </div>
               <UserCheck className="h-8 w-8 text-green-600 opacity-20" />
@@ -909,8 +909,8 @@ export default function CompanyDetailsPage() {
             <div className="mt-4 p-3 bg-blue-50 rounded-lg">
               <p className="text-sm text-blue-900 font-medium">A/B тест активен</p>
               <p className="text-xs text-blue-700 mt-1">
-                Агент A: конверсия {company.successfulConsent ? Math.round((company.successfulConsent / company.totalProcessed) * 100 * 0.95) : 0}% | 
-                Агент B: конверсия {company.successfulConsent ? Math.round((company.successfulConsent / company.totalProcessed) * 100 * 1.05) : 0}%
+                Агент A: конверсия {company.successfulTransferred ? Math.round((company.successfulTransferred / company.totalProcessed) * 100 * 0.95) : 0}% | 
+                Агент B: конверсия {company.successfulTransferred ? Math.round((company.successfulTransferred / company.totalProcessed) * 100 * 1.05) : 0}%
               </p>
             </div>
           )}
@@ -946,20 +946,20 @@ export default function CompanyDetailsPage() {
             <div className="p-4 bg-green-50 rounded-lg border border-green-200">
               <div className="flex items-center justify-between mb-2">
                 <MessageSquare className="h-5 w-5 text-green-600" />
-                <Badge className="bg-green-100 text-green-800">SMS</Badge>
+                <Badge className="bg-green-100 text-green-800">Передано</Badge>
               </div>
               <p className="text-2xl font-bold text-green-600">
-                {company.successfulConsent.toLocaleString()}
+                {company.successfulTransferred.toLocaleString()}
               </p>
-              <p className="text-sm text-gray-600">Успешные/согласие</p>
+              <p className="text-sm text-gray-600">Успешно передано</p>
               <p className="text-xs text-gray-500 mt-1">
-                {Math.round((company.successfulConsent / company.totalProcessed) * 100)}% от обработанных
+                {Math.round((company.successfulTransferred / company.totalProcessed) * 100)}% от обработанных
               </p>
               {isAbTest && (
                 <div className="mt-3 pt-3 border-t border-green-200">
                   <div className="flex justify-between text-xs">
-                    <span className="text-green-700">A: {Math.round(company.successfulConsent * 0.48).toLocaleString()}</span>
-                    <span className="text-orange-700">B: {Math.round(company.successfulConsent * 0.52).toLocaleString()}</span>
+                    <span className="text-green-700">A: {Math.round(company.successfulTransferred * 0.48).toLocaleString()}</span>
+                    <span className="text-orange-700">B: {Math.round(company.successfulTransferred * 0.52).toLocaleString()}</span>
                   </div>
                 </div>
               )}
@@ -1079,7 +1079,7 @@ export default function CompanyDetailsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Все результаты</SelectItem>
-                    <SelectItem value="success">Согласие</SelectItem>
+                    <SelectItem value="success">Передано успешно</SelectItem>
                     <SelectItem value="refused">Отказ</SelectItem>
                     <SelectItem value="no_answer">Недозвон</SelectItem>
                     <SelectItem value="voicemail">Автоответчик</SelectItem>
@@ -1196,11 +1196,11 @@ export default function CompanyDetailsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center space-x-1">
-                        {call.hasSms && (
+                        {call.hasTransferred && (
                           <div className="group relative">
                             <MessageSquare className="h-4 w-4 text-blue-600" />
                             <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                              SMS отправлено
+                              Успешно передано
                             </span>
                           </div>
                         )}

@@ -311,88 +311,66 @@ export default function AgentsPage() {
         </Card>
       </div>
 
-      {/* Фильтры */}
+      {/* Фильтры в линию */}
       <Card>
-        <CardContent className="p-6">
-          <div className="flex flex-col space-y-4">
-            {/* Переключатель статусов */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Filter className="h-4 w-4 text-gray-500" />
-                <span className="text-sm font-medium text-gray-700">Фильтр по статусу:</span>
-              </div>
-              <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
-                <Button
-                  size="sm"
-                  variant={filterStatus === 'all' ? 'default' : 'ghost'}
-                  onClick={() => setFilterStatus('all')}
-                  className={filterStatus === 'all' ? '' : 'hover:bg-white'}
-                >
-                  Все
-                </Button>
-                <Button
-                  size="sm"
-                  variant={filterStatus === 'active' ? 'default' : 'ghost'}
-                  onClick={() => setFilterStatus('active')}
-                  className={filterStatus === 'active' ? 'bg-green-600 hover:bg-green-700' : 'hover:bg-white'}
-                >
-                  Активные
-                </Button>
-                <Button
-                  size="sm"
-                  variant={filterStatus === 'inactive' ? 'default' : 'ghost'}
-                  onClick={() => setFilterStatus('inactive')}
-                  className={filterStatus === 'inactive' ? 'bg-yellow-600 hover:bg-yellow-700' : 'hover:bg-white'}
-                >
-                  Черновики
-                </Button>
-                <Button
-                  size="sm"
-                  variant={filterStatus === 'archived' ? 'default' : 'ghost'}
-                  onClick={() => setFilterStatus('archived')}
-                  className={filterStatus === 'archived' ? 'bg-purple-600 hover:bg-purple-700' : 'hover:bg-white'}
-                >
-                  Архив
-                </Button>
-              </div>
+        <CardContent className="p-4">
+          <div className="flex items-center space-x-3">
+            {/* Поиск по названию */}
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Поиск по названию..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 h-9"
+              />
             </div>
-            
-            {/* Дополнительные фильтры и поиск */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="relative md:col-span-2">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Поиск по названию или описанию..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
 
-              <Select value={filterRole} onValueChange={setFilterRole}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Роль" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все роли</SelectItem>
-                  <SelectItem value="registration_agent">Регистрация</SelectItem>
-                  <SelectItem value="reactivation_agent">Реактивация</SelectItem>
-                  <SelectItem value="cold_calling_agent">Холодные звонки</SelectItem>
-                </SelectContent>
-              </Select>
+            {/* Роль агента */}
+            <Select value={filterRole} onValueChange={setFilterRole}>
+              <SelectTrigger className="w-[180px] h-9">
+                <SelectValue placeholder="Роль агента" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все роли</SelectItem>
+                <SelectItem value="registration_agent">Регистрация</SelectItem>
+                <SelectItem value="reactivation_agent">Реактивация</SelectItem>
+                <SelectItem value="cold_calling_agent">Холодные звонки</SelectItem>
+                <SelectItem value="support_agent">Поддержка</SelectItem>
+                <SelectItem value="sales_agent">Продажи</SelectItem>
+              </SelectContent>
+            </Select>
 
+            {/* Статус */}
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-[150px] h-9">
+                <SelectValue placeholder="Статус" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все статусы</SelectItem>
+                <SelectItem value="active">Активные</SelectItem>
+                <SelectItem value="inactive">Черновики</SelectItem>
+                <SelectItem value="archived">Архив</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Кнопка сброса */}
+            {(searchQuery || filterRole !== 'all' || filterStatus !== 'all') && (
               <Button 
-                variant="outline" 
+                variant="ghost"
+                size="sm" 
                 onClick={() => {
                   setSearchQuery('')
                   setFilterStatus('all')
                   setFilterRole('all')
                   setFilterBaseType('all')
                 }}
+                className="h-9"
               >
+                <XCircle className="h-4 w-4 mr-1" />
                 Сбросить
               </Button>
-            </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -411,19 +389,19 @@ export default function AgentsPage() {
                     Название
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Подзаголовок
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Описание
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Голос
+                    Где используется
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Статус
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Используется в кампаниях
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Действия
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Быстрые действия
                   </th>
                 </tr>
               </thead>
@@ -441,21 +419,47 @@ export default function AgentsPage() {
                       </div>
                     </td>
                     
-                    {/* Описание */}
+                    {/* Подзаголовок (роль) */}
+                    <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      <div className="text-sm text-gray-600">
+                        {getRoleName(agent.role)}
+                      </div>
+                    </td>
+                    
+                    {/* Описание (короткое) */}
                     <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-gray-500 max-w-xs truncate">
                         {agent.description}
                       </div>
                     </td>
                     
-                    {/* Голос */}
-                    <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center">
-                        <Volume2 className="h-4 w-4 text-gray-400 mr-2" />
-                        <span className="text-sm text-gray-900">
-                          {getVoiceName(agent.voiceId)}
-                        </span>
-                      </div>
+                    {/* Где используется (ID компаний) */}
+                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                      {agent.campaignsDetails && agent.campaignsDetails.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {agent.campaignsDetails.slice(0, 3).map((campaign: any) => (
+                            <Badge 
+                              key={campaign.id} 
+                              variant="outline" 
+                              className="text-xs cursor-pointer hover:bg-gray-50"
+                              onClick={() => router.push(`/companies/${campaign.id}`)}
+                            >
+                              {campaign.id}
+                            </Badge>
+                          ))}
+                          {agent.campaignsDetails.length > 3 && (
+                            <Badge 
+                              variant="outline" 
+                              className="text-xs cursor-pointer hover:bg-blue-50"
+                              onClick={() => handleShowCampaigns(agent)}
+                            >
+                              +{agent.campaignsDetails.length - 3}
+                            </Badge>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400">—</span>
+                      )}
                     </td>
                     
                     {/* Статус */}
@@ -463,58 +467,48 @@ export default function AgentsPage() {
                       {getStatusBadge(agent.status)}
                     </td>
                     
-                    {/* Используется в кампаниях */}
-                    <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                      {agent.campaignsDetails && agent.campaignsDetails.length > 0 ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleShowCampaigns(agent)}
-                          className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                        >
-                          <Building2 className="h-4 w-4 mr-1" />
-                          {agent.campaignsDetails!.length} {agent.campaignsDetails!.length === 1 ? 'кампания' : 'кампаний'}
-                          <ChevronRight className="h-3 w-3 ml-1" />
-                        </Button>
-                      ) : (
-                        <span className="text-sm text-gray-400">Не используется</span>
-                      )}
-                    </td>
-                    
-                    {/* Действия */}
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center space-x-1">
-                        {/* Протестировать */}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleTestAgent(agent.id)}
-                          title="Протестировать"
-                          className="hover:bg-blue-50"
-                        >
-                          <Phone className="h-4 w-4 text-blue-600" />
-                        </Button>
+                    {/* Быстрые действия */}
+                    <td className="px-6 py-4 whitespace-nowrap text-center" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-center space-x-1">
+                        {/* Протестировать - с подменю */}
+                        <div className="relative group">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            title="Протестировать"
+                            className="hover:bg-blue-50"
+                          >
+                            <Phone className="h-4 w-4 text-blue-600" />
+                          </Button>
+                          <div className="absolute top-8 left-0 hidden group-hover:block z-10">
+                            <div className="bg-white border rounded-lg shadow-lg p-1 min-w-[160px]">
+                              <button
+                                onClick={() => handleTestAgent(agent.id)}
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded flex items-center space-x-2"
+                              >
+                                <Volume2 className="h-4 w-4" />
+                                <span>Прослушать голос</span>
+                              </button>
+                              <button
+                                onClick={() => handleTestAgent(agent.id)}
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded flex items-center space-x-2"
+                              >
+                                <Phone className="h-4 w-4" />
+                                <span>Звонок в браузер</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                         
-                        {/* Копировать */}
+                        {/* Скопировать */}
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => handleCopyAgent(agent)}
-                          title="Копировать"
+                          title="Скопировать"
                           className="hover:bg-green-50"
                         >
                           <Copy className="h-4 w-4 text-green-600" />
-                        </Button>
-                        
-                        {/* Архивировать/Активировать */}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleArchiveAgent(agent)}
-                          title={agent.status === 'archived' ? 'Активировать' : 'Архивировать'}
-                          className="hover:bg-yellow-50"
-                        >
-                          <Archive className={`h-4 w-4 ${agent.status === 'archived' ? 'text-green-600' : 'text-yellow-600'}`} />
                         </Button>
                         
                         {/* Удалить */}

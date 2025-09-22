@@ -423,13 +423,13 @@ export default function NewCompanyPage() {
       case 1:
         return form.name.trim() !== ''
       case 2:
-        return form.callWindow.start !== '' && form.callWindow.end !== ''
+        return form.callWindow.start !== '' && form.callWindow.end !== '' && form.outgoingNumber !== ''
       case 3:
         return form.agent !== '' && 
                form.voice !== '' && 
                form.serviceReady
       case 4:
-        return form.outgoingNumber !== '' // Исходящий номер обязателен
+        return true // Все обязательные поля уже заполнены на предыдущих шагах
       default:
         return false
     }
@@ -451,7 +451,7 @@ export default function NewCompanyPage() {
 
   const steps = [
     { id: 1, name: 'Название и настройки', icon: Settings },
-    { id: 2, name: 'Время и повторы', icon: Clock },
+    { id: 2, name: 'Настройки звонков', icon: Clock },
     { id: 3, name: 'Настройка Агента', icon: Mic },
     { id: 4, name: 'Резюме', icon: CheckCircle }
   ]
@@ -560,7 +560,7 @@ export default function NewCompanyPage() {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Clock className="h-5 w-5 mr-2" />
-                  Время звонков и политика повторов
+                  Настройки звонков
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -642,6 +642,36 @@ export default function NewCompanyPage() {
                   </div>
                   <p className="text-xs text-gray-500 mt-2">
                     Настройте, сколько раз и с какими интервалами повторять звонки при недозвоне
+                  </p>
+                </div>
+
+                <Separator />
+
+                {/* Исходящий номер */}
+                <div>
+                  <Label htmlFor="outgoing-number">Исходящий номер *</Label>
+                  <Select 
+                    value={form.outgoingNumber} 
+                    onValueChange={(value) => handleInputChange('outgoingNumber', value)}
+                  >
+                    <SelectTrigger id="outgoing-number" className="mt-2">
+                      <SelectValue placeholder="Выберите номер для исходящих звонков" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {mockOutgoingNumbers
+                        .filter(num => num.status === 'active')
+                        .map((num) => (
+                          <SelectItem key={num.id} value={num.id}>
+                            <div className="flex items-center justify-between w-full">
+                              <span className="font-medium">{num.number}</span>
+                              <span className="text-xs text-gray-500 ml-2">{num.description}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Номер Asterisk, с которого будут совершаться исходящие звонки
                   </p>
                 </div>
               </CardContent>
@@ -857,31 +887,62 @@ export default function NewCompanyPage() {
                     )}
                   </div>
                   
-                  <div className="space-y-3">
-                    <Button
-                      onClick={handleTestAgent}
-                      disabled={!form.agent || form.agentTestStatus === 'testing'}
-                      className="w-full"
-                    >
-                      {form.agentTestStatus === 'idle' && (
-                        <>
-                          <Phone className="h-4 w-4 mr-2" />
-                          Тестовый звонок агента
-                        </>
-                      )}
-                      {form.agentTestStatus === 'testing' && (
-                        <>
-                          <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                          Тестирование...
-                        </>
-                      )}
-                      {(form.agentTestStatus === 'passed' || form.agentTestStatus === 'failed') && (
-                        <>
-                          <RefreshCw className="h-4 w-4 mr-2" />
-                          Повторить тест
-                        </>
-                      )}
-                    </Button>
+                  <div className="space-y-4">
+                    {/* Способы тестирования */}
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* WebRTC звонок в браузер */}
+                      <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <Volume2 className="h-5 w-5 text-blue-600" />
+                            <span className="font-medium text-sm">Позвонить в браузер</span>
+                          </div>
+                          <p className="text-xs text-gray-500">
+                            WebRTC звонок через микрофон
+                          </p>
+                          <Button
+                            onClick={handleTestAgent}
+                            disabled={!form.agent || form.agentTestStatus === 'testing'}
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                          >
+                            <Mic className="h-4 w-4 mr-2" />
+                            Тестировать
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {/* Звонок на номер телефона */}
+                      <div className="p-4 border rounded-lg hover:bg-gray-50">
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <Phone className="h-5 w-5 text-green-600" />
+                            <span className="font-medium text-sm">Позвонить на мой номер</span>
+                          </div>
+                          <p className="text-xs text-gray-500">
+                            Звонок через Asterisk
+                          </p>
+                          <div className="flex space-x-2">
+                            <Input
+                              placeholder="+7 (999) 123-45-67"
+                              value={form.testPhone}
+                              onChange={(e) => handleInputChange('testPhone', e.target.value)}
+                              className="flex-1 text-sm"
+                              disabled={form.agentTestStatus === 'testing'}
+                            />
+                            <Button
+                              onClick={handleTestCall}
+                              disabled={!form.agent || !form.testPhone || form.agentTestStatus === 'testing'}
+                              variant="outline"
+                              size="sm"
+                            >
+                              <Phone className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                     
                     {form.agentTestFeedback && (
                       <div className={`p-3 rounded-lg border ${
@@ -926,242 +987,108 @@ export default function NewCompanyPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-medium">Company ID</h3>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleCopyCompanyId}
-                    >
-                      {isCopied ? (
-                        <>
-                          <Check className="h-4 w-4 mr-2 text-green-600" />
-                          Скопировано
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-4 w-4 mr-2" />
-                          Копировать
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                  <code className="text-2xl font-mono font-bold text-blue-900">
+                {/* Company ID */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 mb-1">Company ID</p>
+                  <code className="text-xl font-mono font-bold text-gray-900">
                     {form.companyId}
                   </code>
-                  <p className="text-sm text-blue-700 mt-2">
-                    Используйте этот ID для интеграции с ERP системой
-                  </p>
                 </div>
 
-                <Separator />
-
-                {/* Обязательное поле - Исходящий номер */}
-                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <Label htmlFor="outgoing-number">Исходящий номер *</Label>
-                  <Select 
-                    value={form.outgoingNumber} 
-                    onValueChange={(value) => handleInputChange('outgoingNumber', value)}
-                  >
-                    <SelectTrigger id="outgoing-number" className="mt-2">
-                      <SelectValue placeholder="Выберите номер для исходящих звонков" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {mockOutgoingNumbers
-                        .filter(num => num.status === 'active')
-                        .map((num) => (
-                          <SelectItem key={num.id} value={num.id}>
-                            <div className="flex items-center justify-between w-full">
-                              <span className="font-medium">{num.number}</span>
-                              <span className="text-xs text-gray-500 ml-2">{num.description}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-gray-600 mt-2">
-                    Номер Asterisk, с которого будут совершаться исходящие звонки
-                  </p>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-4">
+                {/* Основная информация */}
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-600">Название компании</p>
-                    <p className="font-medium text-lg">{form.name}</p>
+                    <p className="font-medium">{form.name}</p>
                   </div>
-
-                  <div>
-                    <p className="text-sm text-gray-600">Режим кампании</p>
-                    <p className="font-medium flex items-center">
-                      {form.isABTestEnabled ? (
-                        <>
-                          <FlaskConical className="h-4 w-4 mr-2 text-teal-600" />
-                          А/Б тест
-                        </>
-                      ) : (
-                        <>
-                          <UserCheck className="h-4 w-4 mr-2 text-blue-600" />
-                          1 кампания
-                        </>
-                      )}
-                    </p>
-                  </div>
-
-                  {form.isABTestEnabled ? (
-                    <div>
-                      <p className="text-sm text-gray-600 mb-2">Агенты для тестирования</p>
-                      <div className="bg-teal-50 rounded-lg p-3 space-y-2">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-xs text-gray-600">Агент A ({form.trafficSplit}%)</p>
-                            <p className="font-medium">
-                              {mockAgents.find(a => a.id === form.agentA)?.name || 'Не выбран'}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-600">Агент B ({100 - form.trafficSplit}%)</p>
-                            <p className="font-medium">
-                              {mockAgents.find(a => a.id === form.agentB)?.name || 'Не выбран'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <p className="text-sm text-gray-600">Выбранный агент</p>
-                      <p className="font-medium">
-                        {mockAgents.find(a => a.id === form.agent)?.name || 'Не выбран'}
-                      </p>
-                    </div>
-                  )}
-
+                  
                   <div>
                     <p className="text-sm text-gray-600">Исходящий номер</p>
                     <p className="font-medium">
                       {mockOutgoingNumbers.find(n => n.id === form.outgoingNumber)?.number || 'Не выбран'}
                     </p>
                   </div>
+                  
+                  <div>
+                    <p className="text-sm text-gray-600">Окно дозвона</p>
+                    <p className="font-medium">{form.callWindow.start} - {form.callWindow.end}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm text-gray-600">Попыток дозвона</p>
+                    <p className="font-medium">{form.retryPolicy.maxAttempts} (через {form.retryPolicy.delayMinutes} мин)</p>
+                  </div>
+                </div>
 
-
-                  {form.knowledgeDoc && (
+                {/* Информация об агентах */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 mb-2">Настройка агентов</p>
+                  {form.isABTestEnabled ? (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-gray-500">Агент A ({form.trafficSplit}%)</p>
+                        <p className="font-medium">
+                          {mockAgents.find(a => a.id === form.agentA)?.name || 'Не выбран'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Агент B ({100 - form.trafficSplit}%)</p>
+                        <p className="font-medium">
+                          {mockAgents.find(a => a.id === form.agentB)?.name || 'Не выбран'}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
                     <div>
-                      <p className="text-sm text-gray-600">Документ знаний</p>
-                      <p className="font-medium">{form.knowledgeDoc.name}</p>
+                      <p className="font-medium">
+                        {mockAgents.find(a => a.id === form.agent)?.name || 'Не выбран'}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {mockAgents.find(a => a.id === form.agent)?.description || ''}
+                      </p>
                     </div>
                   )}
                 </div>
 
-                {/* Проверка готовности сервиса */}
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-medium text-gray-700">Готовность сервиса</h3>
+                {/* Статус готовности */}
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-600">Статус системы</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="flex items-center space-x-2">
+                      {form.telephonyOk ? (
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-red-600" />
+                      )}
+                      <span className="text-sm">Телефония</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {form.balanceOk ? (
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-red-600" />
+                      )}
+                      <span className="text-sm">Баланс</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {form.serviceAvailable ? (
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <AlertCircle className="h-4 w-4 text-yellow-600" />
+                      )}
+                      <span className="text-sm">API</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Кнопка создания */}
+                <div className="flex justify-center pt-4">
                   <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={checkServiceReadiness}
-                    disabled={isCheckingService}
+                    onClick={handleSave} 
+                    disabled={isLoading || !isFormValid()}
+                    size="lg"
+                    className="min-w-[200px]"
                   >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${isCheckingService ? 'animate-spin' : ''}`} />
-                    Обновить статусы
-                  </Button>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Телефония */}
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className={`p-2 rounded-full ${form.telephonyOk ? 'bg-green-100' : 'bg-red-100'}`}>
-                        {form.telephonyOk ? (
-                          <CheckCircle className="h-5 w-5 text-green-600" />
-                        ) : (
-                          <XCircle className="h-5 w-5 text-red-600" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-medium">Телефония</p>
-                        <p className="text-sm text-gray-600">
-                          {form.telephonyOk ? 'Подключена' : 'Не настроена'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Баланс */}
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className={`p-2 rounded-full ${form.balanceOk ? 'bg-green-100' : 'bg-red-100'}`}>
-                        {form.balanceOk ? (
-                          <CheckCircle className="h-5 w-5 text-green-600" />
-                        ) : (
-                          <XCircle className="h-5 w-5 text-red-600" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-medium">Баланс</p>
-                        <p className="text-sm text-gray-600">
-                          {form.balanceOk ? '> 0 ₽' : 'Недостаточно средств'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* API/Интеграции */}
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className={`p-2 rounded-full ${form.serviceAvailable ? 'bg-green-100' : 'bg-yellow-100'}`}>
-                        {form.serviceAvailable ? (
-                          <CheckCircle className="h-5 w-5 text-green-600" />
-                        ) : (
-                          <AlertCircle className="h-5 w-5 text-yellow-600" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-medium">API/Интеграции</p>
-                        <p className="text-sm text-gray-600">
-                          {form.serviceAvailable ? 'Доступны' : 'Ограниченный доступ'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {!form.serviceReady && (
-                  <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <div className="flex items-start space-x-3">
-                      <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-yellow-900">Требуется внимание</p>
-                        <p className="text-sm text-yellow-700 mt-1">
-                          Некоторые компоненты системы не готовы. Проверьте настройки перед запуском.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {form.serviceReady && (
-                  <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
-                    <div className="flex items-start space-x-3">
-                      <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-green-900">Все системы готовы</p>
-                        <p className="text-sm text-green-700 mt-1">
-                          Сервис готов к запуску компании.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <Separator />
-
-                <div className="flex justify-end space-x-3">
-                  <Button variant="outline" onClick={() => setCurrentStep(1)}>
-                    Редактировать
-                  </Button>
-                  <Button onClick={handleSave} disabled={isLoading || !isFormValid()}>
                     {isLoading ? (
                       <>
                         <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
@@ -1240,12 +1167,12 @@ export default function NewCompanyPage() {
               )}
               {currentStep === 2 && (
                 <p className="text-sm text-gray-600">
-                  Агент и голос определяют, как будет звучать и вести себя ваш виртуальный помощник.
+                  Настройте время звонков, политику повторов и выберите исходящий номер для кампании.
                 </p>
               )}
               {currentStep === 3 && (
                 <p className="text-sm text-gray-600">
-                  Чем подробнее инструкции, тем эффективнее агент будет общаться с клиентами.
+                  Выберите или создайте агента и протестируйте его перед запуском кампании.
                 </p>
               )}
               {currentStep === 4 && (
