@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Switch } from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -24,6 +25,14 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
   ArrowLeft,
   CheckCircle,
   XCircle,
@@ -37,13 +46,30 @@ import {
   Eye,
   EyeOff,
   AlertTriangle,
-  Shield
+  Shield,
+  Plus,
+  Edit,
+  Trash2,
+  Settings
 } from 'lucide-react'
+
+interface SipChannel {
+  id: string
+  name: string
+  sipUri: string
+  login: string
+  password: string
+  transport: 'UDP' | 'TCP' | 'TLS' | 'WS' | 'WSS'
+  registration: boolean
+  callerId: string
+  status: 'registered' | 'unregistered' | 'error'
+  updatedAt: string
+  additionalParams?: string
+}
 
 export default function IntegrationsPage() {
   const router = useRouter()
   const [showApiKey, setShowApiKey] = useState(false)
-  const [showSipPassword, setShowSipPassword] = useState(false)
   const [apiKey, setApiKey] = useState('hnt_live_example_key_1234567890abcdef')
   const [isCopied, setIsCopied] = useState(false)
   const [isRegenerating, setIsRegenerating] = useState(false)
@@ -51,24 +77,30 @@ export default function IntegrationsPage() {
   const [isTestingConnection, setIsTestingConnection] = useState(false)
   const [testResult, setTestResult] = useState<'success' | 'error' | null>(null)
   
+  // SIP каналы
+  const [sipChannels, setSipChannels] = useState<SipChannel[]>([])
+  const [showSipDialog, setShowSipDialog] = useState(false)
+  const [editingSipChannel, setEditingSipChannel] = useState<SipChannel | null>(null)
+  const [showSipPassword, setShowSipPassword] = useState(false)
+  const [defaultTestNumber, setDefaultTestNumber] = useState('+7 (999) 123-45-67')
+  
+  // Форма для SIP канала
+  const [sipForm, setSipForm] = useState<Partial<SipChannel>>({
+    name: '',
+    sipUri: '',
+    login: '',
+    password: '',
+    transport: 'UDP',
+    registration: true,
+    callerId: '',
+    additionalParams: ''
+  })
+  
   // ERP API настройки - эндпоинты только для чтения
   const endpoints = {
     receiveTasks: 'https://api.hantico.ai/v1/tasks/receive',
     sendResults: 'https://api.hantico.ai/v1/results/send'
   }
-  
-  // Asterisk настройки
-  const [asteriskSettings, setAsteriskSettings] = useState({
-    server: '158.160.141.1',
-    port: '5060',
-    username: 'hantico_agent',
-    password: '••••••••••••••••••••••••••••',
-    sipChannels: '10',
-    channelName: 'TNMOTTOK',
-    provider: 'standard',
-    login: '1550',
-    callTransfer: 'standard'
-  })
 
   const handleCopyApiKey = () => {
     navigator.clipboard.writeText(apiKey)
@@ -132,6 +164,76 @@ export default function IntegrationsPage() {
     }
     
     navigator.clipboard.writeText(examples[type])
+  }
+
+  const handleAddSipChannel = () => {
+    setEditingSipChannel(null)
+    setSipForm({
+      name: '',
+      sipUri: '',
+      login: '',
+      password: '',
+      transport: 'UDP',
+      registration: true,
+      callerId: '',
+      additionalParams: ''
+    })
+    setShowSipDialog(true)
+  }
+
+  const handleEditSipChannel = (channel: SipChannel) => {
+    setEditingSipChannel(channel)
+    setSipForm({
+      ...channel
+    })
+    setShowSipDialog(true)
+  }
+
+  const handleSaveSipChannel = () => {
+    if (editingSipChannel) {
+      // Редактирование существующего канала
+      setSipChannels(prev => prev.map(ch => 
+        ch.id === editingSipChannel.id 
+          ? { 
+              ...ch, 
+              ...sipForm,
+              updatedAt: new Date().toISOString()
+            } 
+          : ch
+      ))
+    } else {
+      // Добавление нового канала
+      const newChannel: SipChannel = {
+        id: Math.random().toString(36).substring(7),
+        name: sipForm.name || '',
+        sipUri: sipForm.sipUri || '',
+        login: sipForm.login || '',
+        password: sipForm.password || '',
+        transport: sipForm.transport || 'UDP',
+        registration: sipForm.registration || false,
+        callerId: sipForm.callerId || '',
+        status: Math.random() > 0.3 ? 'registered' : 'unregistered',
+        updatedAt: new Date().toISOString(),
+        additionalParams: sipForm.additionalParams
+      }
+      setSipChannels(prev => [...prev, newChannel])
+    }
+    
+    setShowSipDialog(false)
+    setSipForm({})
+  }
+
+  const handleDeleteSipChannel = (id: string) => {
+    setSipChannels(prev => prev.filter(ch => ch.id !== id))
+  }
+
+  const maskUri = (uri: string) => {
+    if (!uri) return ''
+    const parts = uri.split('@')
+    if (parts.length === 2) {
+      return parts[0].substring(0, 3) + '***@' + parts[1]
+    }
+    return uri.substring(0, 5) + '***'
   }
 
   return (
@@ -402,161 +504,136 @@ export default function IntegrationsPage() {
         </TabsContent>
 
         {/* Asterisk Tab */}
-        <TabsContent value="asterisk">
+        <TabsContent value="asterisk" className="space-y-6">
+          {/* Default Test Number */}
           <Card>
             <CardHeader>
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-                  <Phone className="h-6 w-6 text-green-600" />
-                </div>
-                <div>
-                  <CardTitle>Asterisk</CardTitle>
-                  <CardDescription>
-                    Настройки подключения к вашей телефонной станции
-                  </CardDescription>
-                </div>
-              </div>
+              <CardTitle>Тестовый номер по умолчанию</CardTitle>
+              <CardDescription>
+                Номер телефона для тестовых звонков из разделов Агенты и Компании
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Channel Name and Provider */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="channel-name">
-                    <span className="text-red-500">*</span> Название канала
-                  </Label>
-                  <Input
-                    id="channel-name"
-                    value={asteriskSettings.channelName}
-                    onChange={(e) => setAsteriskSettings(prev => ({ ...prev, channelName: e.target.value }))}
-                    className="mt-2"
-                    placeholder="Название канала"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="provider">
-                    <span className="text-red-500">*</span> Провайдер
-                  </Label>
-                  <Select 
-                    value={asteriskSettings.provider}
-                    onValueChange={(value) => setAsteriskSettings(prev => ({ ...prev, provider: value }))}
-                  >
-                    <SelectTrigger className="mt-2">
-                      <SelectValue placeholder="Выберите провайдера" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="standard">Стандартные настройки</SelectItem>
-                      <SelectItem value="custom">Пользовательские настройки</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            <CardContent>
+              <div className="flex items-center space-x-2">
+                <Input
+                  value={defaultTestNumber}
+                  onChange={(e) => setDefaultTestNumber(e.target.value)}
+                  placeholder="+7 (999) 123-45-67"
+                  className="max-w-xs"
+                />
+                <Button variant="outline">
+                  Сохранить
+                </Button>
               </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Этот номер будет использоваться по умолчанию при тестировании агентов
+              </p>
+            </CardContent>
+          </Card>
 
-              {/* Login and Password */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="login">Логин</Label>
-                  <Input
-                    id="login"
-                    value={asteriskSettings.login}
-                    onChange={(e) => setAsteriskSettings(prev => ({ ...prev, login: e.target.value }))}
-                    className="mt-2"
-                    placeholder="Логин"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="password">Пароль</Label>
-                  <div className="relative mt-2">
-                    <Input
-                      id="password"
-                      type={showSipPassword ? "text" : "password"}
-                      value={asteriskSettings.password}
-                      onChange={(e) => setAsteriskSettings(prev => ({ ...prev, password: e.target.value }))}
-                      className="pr-10"
-                      placeholder="Пароль"
-                    />
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setShowSipPassword(!showSipPassword)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
-                    >
-                      {showSipPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
+          {/* SIP Channels */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
+                    <Phone className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div>
+                    <CardTitle>SIP-каналы</CardTitle>
+                    <CardDescription>
+                      Настройка подключений к телефонным станциям
+                    </CardDescription>
                   </div>
                 </div>
-              </div>
-
-              {/* Server Address and Port */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="server-address">
-                    <span className="text-red-500">*</span> Адрес сервера
-                  </Label>
-                  <Input
-                    id="server-address"
-                    value={asteriskSettings.server}
-                    onChange={(e) => setAsteriskSettings(prev => ({ ...prev, server: e.target.value }))}
-                    className="mt-2"
-                    placeholder="IP адрес или домен"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="port">
-                    <span className="text-red-500">*</span> Порт
-                  </Label>
-                  <Input
-                    id="port"
-                    value={asteriskSettings.port}
-                    onChange={(e) => setAsteriskSettings(prev => ({ ...prev, port: e.target.value }))}
-                    className="mt-2"
-                    placeholder="5060"
-                  />
-                </div>
-              </div>
-
-              {/* Call Transfer */}
-              <div>
-                <Label htmlFor="call-transfer">Перевод звонка</Label>
-                <Select 
-                  value={asteriskSettings.callTransfer}
-                  onValueChange={(value) => setAsteriskSettings(prev => ({ ...prev, callTransfer: value }))}
-                >
-                  <SelectTrigger className="mt-2">
-                    <SelectValue placeholder="Выберите тип перевода" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="standard">Стандартный</SelectItem>
-                    <SelectItem value="direct">Прямой</SelectItem>
-                    <SelectItem value="supervised">Контролируемый</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* SIP Channels */}
-              <div>
-                <Label htmlFor="sip-channels">Количество SIP-каналов</Label>
-                <Input
-                  id="sip-channels"
-                  type="number"
-                  value={asteriskSettings.sipChannels}
-                  onChange={(e) => setAsteriskSettings(prev => ({ ...prev, sipChannels: e.target.value }))}
-                  className="mt-2"
-                  placeholder="10"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Максимальное количество одновременных звонков
-                </p>
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-4 border-t">
-                <Button variant="outline">
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Проверить подключение
-                </Button>
-                <Button>
-                  Сохранить настройки
+                <Button onClick={handleAddSipChannel}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Добавить SIP-канал
                 </Button>
               </div>
+            </CardHeader>
+            <CardContent>
+              {sipChannels.length === 0 ? (
+                <div className="text-center py-12">
+                  <Phone className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-2">SIP-каналы не настроены</p>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Добавьте первый канал для начала работы с телефонией
+                  </p>
+                  <Button onClick={handleAddSipChannel}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Добавить SIP-канал
+                  </Button>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Название</TableHead>
+                      <TableHead>Номер (CallerID)</TableHead>
+                      <TableHead>URI/хост</TableHead>
+                      <TableHead>Статус регистрации</TableHead>
+                      <TableHead>Обновлён</TableHead>
+                      <TableHead className="text-right">Действия</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sipChannels.map((channel) => (
+                      <TableRow key={channel.id}>
+                        <TableCell className="font-medium">{channel.name}</TableCell>
+                        <TableCell>{channel.callerId || '—'}</TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {maskUri(channel.sipUri)}
+                        </TableCell>
+                        <TableCell>
+                          {channel.status === 'registered' ? (
+                            <Badge className="bg-green-100 text-green-800">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Зарегистрирован
+                            </Badge>
+                          ) : channel.status === 'error' ? (
+                            <Badge className="bg-red-100 text-red-800">
+                              <XCircle className="h-3 w-3 mr-1" />
+                              Ошибка
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-gray-100 text-gray-800">
+                              <AlertCircle className="h-3 w-3 mr-1" />
+                              Не зарегистрирован
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-600">
+                          {new Date(channel.updatedAt).toLocaleString('ru-RU', {
+                            day: 'numeric',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end space-x-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleEditSipChannel(channel)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDeleteSipChannel(channel.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -608,6 +685,163 @@ export default function IntegrationsPage() {
                   Сгенерировать новый ключ
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* SIP Channel Dialog */}
+      <Dialog open={showSipDialog} onOpenChange={setShowSipDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editingSipChannel ? 'Редактирование SIP-канала' : 'Новый SIP-канал'}
+            </DialogTitle>
+            <DialogDescription>
+              Настройте параметры подключения к вашей телефонной станции
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="sip-name">
+                  <span className="text-red-500">*</span> Название канала
+                </Label>
+                <Input
+                  id="sip-name"
+                  value={sipForm.name || ''}
+                  onChange={(e) => setSipForm({ ...sipForm, name: e.target.value })}
+                  placeholder="Основной канал"
+                  className="mt-2"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="sip-uri">
+                  <span className="text-red-500">*</span> SIP URI/хост
+                </Label>
+                <Input
+                  id="sip-uri"
+                  value={sipForm.sipUri || ''}
+                  onChange={(e) => setSipForm({ ...sipForm, sipUri: e.target.value })}
+                  placeholder="sip:user@domain.com или 192.168.1.1"
+                  className="mt-2"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="sip-login">
+                  <span className="text-red-500">*</span> Логин
+                </Label>
+                <Input
+                  id="sip-login"
+                  value={sipForm.login || ''}
+                  onChange={(e) => setSipForm({ ...sipForm, login: e.target.value })}
+                  placeholder="user123"
+                  className="mt-2"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="sip-password">
+                  <span className="text-red-500">*</span> Пароль
+                </Label>
+                <div className="relative mt-2">
+                  <Input
+                    id="sip-password"
+                    type={showSipPassword ? "text" : "password"}
+                    value={sipForm.password || ''}
+                    onChange={(e) => setSipForm({ ...sipForm, password: e.target.value })}
+                    placeholder="••••••••"
+                    className="pr-10"
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setShowSipPassword(!showSipPassword)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                  >
+                    {showSipPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="sip-transport">Transport</Label>
+                <Select 
+                  value={sipForm.transport}
+                  onValueChange={(value: any) => setSipForm({ ...sipForm, transport: value })}
+                >
+                  <SelectTrigger className="mt-2">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="UDP">UDP</SelectItem>
+                    <SelectItem value="TCP">TCP</SelectItem>
+                    <SelectItem value="TLS">TLS</SelectItem>
+                    <SelectItem value="WS">WS</SelectItem>
+                    <SelectItem value="WSS">WSS</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="sip-callerid">Outbound CallerID</Label>
+                <Input
+                  id="sip-callerid"
+                  value={sipForm.callerId || ''}
+                  onChange={(e) => setSipForm({ ...sipForm, callerId: e.target.value })}
+                  placeholder="+7 (495) 123-45-67"
+                  className="mt-2"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Номер, отображаемый при исходящих звонках
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="sip-registration"
+                checked={sipForm.registration}
+                onCheckedChange={(checked) => setSipForm({ ...sipForm, registration: checked })}
+              />
+              <Label htmlFor="sip-registration">
+                Регистрация на сервере
+              </Label>
+            </div>
+
+            <div>
+              <Label htmlFor="sip-additional">
+                Дополнительные параметры (опционально)
+              </Label>
+              <Input
+                id="sip-additional"
+                value={sipForm.additionalParams || ''}
+                onChange={(e) => setSipForm({ ...sipForm, additionalParams: e.target.value })}
+                placeholder="key=value;key2=value2"
+                className="mt-2"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Дополнительные SIP-параметры в формате key=value через точку с запятой
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSipDialog(false)}>
+              Отмена
+            </Button>
+            <Button 
+              onClick={handleSaveSipChannel}
+              disabled={!sipForm.name || !sipForm.sipUri || !sipForm.login || !sipForm.password}
+            >
+              {editingSipChannel ? 'Сохранить изменения' : 'Добавить канал'}
             </Button>
           </DialogFooter>
         </DialogContent>
