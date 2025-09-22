@@ -38,54 +38,84 @@ import {
   ChevronRight,
   Clock,
   Server,
-  RefreshCw
+  Activity,
+  Zap,
+  Database,
+  Shield,
+  HardDrive
 } from 'lucide-react'
+
+type SystemType = 'asterisk' | 'erp_api' | 'internal_api' | 'queue' | 'auth' | 'storage'
+type EventClass = 'connectivity' | 'auth_permission' | 'timeout_ratelimit' | 'validation_schema' | 'request_response' | 'mapping_integration' | 'other_unexpected'
 
 interface ErrorGroup {
   id: string
-  group: string
-  system: 'asterisk' | 'erp' | 'webhook' | 'sip' | 'system'
-  lastError: string
-  errorCount: number
+  system: SystemType
+  systemName: string
+  lastErrorTime: string
+  totalEvents: number
+  uniqueCodes: number
+  isActive: boolean
   incidents: ErrorIncident[]
 }
 
 interface ErrorIncident {
   id: string
   timestamp: string
-  type: string
+  eventClass: EventClass
   errorCode: string
   message: string
   companyId?: string
   details: any
 }
 
+const systemInfo: Record<SystemType, { name: string; icon: any; color: string }> = {
+  asterisk: { name: 'Asterisk (телефония)', icon: Zap, color: 'bg-purple-100 text-purple-800' },
+  erp_api: { name: 'ERP API / Hook', icon: Database, color: 'bg-blue-100 text-blue-800' },
+  internal_api: { name: 'Внутренний API', icon: Server, color: 'bg-green-100 text-green-800' },
+  queue: { name: 'Очередь/шина', icon: Activity, color: 'bg-orange-100 text-orange-800' },
+  auth: { name: 'Аутентификация/ключи', icon: Shield, color: 'bg-yellow-100 text-yellow-800' },
+  storage: { name: 'Хранилище/файлы', icon: HardDrive, color: 'bg-gray-100 text-gray-800' }
+}
+
+const eventClassInfo: Record<EventClass, string> = {
+  connectivity: 'Connectivity',
+  auth_permission: 'Auth/Permission',
+  timeout_ratelimit: 'Timeout/Rate limit',
+  validation_schema: 'Validation/Schema',
+  request_response: 'Request/Response',
+  mapping_integration: 'Mapping/Integration',
+  other_unexpected: 'Other/Unexpected'
+}
+
 const mockErrorGroups: ErrorGroup[] = [
   {
     id: 'group-1',
-    group: 'Asterisk Connection',
     system: 'asterisk',
-    lastError: '2025-09-22 15:42:18',
-    errorCount: 24,
+    systemName: 'Asterisk (телефония)',
+    lastErrorTime: '12:43 сегодня',
+    totalEvents: 57,
+    uniqueCodes: 3,
+    isActive: true,
     incidents: [
       {
         id: 'inc-1',
-        timestamp: '2025-09-22 15:42:18',
-        type: 'CONNECTION_LOST',
+        timestamp: '2025-09-22 12:43:18',
+        eventClass: 'connectivity',
         errorCode: 'AST_503',
-        message: 'Failed to connect to Asterisk server at pbx.yourcompany.com',
+        message: 'Connection lost to Asterisk server at pbx.yourcompany.com',
         companyId: 'COMP-001',
         details: {
           server: 'pbx.yourcompany.com',
           port: 5038,
           retryCount: 5,
-          lastAttempt: '15:42:18'
+          lastAttempt: '12:43:18'
         }
       },
       {
         id: 'inc-2',
-        timestamp: '2025-09-22 15:35:22',
-        type: 'CONNECTION_TIMEOUT',
+        timestamp: '2025-09-22 12:35:22',
+        eventClass: 'timeout_ratelimit',
         errorCode: 'AST_408',
         message: 'Connection timeout after 30 seconds',
         companyId: 'COMP-002',
@@ -99,15 +129,17 @@ const mockErrorGroups: ErrorGroup[] = [
   },
   {
     id: 'group-2',
-    group: 'ERP API Authentication',
-    system: 'erp',
-    lastError: '2025-09-22 14:28:45',
-    errorCount: 12,
+    system: 'erp_api',
+    systemName: 'ERP API / Hook',
+    lastErrorTime: '2025-09-22 14:28',
+    totalEvents: 24,
+    uniqueCodes: 5,
+    isActive: false,
     incidents: [
       {
         id: 'inc-3',
         timestamp: '2025-09-22 14:28:45',
-        type: 'AUTH_FAILED',
+        eventClass: 'auth_permission',
         errorCode: 'ERP_401',
         message: 'API key expired or invalid',
         companyId: 'COMP-003',
@@ -116,26 +148,41 @@ const mockErrorGroups: ErrorGroup[] = [
           statusCode: 401,
           apiKeyLastChars: '...a4b2'
         }
+      },
+      {
+        id: 'inc-4',
+        timestamp: '2025-09-22 14:15:30',
+        eventClass: 'validation_schema',
+        errorCode: 'ERP_422',
+        message: 'Schema validation failed for order data',
+        companyId: 'COMP-001',
+        details: {
+          endpoint: '/api/v2/orders',
+          field: 'customer_id',
+          expected: 'integer',
+          received: 'string'
+        }
       }
     ]
   },
   {
     id: 'group-3',
-    group: 'Webhook Timeout',
-    system: 'webhook',
-    lastError: '2025-09-22 13:15:30',
-    errorCount: 8,
+    system: 'internal_api',
+    systemName: 'Внутренний API',
+    lastErrorTime: '2025-09-21 23:45',
+    totalEvents: 12,
+    uniqueCodes: 2,
+    isActive: false,
     incidents: [
       {
-        id: 'inc-4',
-        timestamp: '2025-09-22 13:15:30',
-        type: 'RESPONSE_TIMEOUT',
-        errorCode: 'WH_TIMEOUT',
-        message: 'Webhook endpoint did not respond within 10 seconds',
-        companyId: 'COMP-001',
+        id: 'inc-5',
+        timestamp: '2025-09-21 23:45:30',
+        eventClass: 'request_response',
+        errorCode: 'API_500',
+        message: 'Internal server error on /api/campaigns/sync',
         details: {
-          url: 'https://client.com/webhook/calls',
-          timeout: 10000,
+          url: '/api/campaigns/sync',
+          statusCode: 500,
           method: 'POST'
         }
       }
@@ -143,42 +190,71 @@ const mockErrorGroups: ErrorGroup[] = [
   },
   {
     id: 'group-4',
-    group: 'SIP Registration',
-    system: 'sip',
-    lastError: '2025-09-22 12:45:15',
-    errorCount: 5,
+    system: 'auth',
+    systemName: 'Аутентификация/ключи',
+    lastErrorTime: '2025-09-22 10:15',
+    totalEvents: 8,
+    uniqueCodes: 1,
+    isActive: true,
     incidents: [
       {
-        id: 'inc-5',
-        timestamp: '2025-09-22 12:45:15',
-        type: 'REGISTRATION_FAILED',
-        errorCode: 'SIP_403',
-        message: 'SIP registration rejected - invalid credentials',
+        id: 'inc-6',
+        timestamp: '2025-09-22 10:15:00',
+        eventClass: 'auth_permission',
+        errorCode: 'AUTH_TOKEN_EXPIRED',
+        message: 'JWT token has expired',
+        companyId: 'COMP-005',
         details: {
-          sipUser: '1001',
-          domain: 'pbx.yourcompany.com',
-          transport: 'UDP'
+          tokenId: 'tok_abc123',
+          expiresAt: '2025-09-22 10:00:00',
+          userId: 'user_456'
         }
       }
     ]
   },
   {
     id: 'group-5',
-    group: 'System Resources',
-    system: 'system',
-    lastError: '2025-09-22 11:30:00',
-    errorCount: 3,
+    system: 'storage',
+    systemName: 'Хранилище/файлы',
+    lastErrorTime: '2025-09-22 09:30',
+    totalEvents: 3,
+    uniqueCodes: 1,
+    isActive: false,
     incidents: [
       {
-        id: 'inc-6',
-        timestamp: '2025-09-22 11:30:00',
-        type: 'DISK_SPACE_LOW',
-        errorCode: 'SYS_DISK',
+        id: 'inc-7',
+        timestamp: '2025-09-22 09:30:00',
+        eventClass: 'other_unexpected',
+        errorCode: 'STORAGE_DISK_FULL',
         message: 'Disk space below 5% threshold',
         details: {
           partition: '/var',
           used: '95%',
           available: '2.1GB'
+        }
+      }
+    ]
+  },
+  {
+    id: 'group-6',
+    system: 'queue',
+    systemName: 'Очередь/шина',
+    lastErrorTime: '2025-09-22 11:20',
+    totalEvents: 15,
+    uniqueCodes: 4,
+    isActive: true,
+    incidents: [
+      {
+        id: 'inc-8',
+        timestamp: '2025-09-22 11:20:00',
+        eventClass: 'mapping_integration',
+        errorCode: 'QUEUE_MAPPING_ERROR',
+        message: 'Failed to map message to campaign entity',
+        companyId: 'COMP-007',
+        details: {
+          queue: 'campaigns.update',
+          messageId: 'msg_789',
+          error: 'Campaign ID not found'
         }
       }
     ]
@@ -192,46 +268,55 @@ export default function ErrorLogsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedGroup, setSelectedGroup] = useState<ErrorGroup | null>(null)
   const [incidentSearch, setIncidentSearch] = useState('')
+  const [eventClassFilter, setEventClassFilter] = useState<string>('all')
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
-  const getSystemBadge = (system: string) => {
-    const colors: Record<string, string> = {
-      asterisk: 'bg-purple-100 text-purple-800',
-      erp: 'bg-blue-100 text-blue-800',
-      webhook: 'bg-green-100 text-green-800',
-      sip: 'bg-orange-100 text-orange-800',
-      system: 'bg-gray-100 text-gray-800'
+  const getSystemIcon = (system: SystemType) => {
+    const Icon = systemInfo[system].icon
+    return <Icon className="h-4 w-4 text-gray-500" />
+  }
+
+  const getSystemBadge = (system: SystemType) => {
+    const info = systemInfo[system]
+    return <Badge className={info.color}>{info.name}</Badge>
+  }
+
+  const getEventClassBadge = (eventClass: EventClass) => {
+    return <Badge variant="outline">{eventClassInfo[eventClass]}</Badge>
+  }
+
+  const formatLastError = (time: string) => {
+    if (time.includes('сегодня')) {
+      return time
     }
-    return <Badge className={colors[system] || 'bg-gray-100 text-gray-800'}>{system.toUpperCase()}</Badge>
+    const date = new Date(time)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    
+    if (diffMins < 5) {
+      return `${diffMins} мин назад`
+    }
+    return time
   }
 
   const filteredGroups = errorGroups.filter(group => {
-    if (searchQuery && !group.group.toLowerCase().includes(searchQuery.toLowerCase()) &&
-        !group.system.toLowerCase().includes(searchQuery.toLowerCase())) {
+    if (searchQuery && 
+        !group.systemName.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false
     }
     return true
   })
 
-  const getErrorCountForPeriod = (group: ErrorGroup) => {
-    const now = new Date()
-    const periodMs = {
-      'today': 24 * 60 * 60 * 1000,
-      '24h': 24 * 60 * 60 * 1000,
-      '7d': 7 * 24 * 60 * 60 * 1000,
-      '30d': 30 * 24 * 60 * 60 * 1000
-    }[selectedPeriod] || 24 * 60 * 60 * 1000
-
-    return group.errorCount
-  }
-
   const filteredIncidents = selectedGroup?.incidents.filter(incident => {
+    if (eventClassFilter !== 'all' && incident.eventClass !== eventClassFilter) {
+      return false
+    }
     if (incidentSearch) {
       const search = incidentSearch.toLowerCase()
       return incident.message.toLowerCase().includes(search) ||
              incident.errorCode.toLowerCase().includes(search) ||
-             incident.type.toLowerCase().includes(search) ||
              (incident.companyId && incident.companyId.toLowerCase().includes(search))
     }
     return true
@@ -258,14 +343,14 @@ export default function ErrorLogsPage() {
     } else {
       let csv = ''
       if (selectedGroup) {
-        csv = 'Time,Type/Code,Message,Company ID\n'
+        csv = 'Время,Класс события,Код,Сообщение,ID компании\n'
         filteredIncidents.forEach(incident => {
-          csv += `"${incident.timestamp}","${incident.type}/${incident.errorCode}","${incident.message}","${incident.companyId || ''}"\n`
+          csv += `"${incident.timestamp}","${eventClassInfo[incident.eventClass]}","${incident.errorCode}","${incident.message}","${incident.companyId || ''}"\n`
         })
       } else {
-        csv = 'Group/System,Last Error,Count for Period\n'
+        csv = 'Группа/Система,Последняя ошибка,Всего событий,Уникальных кодов,Статус\n'
         filteredGroups.forEach(group => {
-          csv += `"${group.group}/${group.system}","${group.lastError}",${getErrorCountForPeriod(group)}\n`
+          csv += `"${group.systemName}","${group.lastErrorTime}",${group.totalEvents},${group.uniqueCodes},"${group.isActive ? 'Идут сейчас' : 'Нет новых'}"\n`
         })
       }
       const blob = new Blob([csv], { type: 'text/csv' })
@@ -293,7 +378,7 @@ export default function ErrorLogsPage() {
           <div>
             <h1 className="text-3xl font-bold mb-2">Логи ошибок</h1>
             <p className="text-gray-600">
-              Негативные события интеграций (хранение 30 дней с автоочисткой)
+              Сводка по системам • Хранение 30 дней с автоочисткой
             </p>
           </div>
         </div>
@@ -306,7 +391,7 @@ export default function ErrorLogsPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Поиск по группе или системе..."
+                  placeholder="Поиск по названию группы..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9"
@@ -341,9 +426,9 @@ export default function ErrorLogsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Группы ошибок</CardTitle>
+          <CardTitle>Группы ошибок по системам</CardTitle>
           <CardDescription>
-            Кликните на группу для просмотра деталей инцидентов
+            Кликните на строку для просмотра деталей инцидентов
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -352,8 +437,10 @@ export default function ErrorLogsPage() {
               <TableRow>
                 <TableHead>Группа / Система</TableHead>
                 <TableHead>Последняя ошибка</TableHead>
-                <TableHead>Количество за период</TableHead>
-                <TableHead className="text-right">Открыть</TableHead>
+                <TableHead className="text-center">Всего событий</TableHead>
+                <TableHead className="text-center">Уникальных кодов</TableHead>
+                <TableHead>Статус</TableHead>
+                <TableHead className="text-right">Действие</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -365,31 +452,44 @@ export default function ErrorLogsPage() {
                 >
                   <TableCell>
                     <div className="flex items-center space-x-2">
-                      <Server className="h-4 w-4 text-gray-400" />
+                      {getSystemIcon(group.system)}
                       <div>
-                        <p className="font-medium">{group.group}</p>
-                        <div className="mt-1">
-                          {getSystemBadge(group.system)}
-                        </div>
+                        <p className="font-medium">{group.systemName}</p>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center space-x-1 text-sm text-gray-600">
-                      <Clock className="h-3 w-3" />
-                      <span className="font-mono">{group.lastError}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <AlertCircle className="h-4 w-4 text-red-500" />
-                      <span className="font-semibold text-red-600">
-                        {getErrorCountForPeriod(group)}
+                    <div className="flex items-center space-x-1 text-sm">
+                      <Clock className="h-3 w-3 text-gray-400" />
+                      <span className={group.isActive ? 'text-red-600 font-medium' : 'text-gray-600'}>
+                        {formatLastError(group.lastErrorTime)}
                       </span>
                     </div>
                   </TableCell>
+                  <TableCell className="text-center">
+                    <span className="font-semibold text-lg">{group.totalEvents}</span>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant="secondary">{group.uniqueCodes}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    {group.isActive ? (
+                      <div className="flex items-center space-x-1">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                        </span>
+                        <span className="text-sm text-red-600 font-medium">Идут сейчас</span>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-gray-500">Нет новых</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-right">
-                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                    <Button variant="ghost" size="sm" className="text-blue-600">
+                      Открыть
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -402,11 +502,11 @@ export default function ErrorLogsPage() {
         <DialogContent className="max-w-6xl max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
-              <span>{selectedGroup?.group}</span>
-              {selectedGroup && getSystemBadge(selectedGroup.system)}
+              <span>Детали группы:</span>
+              <span className="font-bold">{selectedGroup?.systemName}</span>
             </DialogTitle>
             <DialogDescription>
-              Детали инцидентов группы
+              Список инцидентов с фильтрацией по классу события
             </DialogDescription>
           </DialogHeader>
           
@@ -422,12 +522,25 @@ export default function ErrorLogsPage() {
                 />
               </div>
             </div>
-            <div className="flex space-x-2">
-              <Button variant="outline" size="sm" onClick={() => exportData('csv')}>
-                <Download className="h-4 w-4 mr-2" />
-                Экспорт
-              </Button>
-            </div>
+            <Select value={eventClassFilter} onValueChange={setEventClassFilter}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Все классы" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все классы событий</SelectItem>
+                <SelectItem value="connectivity">Connectivity</SelectItem>
+                <SelectItem value="auth_permission">Auth/Permission</SelectItem>
+                <SelectItem value="timeout_ratelimit">Timeout/Rate limit</SelectItem>
+                <SelectItem value="validation_schema">Validation/Schema</SelectItem>
+                <SelectItem value="request_response">Request/Response</SelectItem>
+                <SelectItem value="mapping_integration">Mapping/Integration</SelectItem>
+                <SelectItem value="other_unexpected">Other/Unexpected</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="sm" onClick={() => exportData('csv')}>
+              <Download className="h-4 w-4 mr-2" />
+              Экспорт
+            </Button>
           </div>
 
           <div className="flex-1 overflow-auto">
@@ -435,7 +548,8 @@ export default function ErrorLogsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Время</TableHead>
-                  <TableHead>Тип / Код</TableHead>
+                  <TableHead>Класс события</TableHead>
+                  <TableHead>Код ошибки</TableHead>
                   <TableHead>Сообщение</TableHead>
                   <TableHead>ID компании</TableHead>
                   <TableHead>Детали</TableHead>
@@ -448,10 +562,12 @@ export default function ErrorLogsPage() {
                       {incident.timestamp}
                     </TableCell>
                     <TableCell>
-                      <div>
-                        <p className="font-medium text-sm">{incident.type}</p>
-                        <p className="text-xs text-gray-500">{incident.errorCode}</p>
-                      </div>
+                      {getEventClassBadge(incident.eventClass)}
+                    </TableCell>
+                    <TableCell>
+                      <code className="text-sm bg-gray-100 px-2 py-1 rounded">
+                        {incident.errorCode}
+                      </code>
                     </TableCell>
                     <TableCell className="max-w-md">
                       <p className="text-sm">{incident.message}</p>
@@ -494,17 +610,29 @@ export default function ErrorLogsPage() {
                   Назад
                 </Button>
                 <div className="flex items-center space-x-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                    <Button
-                      key={page}
-                      variant={currentPage === page ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setCurrentPage(page)}
-                      className="w-8 h-8 p-0"
-                    >
-                      {page}
-                    </Button>
-                  ))}
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum
+                    if (totalPages <= 5) {
+                      pageNum = i + 1
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i
+                    } else {
+                      pageNum = currentPage - 2 + i
+                    }
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {pageNum}
+                      </Button>
+                    )
+                  })}
                 </div>
                 <Button
                   variant="outline"
