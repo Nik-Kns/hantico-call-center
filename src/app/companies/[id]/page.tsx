@@ -258,9 +258,10 @@ export default function CompanyDetailsPage() {
   const [callRecords] = useState<CallRecord[]>(mockCallRecords)
   const [isLoading, setIsLoading] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
-  const [dateFilter, setDateFilter] = useState('today')
-  const [dateFilterIntervalStart, setDateFilterIntervalStart] = useState('')
-  const [dateFilterIntervalEnd, setDateFilterIntervalEnd] = useState('')
+  // Единый период для всей страницы
+  const [globalPeriod, setGlobalPeriod] = useState('all')
+  const [globalIntervalStart, setGlobalIntervalStart] = useState('')
+  const [globalIntervalEnd, setGlobalIntervalEnd] = useState('')
   const [searchFilter, setSearchFilter] = useState('')
   const [resultFilter, setResultFilter] = useState('all')
   const [showExportModal, setShowExportModal] = useState(false)
@@ -269,10 +270,7 @@ export default function CompanyDetailsPage() {
   
   // Состояния для графика
   const [selectedMetric, setSelectedMetric] = useState<'success' | 'refusal' | 'noAnswer' | 'voicemail' | 'robot'>('success')
-  const [chartDateFilter, setChartDateFilter] = useState<'day' | 'interval' | 'intraday'>('day')
   const [isAbTest, setIsAbTest] = useState(false) // Мок для A/B теста
-  const [intervalStart, setIntervalStart] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
-  const [intervalEnd, setIntervalEnd] = useState(new Date().toISOString().split('T')[0])
 
   const handleCompanyAction = async (action: 'start' | 'pause' | 'stop') => {
     if (!company) return
@@ -552,24 +550,43 @@ export default function CompanyDetailsPage() {
         </CardContent>
       </Card>
 
-      {/* Основные метрики - 4 плитки */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Всего принято</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {company.totalReceived.toLocaleString()}
-                </p>
-                <p className="text-xs text-gray-500">
-                  контактов от ERP
-                </p>
-              </div>
-              <Users className="h-8 w-8 text-gray-600 opacity-20" />
-            </div>
-          </CardContent>
-        </Card>
+      {/* Основные метрики с учетом периода */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Статистика за период</CardTitle>
+            <DateFilter
+              value={globalPeriod}
+              onValueChange={setGlobalPeriod}
+              intervalStart={globalIntervalStart}
+              intervalEnd={globalIntervalEnd}
+              onIntervalChange={(start, end) => {
+                setGlobalIntervalStart(start)
+                setGlobalIntervalEnd(end)
+              }}
+              label=""
+              className="w-[180px]"
+            />
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Всего принято</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {company.totalReceived.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      контактов от ERP
+                    </p>
+                  </div>
+                  <Users className="h-8 w-8 text-gray-600 opacity-20" />
+                </div>
+              </CardContent>
+            </Card>
 
         <Card>
           <CardContent className="p-6">
@@ -626,7 +643,9 @@ export default function CompanyDetailsPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* График динамики метрик */}
       <Card>
@@ -699,39 +718,6 @@ export default function CompanyDetailsPage() {
                 </div>
               </div>
               
-              {/* Фильтр даты */}
-              <div className="flex items-center space-x-2">
-                <Label className="text-sm">Период:</Label>
-                <Select value={chartDateFilter} onValueChange={(value: any) => setChartDateFilter(value)}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="day">День</SelectItem>
-                    <SelectItem value="interval">Интервал</SelectItem>
-                    <SelectItem value="intraday">Внутри дня</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                {/* Выбор дат для интервала */}
-                {chartDateFilter === 'interval' && (
-                  <>
-                    <Input
-                      type="date"
-                      value={intervalStart}
-                      onChange={(e) => setIntervalStart(e.target.value)}
-                      className="w-32"
-                    />
-                    <span className="text-sm text-gray-500">—</span>
-                    <Input
-                      type="date"
-                      value={intervalEnd}
-                      onChange={(e) => setIntervalEnd(e.target.value)}
-                      className="w-32"
-                    />
-                  </>
-                )}
-              </div>
             </div>
           </div>
         </CardHeader>
@@ -739,11 +725,11 @@ export default function CompanyDetailsPage() {
           {/* График динамики */}
           <div className="space-y-4">
             {/* Легенда для A/B теста */}
-            {isAbTest && chartDateFilter === 'interval' && (
+            {isAbTest && (
               <div className="flex items-center justify-end space-x-4 text-sm">
                 <div className="flex items-center">
                   <div className="w-3 h-3 bg-blue-500 rounded mr-2"></div>
-                  <span>Общий</span>
+                  <span>Σ (сумма)</span>
                 </div>
                 <div className="flex items-center">
                   <div className="w-3 h-3 bg-green-500 rounded mr-2"></div>
@@ -758,10 +744,9 @@ export default function CompanyDetailsPage() {
             
             {/* Область графика */}
             <div className="bg-gray-50 rounded-lg p-6">
-              {/* График - линейный для интервала, столбчатый для остальных */}
+              {/* График всегда линейный с улучшенным масштабированием */}
               <div className="relative h-64">
-                {chartDateFilter === 'interval' ? (
-                  /* Линейный график для интервала */
+                  {/* Линейный график с синхронизацией периода */}
                   <div className="absolute inset-0 flex flex-col">
                     {/* Сетка Y-оси */}
                     <div className="absolute inset-0 flex flex-col justify-between">
@@ -819,60 +804,6 @@ export default function CompanyDetailsPage() {
                       )}
                     </svg>
                   </div>
-                ) : (
-                  /* Столбчатая диаграмма для остальных режимов */
-                  <div className="absolute inset-0 flex items-end justify-between gap-2">
-                    {[65, 72, 68, 74, 71, 76, 73, 78, 75, 79, 77, 80].map((value, index) => {
-                      const metricColors = {
-                        success: 'bg-green-500',
-                        refusal: 'bg-red-500',
-                        noAnswer: 'bg-gray-500',
-                        voicemail: 'bg-purple-500',
-                        robot: 'bg-indigo-500'
-                      }
-                      const mainColor = metricColors[selectedMetric]
-                      
-                      return (
-                        <div key={index} className="flex-1 flex flex-col justify-end items-center relative">
-                          {/* Значение над столбцом */}
-                          <span className="text-xs text-gray-600 absolute -top-5">
-                            {value}%
-                          </span>
-                          
-                          {/* Группа столбцов */}
-                          <div className="w-full flex items-end gap-0.5">
-                            {isAbTest ? (
-                              <>
-                                {/* A/B тест - 3 столбца */}
-                                <div 
-                                  className="flex-1 bg-blue-500 opacity-80 rounded-t"
-                                  style={{ height: `${(value / 100) * 160}px` }}
-                                  title={`Общий: ${value}%`}
-                                />
-                                <div 
-                                  className="flex-1 bg-green-500 opacity-80 rounded-t"
-                                  style={{ height: `${((value - 5) / 100) * 160}px` }}
-                                  title={`Агент A: ${value - 5}%`}
-                                />
-                                <div 
-                                  className="flex-1 bg-orange-500 opacity-80 rounded-t"
-                                  style={{ height: `${((value + 3) / 100) * 160}px` }}
-                                  title={`Агент B: ${value + 3}%`}
-                                />
-                              </>
-                            ) : (
-                              /* Обычный режим - один столбец */
-                              <div 
-                                className={`w-full ${mainColor} rounded-t transition-all duration-300`}
-                                style={{ height: `${(value / 100) * 160}px` }}
-                              />
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
                 
                 {/* Горизонтальные линии сетки */}
                 <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
@@ -885,19 +816,23 @@ export default function CompanyDetailsPage() {
                 </div>
               </div>
               
-              {/* Ось X */}
+              {/* Ось X - динамическая в зависимости от периода */}
               <div className="flex justify-between mt-4 px-2 text-xs text-gray-500">
-                {chartDateFilter === 'intraday' ? (
-                  ['00:00', '02:00', '04:00', '06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'].map(time => (
+                {globalPeriod === 'today' ? (
+                  ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'].map(time => (
                     <span key={time}>{time}</span>
                   ))
-                ) : chartDateFilter === 'interval' ? (
-                  ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт'].map((day, i) => (
+                ) : globalPeriod === 'week' ? (
+                  ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map((day, i) => (
                     <span key={i}>{day}</span>
                   ))
+                ) : globalPeriod === 'month' ? (
+                  ['1', '5', '10', '15', '20', '25', '30'].map(day => (
+                    <span key={day}>{day}</span>
+                  ))
                 ) : (
-                  Array.from({ length: 12 }, (_, i) => (
-                    <span key={i}>{i + 1}</span>
+                  ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'].map((month, i) => (
+                    <span key={i}>{month}</span>
                   ))
                 )}
               </div>
@@ -1058,19 +993,6 @@ export default function CompanyDetailsPage() {
           <div className="flex items-center justify-between">
             <CardTitle>Таблица звонков</CardTitle>
             <div className="flex items-center space-x-2">
-              <DateFilter
-                value={dateFilter}
-                onValueChange={setDateFilter}
-                intervalStart={dateFilterIntervalStart}
-                intervalEnd={dateFilterIntervalEnd}
-                onIntervalChange={(start, end) => {
-                  setDateFilterIntervalStart(start)
-                  setDateFilterIntervalEnd(end)
-                }}
-                label="Период:"
-                className="w-40"
-              />
-              
               <div className="flex items-center space-x-2">
                 <Label htmlFor="result-filter" className="text-sm">Статус:</Label>
                 <Select value={resultFilter} onValueChange={setResultFilter}>
