@@ -395,6 +395,27 @@ export default function NewCompanyPage() {
     }
   }
 
+  const handleRefreshStatus = async () => {
+    setIsCheckingService(true)
+    
+    // Симуляция проверки статуса системы
+    setTimeout(() => {
+      // Случайное обновление статусов для демонстрации
+      const newStatus = {
+        telephonyOk: Math.random() > 0.2,
+        balanceOk: Math.random() > 0.3,
+        serviceAvailable: Math.random() > 0.1
+      }
+      
+      setForm(prev => ({
+        ...prev,
+        ...newStatus
+      }))
+      
+      setIsCheckingService(false)
+    }, 1500)
+  }
+
 
   const handleTestAgent = () => {
     // Открываем модальное окно вместо симуляции
@@ -1052,7 +1073,18 @@ export default function NewCompanyPage() {
 
                 {/* Статус готовности */}
                 <div className="space-y-3">
-                  <p className="text-sm text-gray-600">Статус системы</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-gray-600">Статус системы</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRefreshStatus}
+                      disabled={isCheckingService}
+                    >
+                      <RefreshCw className={`h-3 w-3 mr-1 ${isCheckingService ? 'animate-spin' : ''}`} />
+                      Обновить
+                    </Button>
+                  </div>
                   <div className="grid grid-cols-3 gap-3">
                     <div className="flex items-center space-x-2">
                       {form.telephonyOk ? (
