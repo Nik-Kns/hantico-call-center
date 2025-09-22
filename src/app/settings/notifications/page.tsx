@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Select,
   SelectContent,
@@ -24,197 +23,258 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
   ArrowLeft,
-  Bell,
   AlertCircle,
-  XCircle,
-  RefreshCw,
-  Clock,
-  Activity,
-  Filter,
   Search,
   Calendar,
-  History,
-  CheckCircle,
-  TrendingUp,
   Download,
-  Trash2,
-  Eye
+  ChevronRight,
+  Clock,
+  Server,
+  RefreshCw
 } from 'lucide-react'
 
-interface NotificationEvent {
+interface ErrorGroup {
   id: string
-  timestamp: string
-  type: 'error' | 'warning' | 'retry' | 'critical'
+  group: string
   system: 'asterisk' | 'erp' | 'webhook' | 'sip' | 'system'
-  title: string
-  description: string
-  errorCode?: string
-  retryCount?: number
-  nextRetry?: string
-  status: 'active' | 'resolved' | 'ignored'
-  affectedCampaigns?: string[]
-  impact: 'low' | 'medium' | 'high' | 'critical'
+  lastError: string
+  errorCount: number
+  incidents: ErrorIncident[]
 }
 
-const mockNotifications: NotificationEvent[] = [
+interface ErrorIncident {
+  id: string
+  timestamp: string
+  type: string
+  errorCode: string
+  message: string
+  companyId?: string
+  details: any
+}
+
+const mockErrorGroups: ErrorGroup[] = [
   {
-    id: 'notif-1',
-    timestamp: '2025-09-15 15:42:18',
-    type: 'critical',
+    id: 'group-1',
+    group: 'Asterisk Connection',
     system: 'asterisk',
-    title: 'Полный отказ Asterisk сервера',
-    description: 'Сервер pbx.yourcompany.com недоступен. Все активные звонки прерваны.',
-    errorCode: 'AST_CONNECTION_LOST',
-    status: 'active',
-    affectedCampaigns: ['Новогодняя акция', 'VIP клиенты', 'Реактивация'],
-    impact: 'critical'
+    lastError: '2025-09-22 15:42:18',
+    errorCount: 24,
+    incidents: [
+      {
+        id: 'inc-1',
+        timestamp: '2025-09-22 15:42:18',
+        type: 'CONNECTION_LOST',
+        errorCode: 'AST_503',
+        message: 'Failed to connect to Asterisk server at pbx.yourcompany.com',
+        companyId: 'COMP-001',
+        details: {
+          server: 'pbx.yourcompany.com',
+          port: 5038,
+          retryCount: 5,
+          lastAttempt: '15:42:18'
+        }
+      },
+      {
+        id: 'inc-2',
+        timestamp: '2025-09-22 15:35:22',
+        type: 'CONNECTION_TIMEOUT',
+        errorCode: 'AST_408',
+        message: 'Connection timeout after 30 seconds',
+        companyId: 'COMP-002',
+        details: {
+          server: 'pbx.yourcompany.com',
+          timeout: 30000,
+          attempt: 3
+        }
+      }
+    ]
   },
   {
-    id: 'notif-2',
-    timestamp: '2025-09-15 15:35:22',
-    type: 'error',
+    id: 'group-2',
+    group: 'ERP API Authentication',
     system: 'erp',
-    title: 'Ошибка аутентификации ERP API',
-    description: 'API ключ истек или был отозван. Невозможно передать результаты.',
-    errorCode: 'ERR_AUTH_EXPIRED',
-    retryCount: 5,
-    nextRetry: '16:00:00',
-    status: 'active',
-    affectedCampaigns: ['Холодная база'],
-    impact: 'high'
+    lastError: '2025-09-22 14:28:45',
+    errorCount: 12,
+    incidents: [
+      {
+        id: 'inc-3',
+        timestamp: '2025-09-22 14:28:45',
+        type: 'AUTH_FAILED',
+        errorCode: 'ERP_401',
+        message: 'API key expired or invalid',
+        companyId: 'COMP-003',
+        details: {
+          endpoint: '/api/v2/auth',
+          statusCode: 401,
+          apiKeyLastChars: '...a4b2'
+        }
+      }
+    ]
   },
   {
-    id: 'notif-3',
-    timestamp: '2025-09-15 15:28:45',
-    type: 'warning',
+    id: 'group-3',
+    group: 'Webhook Timeout',
     system: 'webhook',
-    title: 'Медленный ответ webhook endpointа',
-    description: 'Время ответа превышает 5 секунд. Возможны таймауты.',
-    status: 'active',
-    affectedCampaigns: ['Обзвон базы'],
-    impact: 'medium'
+    lastError: '2025-09-22 13:15:30',
+    errorCount: 8,
+    incidents: [
+      {
+        id: 'inc-4',
+        timestamp: '2025-09-22 13:15:30',
+        type: 'RESPONSE_TIMEOUT',
+        errorCode: 'WH_TIMEOUT',
+        message: 'Webhook endpoint did not respond within 10 seconds',
+        companyId: 'COMP-001',
+        details: {
+          url: 'https://client.com/webhook/calls',
+          timeout: 10000,
+          method: 'POST'
+        }
+      }
+    ]
   },
   {
-    id: 'notif-4',
-    timestamp: '2025-09-15 15:15:12',
-    type: 'retry',
+    id: 'group-4',
+    group: 'SIP Registration',
     system: 'sip',
-    title: 'Превышен лимит одновременных подключений',
-    description: 'Достигнут максимум SIP каналов (10/10). Звонки в очереди.',
-    retryCount: 3,
-    nextRetry: '15:45:00',
-    status: 'resolved',
-    affectedCampaigns: ['Новогодняя акция'],
-    impact: 'medium'
+    lastError: '2025-09-22 12:45:15',
+    errorCount: 5,
+    incidents: [
+      {
+        id: 'inc-5',
+        timestamp: '2025-09-22 12:45:15',
+        type: 'REGISTRATION_FAILED',
+        errorCode: 'SIP_403',
+        message: 'SIP registration rejected - invalid credentials',
+        details: {
+          sipUser: '1001',
+          domain: 'pbx.yourcompany.com',
+          transport: 'UDP'
+        }
+      }
+    ]
   },
   {
-    id: 'notif-5',
-    timestamp: '2025-09-15 14:58:30',
-    type: 'error',
+    id: 'group-5',
+    group: 'System Resources',
     system: 'system',
-    title: 'Недостаточно места на диске',
-    description: 'Свободное место менее 5%. Записи звонков могут не сохраняться.',
-    errorCode: 'DISK_SPACE_LOW',
-    status: 'resolved',
-    impact: 'high'
+    lastError: '2025-09-22 11:30:00',
+    errorCount: 3,
+    incidents: [
+      {
+        id: 'inc-6',
+        timestamp: '2025-09-22 11:30:00',
+        type: 'DISK_SPACE_LOW',
+        errorCode: 'SYS_DISK',
+        message: 'Disk space below 5% threshold',
+        details: {
+          partition: '/var',
+          used: '95%',
+          available: '2.1GB'
+        }
+      }
+    ]
   }
 ]
 
-const notificationStats = {
-  critical: 1,
-  errors: 3,
-  warnings: 2,
-  retries: 5,
-  resolved24h: 8,
-  avgResolutionTime: '23 мин'
-}
-
-export default function NotificationsPage() {
+export default function ErrorLogsPage() {
   const router = useRouter()
-  const [notifications, setNotifications] = useState<NotificationEvent[]>(mockNotifications)
-  const [filterType, setFilterType] = useState<string>('all')
-  const [filterSystem, setFilterSystem] = useState<string>('all')
-  const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [errorGroups] = useState<ErrorGroup[]>(mockErrorGroups)
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('24h')
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedGroup, setSelectedGroup] = useState<ErrorGroup | null>(null)
+  const [incidentSearch, setIncidentSearch] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'critical':
-        return <XCircle className="h-5 w-5 text-red-600" />
-      case 'error':
-        return <AlertCircle className="h-5 w-5 text-red-500" />
-      case 'warning':
-        return <AlertCircle className="h-5 w-5 text-yellow-500" />
-      case 'retry':
-        return <RefreshCw className="h-5 w-5 text-orange-500" />
-      default:
-        return <Bell className="h-5 w-5 text-gray-500" />
+  const getSystemBadge = (system: string) => {
+    const colors: Record<string, string> = {
+      asterisk: 'bg-purple-100 text-purple-800',
+      erp: 'bg-blue-100 text-blue-800',
+      webhook: 'bg-green-100 text-green-800',
+      sip: 'bg-orange-100 text-orange-800',
+      system: 'bg-gray-100 text-gray-800'
     }
+    return <Badge className={colors[system] || 'bg-gray-100 text-gray-800'}>{system.toUpperCase()}</Badge>
   }
 
-  const getTypeBadge = (type: string) => {
-    switch (type) {
-      case 'critical':
-        return <Badge className="bg-red-100 text-red-800">Критично</Badge>
-      case 'error':
-        return <Badge className="bg-red-100 text-red-700">Ошибка</Badge>
-      case 'warning':
-        return <Badge className="bg-yellow-100 text-yellow-800">Предупреждение</Badge>
-      case 'retry':
-        return <Badge className="bg-orange-100 text-orange-800">Ретрай</Badge>
-      default:
-        return <Badge>{type}</Badge>
+  const filteredGroups = errorGroups.filter(group => {
+    if (searchQuery && !group.group.toLowerCase().includes(searchQuery.toLowerCase()) &&
+        !group.system.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false
     }
-  }
-
-  const getImpactBadge = (impact: string) => {
-    switch (impact) {
-      case 'critical':
-        return <Badge className="bg-red-100 text-red-800">Критично</Badge>
-      case 'high':
-        return <Badge className="bg-orange-100 text-orange-800">Высокий</Badge>
-      case 'medium':
-        return <Badge className="bg-yellow-100 text-yellow-800">Средний</Badge>
-      case 'low':
-        return <Badge className="bg-green-100 text-green-800">Низкий</Badge>
-      default:
-        return <Badge>{impact}</Badge>
-    }
-  }
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <Badge className="bg-red-100 text-red-800">Активно</Badge>
-      case 'resolved':
-        return <Badge className="bg-green-100 text-green-800">Решено</Badge>
-      case 'ignored':
-        return <Badge className="bg-gray-100 text-gray-800">Игнорируется</Badge>
-      default:
-        return <Badge>{status}</Badge>
-    }
-  }
-
-  const filteredNotifications = notifications.filter(notification => {
-    if (filterType !== 'all' && notification.type !== filterType) return false
-    if (filterSystem !== 'all' && notification.system !== filterSystem) return false
-    if (filterStatus !== 'all' && notification.status !== filterStatus) return false
-    if (searchQuery && !notification.title.toLowerCase().includes(searchQuery.toLowerCase()) && 
-        !notification.description.toLowerCase().includes(searchQuery.toLowerCase())) return false
     return true
   })
 
-  const handleResolve = (id: string) => {
-    setNotifications(prev => prev.map(n => 
-      n.id === id ? { ...n, status: 'resolved' as const } : n
-    ))
+  const getErrorCountForPeriod = (group: ErrorGroup) => {
+    const now = new Date()
+    const periodMs = {
+      'today': 24 * 60 * 60 * 1000,
+      '24h': 24 * 60 * 60 * 1000,
+      '7d': 7 * 24 * 60 * 60 * 1000,
+      '30d': 30 * 24 * 60 * 60 * 1000
+    }[selectedPeriod] || 24 * 60 * 60 * 1000
+
+    return group.errorCount
   }
 
-  const handleIgnore = (id: string) => {
-    setNotifications(prev => prev.map(n => 
-      n.id === id ? { ...n, status: 'ignored' as const } : n
-    ))
+  const filteredIncidents = selectedGroup?.incidents.filter(incident => {
+    if (incidentSearch) {
+      const search = incidentSearch.toLowerCase()
+      return incident.message.toLowerCase().includes(search) ||
+             incident.errorCode.toLowerCase().includes(search) ||
+             incident.type.toLowerCase().includes(search) ||
+             (incident.companyId && incident.companyId.toLowerCase().includes(search))
+    }
+    return true
+  }) || []
+
+  const paginatedIncidents = filteredIncidents.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  )
+
+  const totalPages = Math.ceil(filteredIncidents.length / itemsPerPage)
+
+  const exportData = (format: 'csv' | 'json') => {
+    const dataToExport = selectedGroup ? filteredIncidents : filteredGroups
+    
+    if (format === 'json') {
+      const json = JSON.stringify(dataToExport, null, 2)
+      const blob = new Blob([json], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `error-logs-${new Date().toISOString()}.json`
+      a.click()
+    } else {
+      let csv = ''
+      if (selectedGroup) {
+        csv = 'Time,Type/Code,Message,Company ID\n'
+        filteredIncidents.forEach(incident => {
+          csv += `"${incident.timestamp}","${incident.type}/${incident.errorCode}","${incident.message}","${incident.companyId || ''}"\n`
+        })
+      } else {
+        csv = 'Group/System,Last Error,Count for Period\n'
+        filteredGroups.forEach(group => {
+          csv += `"${group.group}/${group.system}","${group.lastError}",${getErrorCountForPeriod(group)}\n`
+        })
+      }
+      const blob = new Blob([csv], { type: 'text/csv' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `error-logs-${new Date().toISOString()}.csv`
+      a.click()
+    }
   }
 
   return (
@@ -231,277 +291,105 @@ export default function NotificationsPage() {
         
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Уведомления и ошибки</h1>
+            <h1 className="text-3xl font-bold mb-2">Логи ошибок</h1>
             <p className="text-gray-600">
-              Мониторинг системных ошибок, ретраев и критических событий
+              Негативные события интеграций (хранение 30 дней с автоочисткой)
             </p>
-          </div>
-          <div className="flex space-x-2">
-            <Button variant="outline">
-              <Download className="h-4 w-4 mr-2" />
-              Экспорт логов
-            </Button>
-            <Button variant="outline">
-              <Calendar className="h-4 w-4 mr-2" />
-              Последние 24ч
-            </Button>
           </div>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-red-600">Критичные</p>
-                <p className="text-2xl font-bold text-red-700">{notificationStats.critical}</p>
-              </div>
-              <XCircle className="h-8 w-8 text-red-600 opacity-60" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-red-600">Ошибки</p>
-                <p className="text-2xl font-bold text-red-600">{notificationStats.errors}</p>
-              </div>
-              <AlertCircle className="h-8 w-8 text-red-600 opacity-60" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-yellow-600">Предупреждения</p>
-                <p className="text-2xl font-bold text-yellow-600">{notificationStats.warnings}</p>
-              </div>
-              <AlertCircle className="h-8 w-8 text-yellow-600 opacity-60" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-orange-600">Ретраи</p>
-                <p className="text-2xl font-bold text-orange-600">{notificationStats.retries}</p>
-              </div>
-              <RefreshCw className="h-8 w-8 text-orange-600 opacity-60" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-green-600">Решено/24ч</p>
-                <p className="text-2xl font-bold text-green-600">{notificationStats.resolved24h}</p>
-              </div>
-              <CheckCircle className="h-8 w-8 text-green-600 opacity-60" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-blue-600">Ср. время решения</p>
-                <p className="text-2xl font-bold text-blue-600">{notificationStats.avgResolutionTime}</p>
-              </div>
-              <Clock className="h-8 w-8 text-blue-600 opacity-60" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters */}
       <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-lg">Фильтры и поиск</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div>
-              <Label htmlFor="search">Поиск</Label>
+        <CardContent className="p-4">
+          <div className="flex items-center space-x-4">
+            <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
-                  id="search"
-                  placeholder="Поиск по названию или описанию..."
+                  placeholder="Поиск по группе или системе..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9"
                 />
               </div>
             </div>
-            <div>
-              <Label htmlFor="type">Тип</Label>
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger id="type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все типы</SelectItem>
-                  <SelectItem value="critical">Критичные</SelectItem>
-                  <SelectItem value="error">Ошибки</SelectItem>
-                  <SelectItem value="warning">Предупреждения</SelectItem>
-                  <SelectItem value="retry">Ретраи</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="system">Система</Label>
-              <Select value={filterSystem} onValueChange={setFilterSystem}>
-                <SelectTrigger id="system">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все системы</SelectItem>
-                  <SelectItem value="asterisk">Asterisk</SelectItem>
-                  <SelectItem value="erp">ERP API</SelectItem>
-                  <SelectItem value="webhook">Webhooks</SelectItem>
-                  <SelectItem value="sip">SIP</SelectItem>
-                  <SelectItem value="system">Система</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="status">Статус</Label>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger id="status">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все статусы</SelectItem>
-                  <SelectItem value="active">Активные</SelectItem>
-                  <SelectItem value="resolved">Решенные</SelectItem>
-                  <SelectItem value="ignored">Игнорируемые</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-end">
-              <Button className="w-full">
-                <Filter className="h-4 w-4 mr-2" />
-                Применить
+            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+              <SelectTrigger className="w-[180px]">
+                <Calendar className="h-4 w-4 mr-2" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">Сегодня</SelectItem>
+                <SelectItem value="24h">24 часа</SelectItem>
+                <SelectItem value="7d">7 дней</SelectItem>
+                <SelectItem value="30d">30 дней</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex space-x-2">
+              <Button variant="outline" onClick={() => exportData('csv')}>
+                <Download className="h-4 w-4 mr-2" />
+                CSV
+              </Button>
+              <Button variant="outline" onClick={() => exportData('json')}>
+                <Download className="h-4 w-4 mr-2" />
+                JSON
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Notifications Table */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Лента уведомлений</CardTitle>
-            <div className="flex space-x-2">
-              <Badge variant="outline">{filteredNotifications.length} событий</Badge>
-              <Button variant="outline" size="sm">
-                <Trash2 className="h-4 w-4 mr-2" />
-                Очистить решенные
-              </Button>
-            </div>
-          </div>
+          <CardTitle>Группы ошибок</CardTitle>
+          <CardDescription>
+            Кликните на группу для просмотра деталей инцидентов
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Время</TableHead>
-                <TableHead>Тип</TableHead>
-                <TableHead>Система</TableHead>
-                <TableHead>Событие</TableHead>
-                <TableHead>Воздействие</TableHead>
-                <TableHead>Статус</TableHead>
-                <TableHead>Ретраи</TableHead>
-                <TableHead className="text-right">Действия</TableHead>
+                <TableHead>Группа / Система</TableHead>
+                <TableHead>Последняя ошибка</TableHead>
+                <TableHead>Количество за период</TableHead>
+                <TableHead className="text-right">Открыть</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredNotifications.map((notification) => (
-                <TableRow key={notification.id} className={notification.status === 'active' ? 'bg-red-50' : ''}>
-                  <TableCell className="font-mono text-sm">
-                    {notification.timestamp}
+              {filteredGroups.map((group) => (
+                <TableRow 
+                  key={group.id} 
+                  className="cursor-pointer hover:bg-gray-50"
+                  onClick={() => setSelectedGroup(group)}
+                >
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      <Server className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <p className="font-medium">{group.group}</p>
+                        <div className="mt-1">
+                          {getSystemBadge(group.system)}
+                        </div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-1 text-sm text-gray-600">
+                      <Clock className="h-3 w-3" />
+                      <span className="font-mono">{group.lastError}</span>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
-                      {getTypeIcon(notification.type)}
-                      {getTypeBadge(notification.type)}
+                      <AlertCircle className="h-4 w-4 text-red-500" />
+                      <span className="font-semibold text-red-600">
+                        {getErrorCountForPeriod(group)}
+                      </span>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="uppercase">
-                      {notification.system}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium text-sm">{notification.title}</p>
-                      <p className="text-xs text-gray-600 mt-1">{notification.description}</p>
-                      {notification.errorCode && (
-                        <p className="text-xs text-red-600 mt-1 font-mono">
-                          Код: {notification.errorCode}
-                        </p>
-                      )}
-                      {notification.affectedCampaigns && notification.affectedCampaigns.length > 0 && (
-                        <p className="text-xs text-orange-600 mt-1">
-                          Затронуто кампаний: {notification.affectedCampaigns.length}
-                        </p>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {getImpactBadge(notification.impact)}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col space-y-1">
-                      {getStatusBadge(notification.status)}
-                      {notification.nextRetry && (
-                        <span className="text-xs text-gray-500">
-                          Повтор: {notification.nextRetry}
-                        </span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {notification.retryCount ? (
-                      <div className="flex items-center space-x-1">
-                        <RefreshCw className="h-3 w-3 text-orange-500" />
-                        <span className="text-sm">{notification.retryCount}</span>
-                      </div>
-                    ) : (
-                      '—'
-                    )}
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end space-x-2">
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-3 w-3" />
-                      </Button>
-                      {notification.status === 'active' && (
-                        <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleResolve(notification.id)}
-                          >
-                            <CheckCircle className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleIgnore(notification.id)}
-                          >
-                            <XCircle className="h-3 w-3" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
+                    <ChevronRight className="h-5 w-5 text-gray-400" />
                   </TableCell>
                 </TableRow>
               ))}
@@ -509,6 +397,128 @@ export default function NotificationsPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={!!selectedGroup} onOpenChange={() => setSelectedGroup(null)}>
+        <DialogContent className="max-w-6xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <span>{selectedGroup?.group}</span>
+              {selectedGroup && getSystemBadge(selectedGroup.system)}
+            </DialogTitle>
+            <DialogDescription>
+              Детали инцидентов группы
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex items-center space-x-4 my-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Поиск по сообщению, коду или ID компании..."
+                  value={incidentSearch}
+                  onChange={(e) => setIncidentSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+            <div className="flex space-x-2">
+              <Button variant="outline" size="sm" onClick={() => exportData('csv')}>
+                <Download className="h-4 w-4 mr-2" />
+                Экспорт
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Время</TableHead>
+                  <TableHead>Тип / Код</TableHead>
+                  <TableHead>Сообщение</TableHead>
+                  <TableHead>ID компании</TableHead>
+                  <TableHead>Детали</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedIncidents.map((incident) => (
+                  <TableRow key={incident.id}>
+                    <TableCell className="font-mono text-sm whitespace-nowrap">
+                      {incident.timestamp}
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium text-sm">{incident.type}</p>
+                        <p className="text-xs text-gray-500">{incident.errorCode}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="max-w-md">
+                      <p className="text-sm">{incident.message}</p>
+                    </TableCell>
+                    <TableCell>
+                      {incident.companyId ? (
+                        <Badge variant="outline">{incident.companyId}</Badge>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <details className="cursor-pointer">
+                        <summary className="text-sm text-blue-600 hover:underline">
+                          JSON
+                        </summary>
+                        <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto max-w-xs">
+                          {JSON.stringify(incident.details, null, 2)}
+                        </pre>
+                      </details>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t">
+              <p className="text-sm text-gray-600">
+                Показано {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredIncidents.length)} из {filteredIncidents.length}
+              </p>
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Назад
+                </Button>
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(page)}
+                      className="w-8 h-8 p-0"
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Вперед
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
