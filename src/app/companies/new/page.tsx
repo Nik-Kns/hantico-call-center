@@ -31,7 +31,8 @@ import {
   MessageSquare,
   Shield,
   Volume2,
-  UserCheck
+  UserCheck,
+  Globe
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -80,6 +81,7 @@ interface CampaignForm {
   callWindow: {
     start: string
     end: string
+    timezone: string
   }
   retryPolicy: {
     maxAttempts: number
@@ -212,6 +214,20 @@ const mockVoices = [
   { id: 'voice-4', name: 'Мужской спокойный', description: 'Размеренный, вдумчивый' }
 ]
 
+const russianTimezones = [
+  { id: 'msk', name: 'Москва, Санкт-Петербург', offset: 'UTC+3', cities: 'Москва, СПб, Н.Новгород, Казань, Ростов-на-Дону' },
+  { id: 'smd', name: 'Самара', offset: 'UTC+4', cities: 'Самара, Ижевск, Ульяновск' },
+  { id: 'ekt', name: 'Екатеринбург', offset: 'UTC+5', cities: 'Екатеринбург, Пермь, Тюмень, Челябинск, Уфа' },
+  { id: 'oms', name: 'Омск', offset: 'UTC+6', cities: 'Омск' },
+  { id: 'krs', name: 'Красноярск', offset: 'UTC+7', cities: 'Красноярск, Новосибирск, Кемерово, Барнаул, Томск' },
+  { id: 'irk', name: 'Иркутск', offset: 'UTC+8', cities: 'Иркутск, Улан-Удэ, Братск' },
+  { id: 'ykt', name: 'Якутск', offset: 'UTC+9', cities: 'Якутск, Чита, Благовещенск' },
+  { id: 'vld', name: 'Владивосток', offset: 'UTC+10', cities: 'Владивосток, Хабаровск, Южно-Сахалинск' },
+  { id: 'mgd', name: 'Магадан', offset: 'UTC+11', cities: 'Магадан, Сахалин' },
+  { id: 'kam', name: 'Камчатка', offset: 'UTC+12', cities: 'Петропавловск-Камчатский' },
+  { id: 'kgd', name: 'Калининград', offset: 'UTC+2', cities: 'Калининград' }
+]
+
 const mockABTests: ABTest[] = [
   {
     id: 'ab-1',
@@ -275,7 +291,8 @@ export default function NewCompanyPage() {
     trafficSplit: 50,
     callWindow: {
       start: '09:00',
-      end: '20:00'
+      end: '20:00',
+      timezone: 'msk'
     },
     retryPolicy: {
       maxAttempts: 3,
@@ -444,7 +461,7 @@ export default function NewCompanyPage() {
       case 1:
         return form.name.trim() !== ''
       case 2:
-        return form.callWindow.start !== '' && form.callWindow.end !== '' && form.outgoingNumber !== ''
+        return form.callWindow.start !== '' && form.callWindow.end !== '' && form.callWindow.timezone !== '' && form.outgoingNumber !== ''
       case 3:
         return form.agent !== '' && 
                form.voice !== '' && 
@@ -587,31 +604,68 @@ export default function NewCompanyPage() {
               <CardContent className="space-y-6">
                 <div>
                   <Label>Окно дозвона</Label>
-                  <div className="grid grid-cols-2 gap-4 mt-2">
+                  <div className="space-y-4 mt-2">
+                    {/* Timezone selector */}
                     <div>
-                      <Label htmlFor="start-time" className="text-sm text-gray-600">Начало</Label>
-                      <Input
-                        id="start-time"
-                        type="time"
-                        value={form.callWindow.start}
-                        onChange={(e) => handleInputChange('callWindow', { ...form.callWindow, start: e.target.value })}
-                        className="mt-1"
-                      />
+                      <Label htmlFor="timezone" className="text-sm text-gray-600 flex items-center">
+                        <Globe className="h-3 w-3 mr-1" />
+                        Часовой пояс
+                      </Label>
+                      <Select 
+                        value={form.callWindow.timezone} 
+                        onValueChange={(value) => handleInputChange('callWindow', { ...form.callWindow, timezone: value })}
+                      >
+                        <SelectTrigger id="timezone" className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {russianTimezones.map((tz) => (
+                            <SelectItem key={tz.id} value={tz.id}>
+                              <div className="flex items-center justify-between w-full">
+                                <div>
+                                  <span className="font-medium">{tz.name}</span>
+                                  <span className="ml-2 text-xs text-blue-600 font-medium">{tz.offset}</span>
+                                </div>
+                              </div>
+                              <div className="text-xs text-gray-500 mt-0.5">
+                                {tz.cities}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Выберите часовой пояс клиентов для правильного расчета времени звонков
+                      </p>
                     </div>
-                    <div>
-                      <Label htmlFor="end-time" className="text-sm text-gray-600">Окончание</Label>
-                      <Input
-                        id="end-time"
-                        type="time"
-                        value={form.callWindow.end}
-                        onChange={(e) => handleInputChange('callWindow', { ...form.callWindow, end: e.target.value })}
-                        className="mt-1"
-                      />
+
+                    {/* Time range */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="start-time" className="text-sm text-gray-600">Начало</Label>
+                        <Input
+                          id="start-time"
+                          type="time"
+                          value={form.callWindow.start}
+                          onChange={(e) => handleInputChange('callWindow', { ...form.callWindow, start: e.target.value })}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="end-time" className="text-sm text-gray-600">Окончание</Label>
+                        <Input
+                          id="end-time"
+                          type="time"
+                          value={form.callWindow.end}
+                          onChange={(e) => handleInputChange('callWindow', { ...form.callWindow, end: e.target.value })}
+                          className="mt-1"
+                        />
+                      </div>
                     </div>
+                    <p className="text-xs text-gray-500">
+                      Укажите временной промежуток для совершения звонков в выбранном часовом поясе
+                    </p>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Укажите временной промежуток для совершения звонков
-                  </p>
                 </div>
 
                 <Separator />
@@ -1032,7 +1086,12 @@ export default function NewCompanyPage() {
                   
                   <div>
                     <p className="text-sm text-gray-600">Окно дозвона</p>
-                    <p className="font-medium">{form.callWindow.start} - {form.callWindow.end}</p>
+                    <p className="font-medium">
+                      {form.callWindow.start} - {form.callWindow.end}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {russianTimezones.find(tz => tz.id === form.callWindow.timezone)?.name} ({russianTimezones.find(tz => tz.id === form.callWindow.timezone)?.offset})
+                    </p>
                   </div>
                   
                   <div>
