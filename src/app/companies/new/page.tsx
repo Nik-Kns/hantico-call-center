@@ -95,6 +95,10 @@ interface CampaignForm {
   // Результат теста агента
   agentTestStatus: 'idle' | 'testing' | 'passed' | 'failed'
   agentTestFeedback: string
+  // Тестирование A/B агентов
+  agentATestStatus?: 'idle' | 'testing' | 'passed' | 'failed'
+  agentBTestStatus?: 'idle' | 'testing' | 'passed' | 'failed'
+  testedAgent?: 'A' | 'B'
   // Поля для структурированного промтинга
   agentRole?: string
   agentLanguage?: string
@@ -304,6 +308,9 @@ export default function NewCompanyPage() {
     newAgentPrompt: '',
     agentTestStatus: 'idle',
     agentTestFeedback: '',
+    agentATestStatus: 'idle',
+    agentBTestStatus: 'idle',
+    testedAgent: undefined,
     outgoingNumber: ''
   })
 
@@ -948,7 +955,23 @@ export default function NewCompanyPage() {
                       <Headphones className="h-4 w-4 mr-2" />
                       Тестирование агента
                     </h3>
-                    {form.agentTestStatus === 'passed' && (
+                    {form.isABTestEnabled && (form.agentATestStatus === 'passed' || form.agentBTestStatus === 'passed') && (
+                      <div className="flex gap-2">
+                        {form.agentATestStatus === 'passed' && (
+                          <Badge className="bg-green-100 text-green-800">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Агент A
+                          </Badge>
+                        )}
+                        {form.agentBTestStatus === 'passed' && (
+                          <Badge className="bg-green-100 text-green-800">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Агент B
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                    {!form.isABTestEnabled && form.agentTestStatus === 'passed' && (
                       <Badge className="bg-green-100 text-green-800">
                         <CheckCircle className="h-3 w-3 mr-1" />
                         Пройдено
@@ -964,60 +987,242 @@ export default function NewCompanyPage() {
                   
                   <div className="space-y-4">
                     {/* Способы тестирования */}
-                    <div className="grid grid-cols-2 gap-3">
-                      {/* WebRTC звонок в браузер */}
-                      <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                        <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <Volume2 className="h-5 w-5 text-blue-600" />
-                            <span className="font-medium text-sm">Позвонить в браузер</span>
-                          </div>
-                          <p className="text-xs text-gray-500">
-                            WebRTC звонок через микрофон
-                          </p>
-                          <Button
-                            onClick={handleTestAgent}
-                            disabled={!form.agent || form.agentTestStatus === 'testing'}
-                            variant="outline"
-                            size="sm"
-                            className="w-full"
-                          >
-                            <Mic className="h-4 w-4 mr-2" />
-                            Тестировать
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      {/* Звонок на номер телефона */}
-                      <div className="p-4 border rounded-lg hover:bg-gray-50">
-                        <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <Phone className="h-5 w-5 text-green-600" />
-                            <span className="font-medium text-sm">Позвонить на мой номер</span>
-                          </div>
-                          <p className="text-xs text-gray-500">
-                            Звонок через Asterisk
-                          </p>
-                          <div className="flex space-x-2">
-                            <Input
-                              placeholder="+7 (999) 123-45-67"
-                              value={form.testPhone}
-                              onChange={(e) => handleInputChange('testPhone', e.target.value)}
-                              className="flex-1 text-sm"
-                              disabled={form.agentTestStatus === 'testing'}
-                            />
+                    {!form.isABTestEnabled ? (
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* WebRTC звонок в браузер */}
+                        <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                          <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                              <Volume2 className="h-5 w-5 text-blue-600" />
+                              <span className="font-medium text-sm">Позвонить в браузер</span>
+                            </div>
+                            <p className="text-xs text-gray-500">
+                              WebRTC звонок через микрофон
+                            </p>
                             <Button
-                              onClick={handleTestCall}
-                              disabled={!form.agent || !form.testPhone || form.agentTestStatus === 'testing'}
+                              onClick={handleTestAgent}
+                              disabled={!form.agent || form.agentTestStatus === 'testing'}
                               variant="outline"
                               size="sm"
+                              className="w-full"
                             >
-                              <Phone className="h-4 w-4" />
+                              <Mic className="h-4 w-4 mr-2" />
+                              Тестировать
                             </Button>
                           </div>
                         </div>
+                        
+                        {/* Звонок на номер телефона */}
+                        <div className="p-4 border rounded-lg hover:bg-gray-50">
+                          <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                              <Phone className="h-5 w-5 text-green-600" />
+                              <span className="font-medium text-sm">Позвонить на мой номер</span>
+                            </div>
+                            <p className="text-xs text-gray-500">
+                              Звонок через Asterisk
+                            </p>
+                            <div className="flex space-x-2">
+                              <Input
+                                placeholder="+7 (999) 123-45-67"
+                                value={form.testPhone}
+                                onChange={(e) => handleInputChange('testPhone', e.target.value)}
+                                className="flex-1 text-sm"
+                                disabled={form.agentTestStatus === 'testing'}
+                              />
+                              <Button
+                                onClick={handleTestCall}
+                                disabled={!form.agent || !form.testPhone || form.agentTestStatus === 'testing'}
+                                variant="outline"
+                                size="sm"
+                              >
+                                <Phone className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      /* Интерфейс тестирования для A/B теста */
+                      <div className="space-y-4">
+                        <div className="p-4 bg-teal-50 border border-teal-200 rounded-lg">
+                          <p className="text-sm font-medium text-teal-700 mb-3">
+                            Выберите агента для тестирования:
+                          </p>
+                          <div className="grid grid-cols-2 gap-4">
+                            {/* Тестирование Агента A */}
+                            <div className="bg-white p-4 rounded-lg border border-teal-300">
+                              <div className="space-y-3">
+                                <div>
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="text-xs font-medium text-gray-600">Агент A</span>
+                                    <Badge className="bg-blue-100 text-blue-700 text-xs">{form.trafficSplit}%</Badge>
+                                  </div>
+                                  <p className="font-medium text-sm">
+                                    {mockAgents.find(a => a.id === form.agentA)?.name || 'Не выбран'}
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {mockAgents.find(a => a.id === form.agentA)?.description || ''}
+                                  </p>
+                                </div>
+                                
+                                <div className="space-y-2">
+                                  {/* WebRTC звонок */}
+                                  <Button
+                                    onClick={() => {
+                                      handleInputChange('agent', form.agentA)
+                                      handleInputChange('testedAgent', 'A')
+                                      handleInputChange('agentATestStatus', 'testing')
+                                      handleTestAgent()
+                                      setTimeout(() => {
+                                        handleInputChange('agentATestStatus', 'passed')
+                                      }, 3000)
+                                    }}
+                                    disabled={!form.agentA || form.agentATestStatus === 'testing'}
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full"
+                                  >
+                                    {form.agentATestStatus === 'testing' ? (
+                                      <>
+                                        <RefreshCw className="h-3 w-3 mr-1.5 animate-spin" />
+                                        Тестирую...
+                                      </>
+                                    ) : form.agentATestStatus === 'passed' ? (
+                                      <>
+                                        <CheckCircle className="h-3 w-3 mr-1.5 text-green-600" />
+                                        Протестирован
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Volume2 className="h-3 w-3 mr-1.5" />
+                                        В браузер
+                                      </>
+                                    )}
+                                  </Button>
+                                  
+                                  {/* Телефонный звонок */}
+                                  <div className="flex space-x-1">
+                                    <Input
+                                      placeholder="+7 (999) 123-45-67"
+                                      value={form.testPhone}
+                                      onChange={(e) => handleInputChange('testPhone', e.target.value)}
+                                      className="flex-1 text-xs h-8"
+                                      disabled={form.agentTestStatus === 'testing'}
+                                    />
+                                    <Button
+                                      onClick={() => {
+                                        handleInputChange('agent', form.agentA)
+                                        handleInputChange('testedAgent', 'A')
+                                        handleInputChange('agentATestStatus', 'testing')
+                                        handleTestCall()
+                                        setTimeout(() => {
+                                          handleInputChange('agentATestStatus', 'passed')
+                                        }, 5000)
+                                      }}
+                                      disabled={!form.agentA || !form.testPhone || form.agentATestStatus === 'testing'}
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-8 px-2"
+                                    >
+                                      <Phone className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Тестирование Агента B */}
+                            <div className="bg-white p-4 rounded-lg border border-teal-300">
+                              <div className="space-y-3">
+                                <div>
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="text-xs font-medium text-gray-600">Агент B</span>
+                                    <Badge className="bg-purple-100 text-purple-700 text-xs">{100 - form.trafficSplit}%</Badge>
+                                  </div>
+                                  <p className="font-medium text-sm">
+                                    {mockAgents.find(a => a.id === form.agentB)?.name || 'Не выбран'}
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {mockAgents.find(a => a.id === form.agentB)?.description || ''}
+                                  </p>
+                                </div>
+                                
+                                <div className="space-y-2">
+                                  {/* WebRTC звонок */}
+                                  <Button
+                                    onClick={() => {
+                                      handleInputChange('agent', form.agentB)
+                                      handleInputChange('testedAgent', 'B')
+                                      handleInputChange('agentBTestStatus', 'testing')
+                                      handleTestAgent()
+                                      setTimeout(() => {
+                                        handleInputChange('agentBTestStatus', 'passed')
+                                      }, 3000)
+                                    }}
+                                    disabled={!form.agentB || form.agentBTestStatus === 'testing'}
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full"
+                                  >
+                                    {form.agentBTestStatus === 'testing' ? (
+                                      <>
+                                        <RefreshCw className="h-3 w-3 mr-1.5 animate-spin" />
+                                        Тестирую...
+                                      </>
+                                    ) : form.agentBTestStatus === 'passed' ? (
+                                      <>
+                                        <CheckCircle className="h-3 w-3 mr-1.5 text-green-600" />
+                                        Протестирован
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Volume2 className="h-3 w-3 mr-1.5" />
+                                        В браузер
+                                      </>
+                                    )}
+                                  </Button>
+                                  
+                                  {/* Телефонный звонок */}
+                                  <div className="flex space-x-1">
+                                    <Input
+                                      placeholder="+7 (999) 123-45-67"
+                                      value={form.testPhone}
+                                      onChange={(e) => handleInputChange('testPhone', e.target.value)}
+                                      className="flex-1 text-xs h-8"
+                                      disabled={form.agentTestStatus === 'testing'}
+                                    />
+                                    <Button
+                                      onClick={() => {
+                                        handleInputChange('agent', form.agentB)
+                                        handleInputChange('testedAgent', 'B')
+                                        handleInputChange('agentBTestStatus', 'testing')
+                                        handleTestCall()
+                                        setTimeout(() => {
+                                          handleInputChange('agentBTestStatus', 'passed')
+                                        }, 5000)
+                                      }}
+                                      disabled={!form.agentB || !form.testPhone || form.agentBTestStatus === 'testing'}
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-8 px-2"
+                                    >
+                                      <Phone className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="mt-3 p-2 bg-teal-100 rounded">
+                            <p className="text-xs text-teal-700">
+                              💡 Протестируйте обоих агентов перед запуском A/B теста для проверки качества диалогов
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     
                     {form.agentTestFeedback && (
                       <div className={`p-3 rounded-lg border ${
@@ -1025,6 +1230,17 @@ export default function NewCompanyPage() {
                           ? 'bg-green-50 border-green-200' 
                           : 'bg-red-50 border-red-200'
                       }`}>
+                        {form.isABTestEnabled && form.testedAgent && (
+                          <div className="flex items-center justify-between mb-2">
+                            <Badge className="bg-blue-100 text-blue-700">
+                              Тестирован Агент {form.testedAgent}: {
+                                form.testedAgent === 'A' 
+                                  ? mockAgents.find(a => a.id === form.agentA)?.name 
+                                  : mockAgents.find(a => a.id === form.agentB)?.name
+                              }
+                            </Badge>
+                          </div>
+                        )}
                         <p className={`text-sm ${
                           form.agentTestStatus === 'passed' 
                             ? 'text-green-700' 
