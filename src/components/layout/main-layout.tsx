@@ -130,24 +130,6 @@ export function MainLayout({ children }: MainLayoutProps) {
 
             {/* Right side controls */}
             <div className="flex items-center space-x-4">
-              {/* Role Selector */}
-              <div className="flex items-center space-x-2">
-                <Shield className="h-4 w-4 text-gray-500" />
-                <Select value={currentRole} onValueChange={handleRoleChange}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(roleLabels).map(([role, label]) => (
-                      <SelectItem key={role} value={role}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-
 
               {/* Notifications */}
               <Button variant="ghost" size="icon" className="relative">
