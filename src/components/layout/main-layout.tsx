@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { LogoWithText } from '@/components/ui/logo'
 import { 
   Select, 
   SelectContent, 
@@ -119,15 +120,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         <div className="mx-auto px-6">
           <div className="flex justify-between items-center py-4">
             {/* Logo */}
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center">
-                  <div className="w-4 h-4 bg-white rounded-full relative">
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1 h-3 bg-red-600 rounded-full"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <LogoWithText />
 
             {/* Right side controls */}
             <div className="flex items-center space-x-4">
