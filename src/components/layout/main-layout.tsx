@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { 
   BarChart3,
   Bell,
@@ -80,6 +80,7 @@ const roleLabels: Record<UserRole, string> = {
 
 export function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const [currentRole, setCurrentRole] = useState<UserRole>('admin')
 
   // Загрузка настроек из localStorage при монтировании
@@ -254,13 +255,9 @@ export function MainLayout({ children }: MainLayoutProps) {
                   
                   <DropdownMenuSeparator />
                   
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => router.push('/profile')}>
                     <User className="mr-2 h-4 w-4" />
                     <span>Профиль</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Настройки</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem>
