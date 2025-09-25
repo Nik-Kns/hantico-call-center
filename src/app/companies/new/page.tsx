@@ -1387,28 +1387,6 @@ export default function NewCompanyPage() {
                     </div>
                   </div>
                 </div>
-
-                {/* Кнопка создания */}
-                <div className="flex justify-center pt-4">
-                  <Button 
-                    onClick={handleSave} 
-                    disabled={isLoading || !isFormValid()}
-                    size="lg"
-                    className="min-w-[200px]"
-                  >
-                    {isLoading ? (
-                      <>
-                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                        Создание...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        Создать компанию
-                      </>
-                    )}
-                  </Button>
-                </div>
               </CardContent>
             </Card>
           )}
@@ -1449,14 +1427,35 @@ export default function NewCompanyPage() {
                 >
                   Предыдущий шаг
                 </Button>
-                <Button
-                  variant={currentStep < 4 ? 'default' : 'ghost'}
-                  disabled={currentStep === 4}
-                  onClick={() => setCurrentStep(currentStep + 1)}
-                  className="w-full"
-                >
-                  Следующий шаг
-                </Button>
+                {currentStep === 4 ? (
+                  <Button 
+                    onClick={handleSave} 
+                    disabled={isLoading || !isFormValid()}
+                    className="w-full"
+                    variant="default"
+                  >
+                    {isLoading ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Создание...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Создать компанию
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="default"
+                    disabled={currentStep === 4}
+                    onClick={() => setCurrentStep(currentStep + 1)}
+                    className="w-full"
+                  >
+                    Следующий шаг
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
