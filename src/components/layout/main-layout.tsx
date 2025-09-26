@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { LogoWithText } from '@/components/ui/logo'
+import { LogoWithText, LogoHeader } from '@/components/ui/logo'
 import { 
   Select, 
   SelectContent, 
@@ -119,12 +119,13 @@ export function MainLayout({ children }: MainLayoutProps) {
       <header className="bg-white border-b border-gray-200">
         <div className="mx-auto px-6">
           <div className="flex justify-between items-center py-4">
-            {/* Logo */}
-            <LogoWithText />
+            {/* Left side - empty or can add title */}
+            <div className="flex items-center">
+              <h2 className="text-xl font-semibold text-gray-800">Система управления</h2>
+            </div>
 
             {/* Right side controls */}
             <div className="flex items-center space-x-4">
-
               {/* Notifications */}
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="h-5 w-5" />
@@ -259,6 +260,11 @@ export function MainLayout({ children }: MainLayoutProps) {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+
+              {/* Logo */}
+              <div className="ml-6 pl-6 border-l border-gray-200">
+                <LogoHeader />
+              </div>
             </div>
           </div>
         </div>

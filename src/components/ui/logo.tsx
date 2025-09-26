@@ -65,3 +65,18 @@ export function LogoWithText({ className = '' }: { className?: string }) {
     </Link>
   )
 }
+
+export function LogoHeader({ className = '' }: { className?: string }) {
+  return (
+    <div className={`flex items-center ${className}`}>
+      <Image
+        src="/hantico-logo.png"
+        alt="Hantico"
+        width={150}
+        height={50}
+        className="h-10 w-auto"
+        priority
+      />
+    </div>
+  )
+}
