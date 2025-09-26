@@ -808,9 +808,6 @@ for message in consumer:
           <Card>
             <CardHeader>
               <CardTitle>Необходимые данные для подключения</CardTitle>
-              <CardDescription>
-                Предоставьте следующую информацию для настройки интеграции
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* SIP Credentials Section */}

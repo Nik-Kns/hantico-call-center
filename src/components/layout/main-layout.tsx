@@ -18,7 +18,6 @@ import {
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { LogoWithText } from '@/components/ui/logo'
 import { 
   Select, 
   SelectContent, 
@@ -119,8 +118,8 @@ export function MainLayout({ children }: MainLayoutProps) {
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            {/* Logo */}
-            <LogoWithText />
+            {/* Empty space where logo was */}
+            <div></div>
 
             {/* Right side controls */}
             <div className="flex items-center space-x-4">
