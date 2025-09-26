@@ -8,52 +8,29 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import {
   User,
   Mail,
   Phone,
   Shield,
-  Bell,
   Settings,
   Key,
-  Globe,
-  Calendar,
-  MapPin,
   Building,
   Camera,
   Save,
   ArrowLeft,
   CheckCircle,
-  XCircle,
-  Lock,
   Smartphone,
   Monitor,
   LogOut,
-  AlertCircle,
-  Clock
+  AlertCircle
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 
 export default function ProfilePage() {
   const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
-  const [notifications, setNotifications] = useState({
-    email: true,
-    sms: false,
-    push: true,
-    weeklyReport: true,
-    errorAlerts: true,
-    campaignResults: true
-  })
   
   const [profile, setProfile] = useState({
     firstName: 'Иван',
@@ -61,11 +38,7 @@ export default function ProfilePage() {
     email: 'user@example.com',
     phone: '+7 (999) 123-45-67',
     position: 'Администратор системы',
-    department: 'IT отдел',
-    company: 'ООО "Ханти Колл"',
-    location: 'Москва, Россия',
-    language: 'ru',
-    timezone: 'Europe/Moscow'
+    department: 'IT отдел'
   })
 
   const handleSave = () => {
@@ -211,15 +184,6 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                <div>
-                  <Label htmlFor="company">Компания</Label>
-                  <Input
-                    id="company"
-                    value={profile.company}
-                    disabled
-                    className="bg-gray-50"
-                  />
-                </div>
               </div>
             </CardContent>
           </Card>
@@ -267,217 +231,11 @@ export default function ProfilePage() {
 
         {/* Правая колонка - Настройки */}
         <div className="lg:col-span-2">
-          <Tabs defaultValue="preferences" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="preferences">Предпочтения</TabsTrigger>
-              <TabsTrigger value="notifications">Уведомления</TabsTrigger>
+          <Tabs defaultValue="security" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="security">Безопасность</TabsTrigger>
               <TabsTrigger value="sessions">Сессии</TabsTrigger>
             </TabsList>
-
-            {/* Предпочтения */}
-            <TabsContent value="preferences">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Предпочтения</CardTitle>
-                  <CardDescription>
-                    Настройте язык, часовой пояс и другие параметры
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="language">Язык интерфейса</Label>
-                      <Select value={profile.language} disabled={!isEditing}>
-                        <SelectTrigger id="language">
-                          <Globe className="h-4 w-4 mr-2" />
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="ru">Русский</SelectItem>
-                          <SelectItem value="en">English</SelectItem>
-                          <SelectItem value="zh">中文</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="timezone">Часовой пояс</Label>
-                      <Select value={profile.timezone} disabled={!isEditing}>
-                        <SelectTrigger id="timezone">
-                          <Clock className="h-4 w-4 mr-2" />
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Europe/Moscow">Москва (UTC+3)</SelectItem>
-                          <SelectItem value="Europe/London">Лондон (UTC+0)</SelectItem>
-                          <SelectItem value="America/New_York">Нью-Йорк (UTC-5)</SelectItem>
-                          <SelectItem value="Asia/Tokyo">Токио (UTC+9)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="location">Местоположение</Label>
-                      <div className="relative">
-                        <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                        <Input
-                          id="location"
-                          value={profile.location}
-                          onChange={(e) => setProfile({...profile, location: e.target.value})}
-                          disabled={!isEditing}
-                          className="pl-9"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="dateFormat">Формат даты</Label>
-                      <Select defaultValue="dd.mm.yyyy" disabled={!isEditing}>
-                        <SelectTrigger id="dateFormat">
-                          <Calendar className="h-4 w-4 mr-2" />
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="dd.mm.yyyy">ДД.ММ.ГГГГ</SelectItem>
-                          <SelectItem value="mm/dd/yyyy">ММ/ДД/ГГГГ</SelectItem>
-                          <SelectItem value="yyyy-mm-dd">ГГГГ-ММ-ДД</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Интерфейс</h3>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label>Компактный режим</Label>
-                          <p className="text-sm text-gray-500">Уменьшить размер элементов интерфейса</p>
-                        </div>
-                        <Switch disabled={!isEditing} />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label>Показывать подсказки</Label>
-                          <p className="text-sm text-gray-500">Отображать всплывающие подсказки при наведении</p>
-                        </div>
-                        <Switch defaultChecked disabled={!isEditing} />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label>Анимации</Label>
-                          <p className="text-sm text-gray-500">Включить анимацию переходов</p>
-                        </div>
-                        <Switch defaultChecked disabled={!isEditing} />
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Уведомления */}
-            <TabsContent value="notifications">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Настройки уведомлений</CardTitle>
-                  <CardDescription>
-                    Выберите, какие уведомления вы хотите получать
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Каналы уведомлений</h3>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <Mail className="h-5 w-5 text-gray-400" />
-                          <div className="space-y-0.5">
-                            <Label>Email уведомления</Label>
-                            <p className="text-sm text-gray-500">Получать уведомления на почту</p>
-                          </div>
-                        </div>
-                        <Switch 
-                          checked={notifications.email}
-                          onCheckedChange={(checked) => setNotifications({...notifications, email: checked})}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <Smartphone className="h-5 w-5 text-gray-400" />
-                          <div className="space-y-0.5">
-                            <Label>SMS уведомления</Label>
-                            <p className="text-sm text-gray-500">Получать SMS о критических событиях</p>
-                          </div>
-                        </div>
-                        <Switch 
-                          checked={notifications.sms}
-                          onCheckedChange={(checked) => setNotifications({...notifications, sms: checked})}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <Bell className="h-5 w-5 text-gray-400" />
-                          <div className="space-y-0.5">
-                            <Label>Push-уведомления</Label>
-                            <p className="text-sm text-gray-500">Уведомления в браузере</p>
-                          </div>
-                        </div>
-                        <Switch 
-                          checked={notifications.push}
-                          onCheckedChange={(checked) => setNotifications({...notifications, push: checked})}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Типы уведомлений</h3>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label>Еженедельные отчеты</Label>
-                          <p className="text-sm text-gray-500">Сводка активности за неделю</p>
-                        </div>
-                        <Switch 
-                          checked={notifications.weeklyReport}
-                          onCheckedChange={(checked) => setNotifications({...notifications, weeklyReport: checked})}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label>Ошибки и сбои</Label>
-                          <p className="text-sm text-gray-500">Уведомления о критических ошибках системы</p>
-                        </div>
-                        <Switch 
-                          checked={notifications.errorAlerts}
-                          onCheckedChange={(checked) => setNotifications({...notifications, errorAlerts: checked})}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label>Результаты кампаний</Label>
-                          <p className="text-sm text-gray-500">Уведомления о завершении обзвонов</p>
-                        </div>
-                        <Switch 
-                          checked={notifications.campaignResults}
-                          onCheckedChange={(checked) => setNotifications({...notifications, campaignResults: checked})}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
 
             {/* Безопасность */}
             <TabsContent value="security">
