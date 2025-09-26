@@ -349,7 +349,7 @@ export default function ObzvoniPage() {
       </div>
 
       {/* Основная статистика по активным кампаниям */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
@@ -447,7 +447,7 @@ export default function ObzvoniPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
               <div className="p-4 bg-green-50 rounded-lg border border-green-200">
                 <div className="flex items-center justify-between mb-2">
                   <MessageSquare className="h-5 w-5 text-green-600" />
@@ -535,11 +535,11 @@ export default function ObzvoniPage() {
         </Card>
       )}
 
-      {/* Фильтры в линию */}
+          {/* Фильтры в линию */}
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-col space-y-3">
-            <div className="flex items-center space-x-3">
+            <div className="flex flex-wrap items-center gap-3">
               {/* Поиск по названию/ID */}
               <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -673,7 +673,7 @@ export default function ObzvoniPage() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[1200px]">
               <thead className="bg-gray-50 border-b">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -849,7 +849,7 @@ export default function ObzvoniPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Общие метрики */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center">
@@ -928,7 +928,7 @@ export default function ObzvoniPage() {
             </div>
             
             {/* Фильтры для таблицы звонков */}
-            <div className="flex items-center space-x-3 mb-4">
+            <div className="flex flex-wrap items-center gap-3 mb-4">
               <Select defaultValue="all">
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Кампания" />
@@ -968,7 +968,7 @@ export default function ObzvoniPage() {
             </div>
             
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[1000px]">
                 <thead>
                   <tr className="border-b bg-gray-50">
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">ID</th>
