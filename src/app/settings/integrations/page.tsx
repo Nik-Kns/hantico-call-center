@@ -84,6 +84,14 @@ export default function IntegrationsPage() {
   const [showSipPassword, setShowSipPassword] = useState(false)
   const [defaultTestNumber, setDefaultTestNumber] = useState('+7 (999) 123-45-67')
   
+  // Authorized Caller IDs
+  const [authorizedNumbers, setAuthorizedNumbers] = useState([
+    { id: '1', number: '+7 (495) 123-45-67', enabled: true },
+    { id: '2', number: '+7 (495) 987-65-43', enabled: false },
+    { id: '3', number: '+7 (800) 555-35-35', enabled: true },
+    { id: '4', number: '+7 (499) 777-88-99', enabled: false },
+  ])
+  
   // Форма для SIP канала
   const [sipForm, setSipForm] = useState<Partial<SipChannel>>({
     name: '',
@@ -258,11 +266,302 @@ export default function IntegrationsPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="erp" className="space-y-6">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+      <Tabs defaultValue="kafka" className="space-y-6">
+        <TabsList className="grid w-full max-w-md grid-cols-3">
+          <TabsTrigger value="kafka">Kafka</TabsTrigger>
           <TabsTrigger value="erp">ERP API</TabsTrigger>
           <TabsTrigger value="asterisk">Asterisk</TabsTrigger>
         </TabsList>
+
+        {/* Kafka Tab */}
+        <TabsContent value="kafka" className="space-y-6">
+          {/* Kafka Connection */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
+                  <Database className="h-6 w-6 text-purple-600" />
+                </div>
+                <div>
+                  <CardTitle>Kafka интеграция</CardTitle>
+                  <CardDescription>
+                    Асинхронный обмен данными через Apache Kafka
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Kafka Topics */}
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium mb-3">Топики Kafka</h4>
+                  <div className="space-y-3">
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="font-medium">tasks-topic</Label>
+                        <Badge className="bg-blue-100 text-blue-800">Consumer</Badge>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-2">
+                        Топик для получения задач на обзвон из вашей ERP системы
+                      </p>
+                      <div className="bg-gray-900 text-gray-100 p-3 rounded text-xs font-mono overflow-x-auto">
+{`{
+  "erp_lead_id": "UUID_LEAD",
+  "phone_number": "+79931234567",
+  "campaign_id": "CMP-ABCDEF12345",
+  "metadata": {
+    "client_name": "Иван",
+    "product_interest": "Тариф Pro"
+  }
+}`}
+                      </div>
+                    </div>
+                    
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="font-medium">results-topic</Label>
+                        <Badge className="bg-green-100 text-green-800">Producer</Badge>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-2">
+                        Топик для отправки результатов звонков в вашу ERP систему
+                      </p>
+                      <div className="bg-gray-900 text-gray-100 p-3 rounded text-xs font-mono overflow-x-auto">
+{`{
+  "erp_lead_id": "UUID_LEAD",
+  "call_outcome": "SUCCESS",
+  "recording_url": "https://storage.hantico.ai/rec/...",
+  "transcript": "Полная расшифровка разговора...",
+  "call_duration": 180,
+  "timestamp": "2024-01-15T10:30:00Z"
+}`}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Call Outcomes */}
+              <div className="border-t pt-6">
+                <h4 className="font-medium mb-3">Возможные статусы звонков</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm">SUCCESS - Успешный звонок</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <XCircle className="h-4 w-4 text-red-600" />
+                    <span className="text-sm">REFUSAL - Отказ клиента</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Phone className="h-4 w-4 text-gray-600" />
+                    <span className="text-sm">VOICEMAIL - Автоответчик</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RefreshCw className="h-4 w-4 text-blue-600" />
+                    <span className="text-sm">CALL_LATER - Перезвонить</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <AlertCircle className="h-4 w-4 text-yellow-600" />
+                    <span className="text-sm">NO_ANSWER - Нет ответа</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <AlertTriangle className="h-4 w-4 text-orange-600" />
+                    <span className="text-sm">BUSY - Занято</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Integration Flow */}
+              <div className="border-t pt-6">
+                <h4 className="font-medium mb-3">Процесс интеграции</h4>
+                <div className="space-y-2">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-medium mt-0.5">1</div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">ERP публикует задачу</p>
+                      <p className="text-xs text-gray-600">Задача с номером телефона и campaign_id отправляется в tasks-topic</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-medium mt-0.5">2</div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Hantico Dialer обрабатывает задачу</p>
+                      <p className="text-xs text-gray-600">Получает настройки кампании и инициирует звонок</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-medium mt-0.5">3</div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Проведение звонка</p>
+                      <p className="text-xs text-gray-600">AI-агент общается с клиентом по заданному сценарию</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-medium mt-0.5">4</div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Публикация результата</p>
+                      <p className="text-xs text-gray-600">Результат звонка отправляется в results-topic для обработки ERP</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Kafka Configuration Example */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Примеры кода для интеграции</CardTitle>
+              <CardDescription>
+                Готовые примеры для быстрого старта с Kafka
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="producer" className="mt-4">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="producer">Отправка задач (Producer)</TabsTrigger>
+                  <TabsTrigger value="consumer">Получение результатов (Consumer)</TabsTrigger>
+                </TabsList>
+                <TabsContent value="producer" className="mt-4">
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium text-sm">Python пример (kafka-python)</h4>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          const code = `from kafka import KafkaProducer
+import json
+
+producer = KafkaProducer(
+    bootstrap_servers=['kafka.hantico.ai:9092'],
+    value_serializer=lambda v: json.dumps(v).encode('utf-8')
+)
+
+# Отправка задачи на обзвон
+task = {
+    "erp_lead_id": "LEAD-12345",
+    "phone_number": "+79991234567",
+    "campaign_id": "CMP-ABCDEF12345",
+    "metadata": {
+        "client_name": "Иван Петров",
+        "product_interest": "Тариф Pro"
+    }
+}
+
+producer.send('tasks-topic', value=task)
+producer.flush()`
+                          navigator.clipboard.writeText(code)
+                        }}
+                      >
+                        <Copy className="h-3 w-3 mr-1" />
+                        Копировать
+                      </Button>
+                    </div>
+                    <pre className="text-xs bg-gray-900 text-gray-100 p-3 rounded overflow-x-auto">
+{`from kafka import KafkaProducer
+import json
+
+producer = KafkaProducer(
+    bootstrap_servers=['kafka.hantico.ai:9092'],
+    value_serializer=lambda v: json.dumps(v).encode('utf-8')
+)
+
+# Отправка задачи на обзвон
+task = {
+    "erp_lead_id": "LEAD-12345",
+    "phone_number": "+79991234567",
+    "campaign_id": "CMP-ABCDEF12345",
+    "metadata": {
+        "client_name": "Иван Петров",
+        "product_interest": "Тариф Pro"
+    }
+}
+
+producer.send('tasks-topic', value=task)
+producer.flush()`}
+                    </pre>
+                  </div>
+                </TabsContent>
+                <TabsContent value="consumer" className="mt-4">
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium text-sm">Python пример (kafka-python)</h4>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          const code = `from kafka import KafkaConsumer
+import json
+
+consumer = KafkaConsumer(
+    'results-topic',
+    bootstrap_servers=['kafka.hantico.ai:9092'],
+    value_deserializer=lambda m: json.loads(m.decode('utf-8')),
+    group_id='erp-consumer-group',
+    auto_offset_reset='earliest'
+)
+
+# Получение результатов звонков
+for message in consumer:
+    result = message.value
+    
+    lead_id = result['erp_lead_id']
+    outcome = result['call_outcome']
+    
+    if outcome == 'SUCCESS':
+        # Обработка успешного звонка
+        print(f"Lead {lead_id}: Успешный контакт")
+        # Запуск SMS кампании или другие действия
+    elif outcome == 'CALL_LATER':
+        # Планирование повторного звонка
+        print(f"Lead {lead_id}: Требуется перезвонить")
+    else:
+        # Обработка других статусов
+        print(f"Lead {lead_id}: Статус {outcome}")`
+                          navigator.clipboard.writeText(code)
+                        }}
+                      >
+                        <Copy className="h-3 w-3 mr-1" />
+                        Копировать
+                      </Button>
+                    </div>
+                    <pre className="text-xs bg-gray-900 text-gray-100 p-3 rounded overflow-x-auto">
+{`from kafka import KafkaConsumer
+import json
+
+consumer = KafkaConsumer(
+    'results-topic',
+    bootstrap_servers=['kafka.hantico.ai:9092'],
+    value_deserializer=lambda m: json.loads(m.decode('utf-8')),
+    group_id='erp-consumer-group',
+    auto_offset_reset='earliest'
+)
+
+# Получение результатов звонков
+for message in consumer:
+    result = message.value
+    
+    lead_id = result['erp_lead_id']
+    outcome = result['call_outcome']
+    
+    if outcome == 'SUCCESS':
+        # Обработка успешного звонка
+        print(f"Lead {lead_id}: Успешный контакт")
+        # Запуск SMS кампании или другие действия
+    elif outcome == 'CALL_LATER':
+        # Планирование повторного звонка
+        print(f"Lead {lead_id}: Требуется перезвонить")
+    else:
+        # Обработка других статусов
+        print(f"Lead {lead_id}: Статус {outcome}")`}
+                    </pre>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* ERP API Tab */}
         <TabsContent value="erp" className="space-y-6">
@@ -505,7 +804,140 @@ export default function IntegrationsPage() {
 
         {/* Asterisk Tab */}
         <TabsContent value="asterisk" className="space-y-6">
-          {/* Default Test Number */}
+          {/* Required SIP Credentials */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Необходимые данные для подключения</CardTitle>
+              <CardDescription>
+                Предоставьте следующую информацию для настройки интеграции
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* SIP Credentials Section */}
+              <div>
+                <h4 className="font-medium mb-3 flex items-center">
+                  <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-medium mr-2">1</span>
+                  SIP учетные данные (SIP Credentials)
+                </h4>
+                <div className="ml-8 space-y-4">
+                  <div>
+                    <Label htmlFor="sip-server">
+                      SIP Server / Host
+                    </Label>
+                    <Input
+                      id="sip-server"
+                      placeholder="Адрес вашего SIP-сервера (IP или домен)"
+                      className="mt-2"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Например: sip.yourcompany.com или 192.168.1.100
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="sip-username">
+                      SIP Username / Login
+                    </Label>
+                    <Input
+                      id="sip-username"
+                      placeholder="Имя пользователя для аутентификации"
+                      className="mt-2"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="sip-password">
+                      SIP Password / Secret
+                    </Label>
+                    <div className="relative mt-2">
+                      <Input
+                        id="sip-password"
+                        type={showSipPassword ? "text" : "password"}
+                        placeholder="Пароль для аутентификации"
+                        className="pr-10"
+                      />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setShowSipPassword(!showSipPassword)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                      >
+                        {showSipPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Authorized Caller IDs Section */}
+              <div className="border-t pt-6">
+                <h4 className="font-medium mb-3 flex items-center">
+                  <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-medium mr-2">2</span>
+                  Список разрешенных номеров (Authorized Caller IDs)
+                </h4>
+                <div className="ml-8">
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-600 mb-4">
+                      Выберите номера, которые будут доступны для использования в кампаниях
+                    </p>
+                    {authorizedNumbers.map((phone) => (
+                      <div key={phone.id} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg">
+                        <input
+                          type="checkbox"
+                          id={`phone-${phone.id}`}
+                          checked={phone.enabled}
+                          onChange={(e) => {
+                            setAuthorizedNumbers(prev =>
+                              prev.map(p =>
+                                p.id === phone.id
+                                  ? { ...p, enabled: e.target.checked }
+                                  : p
+                              )
+                            )
+                          }}
+                          className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                        />
+                        <label
+                          htmlFor={`phone-${phone.id}`}
+                          className="flex-1 text-sm font-medium text-gray-700 cursor-pointer"
+                        >
+                          {phone.number}
+                        </label>
+                        {phone.enabled && (
+                          <Badge className="bg-green-100 text-green-800 text-xs">
+                            Доступен в кампаниях
+                          </Badge>
+                        )}
+                      </div>
+                    ))}
+                    <div className="mt-4 pt-4 border-t">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          // Сохранение выбранных номеров
+                          console.log('Сохранение номеров:', authorizedNumbers.filter(n => n.enabled))
+                        }}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Сохранить выбранные номера
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Save Button */}
+              <div className="flex justify-end pt-6 border-t">
+                <Button>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Сохранить и протестировать подключение
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Test Number */}
           <Card>
             <CardHeader>
               <CardTitle>Тестовый номер по умолчанию</CardTitle>
