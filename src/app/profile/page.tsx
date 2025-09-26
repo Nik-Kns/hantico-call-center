@@ -279,20 +279,6 @@ export default function ProfilePage() {
                       </div>
                     </div>
                   </div>
-
-                  <Separator />
-
-                  <div className="space-y-4">
-                    <div>
-                      <Label>Резервные коды</Label>
-                      <p className="text-sm text-gray-500 mb-3">
-                        Коды для восстановления доступа при потере устройства 2FA
-                      </p>
-                      <Button variant="outline" size="sm">
-                        Сгенерировать новые коды
-                      </Button>
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
