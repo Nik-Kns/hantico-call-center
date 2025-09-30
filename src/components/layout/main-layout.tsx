@@ -67,12 +67,13 @@ const navigation = [
     name: 'Настройки',
     href: '/settings',
     icon: Settings,
-    permissions: ['campaigns.view']
+    permissions: ['settings.view']
   }
 ]
 
 const roleLabels: Record<UserRole, string> = {
   admin: 'Администратор',
+  executor: 'Исполнитель',
   marketer: 'Маркетолог',
   supervisor: 'Супервайзер',
   manager: 'Менеджер'

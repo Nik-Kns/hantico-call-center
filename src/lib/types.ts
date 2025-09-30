@@ -1,5 +1,5 @@
 // Роли пользователей
-export type UserRole = 'admin' | 'marketer' | 'supervisor' | 'manager';
+export type UserRole = 'admin' | 'executor' | 'marketer' | 'supervisor' | 'manager';
 
 // Статусы лидов
 export type LeadStatus = 
@@ -286,6 +286,9 @@ export interface RolePermissions {
     analytics: {
       view: boolean;
       export: boolean;
+    };
+    settings: {
+      view: boolean;
     };
   };
 }

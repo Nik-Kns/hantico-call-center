@@ -44,7 +44,8 @@ import {
   Clock,
   Server,
   Zap,
-  HardDrive
+  HardDrive,
+  Users
 } from 'lucide-react'
 
 type SystemType = 'asterisk' | 'erp_api' | 'internal_api' | 'queue' | 'auth' | 'storage'
@@ -203,6 +204,14 @@ const mockErrorGroups: ErrorGroup[] = [
 ]
 
 const settingsSections = [
+  {
+    title: 'Управление пользователями',
+    description: 'Настройка доступа и ролей пользователей системы',
+    icon: Users,
+    href: '/settings/users',
+    color: 'text-green-600',
+    bgColor: 'bg-green-50'
+  },
   {
     title: 'Хаб интеграций',
     description: 'Подключение к ERP/CRM системам, телефонии и SMS-провайдерам',

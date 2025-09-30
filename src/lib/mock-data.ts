@@ -671,7 +671,21 @@ export const rolePermissions: Record<UserRole, RolePermissions> = {
       tasks: { view: true, create: true, assign: true, complete: true },
       sms: { send: true, view_templates: true, edit_templates: true },
       scripts: { view: true, edit: true, create: true },
-      analytics: { view: true, export: true }
+      analytics: { view: true, export: true },
+      settings: { view: true }
+    }
+  },
+  executor: {
+    role: 'executor',
+    permissions: {
+      campaigns: { view: true, create: true, edit: true, start: true, pause: true, delete: true },
+      leads: { view: true, edit: true, delete: true, export: true },
+      calls: { view: true, listen: true, transcript: true, edit_outcome: true },
+      tasks: { view: true, create: true, assign: true, complete: true },
+      sms: { send: true, view_templates: true, edit_templates: true },
+      scripts: { view: true, edit: true, create: true },
+      analytics: { view: true, export: true },
+      settings: { view: false }
     }
   },
   marketer: {
@@ -683,7 +697,8 @@ export const rolePermissions: Record<UserRole, RolePermissions> = {
       tasks: { view: true, create: true, assign: false, complete: false },
       sms: { send: false, view_templates: true, edit_templates: false },
       scripts: { view: true, edit: false, create: false },
-      analytics: { view: true, export: true }
+      analytics: { view: true, export: true },
+      settings: { view: true }
     }
   },
   supervisor: {
@@ -695,7 +710,8 @@ export const rolePermissions: Record<UserRole, RolePermissions> = {
       tasks: { view: true, create: true, assign: true, complete: true },
       sms: { send: true, view_templates: true, edit_templates: false },
       scripts: { view: true, edit: false, create: false },
-      analytics: { view: true, export: false }
+      analytics: { view: true, export: false },
+      settings: { view: true }
     }
   },
   manager: {
@@ -707,7 +723,8 @@ export const rolePermissions: Record<UserRole, RolePermissions> = {
       tasks: { view: true, create: true, assign: false, complete: true },
       sms: { send: true, view_templates: true, edit_templates: false },
       scripts: { view: true, edit: false, create: false },
-      analytics: { view: false, export: false }
+      analytics: { view: false, export: false },
+      settings: { view: true }
     }
   }
 };

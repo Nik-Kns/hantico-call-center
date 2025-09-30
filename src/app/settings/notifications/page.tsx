@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -23,13 +22,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
   ArrowLeft,
   AlertCircle,
   Search,
@@ -42,7 +34,8 @@ import {
   Zap,
   Database,
   Shield,
-  HardDrive
+  HardDrive,
+  Bell
 } from 'lucide-react'
 
 type SystemType = 'asterisk' | 'erp_api' | 'internal_api' | 'queue' | 'auth' | 'storage'
@@ -376,14 +369,83 @@ export default function ErrorLogsPage() {
         
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Логи ошибок</h1>
+            <h1 className="text-3xl font-bold mb-2 flex items-center">
+              <Bell className="h-8 w-8 mr-3 text-red-600" />
+              Логи ошибок и уведомления
+            </h1>
             <p className="text-gray-600">
-              Сводка по системам • Хранение 30 дней с автоочисткой
+              Мониторинг системных событий • Хранение 30 дней с автоочисткой
             </p>
           </div>
         </div>
       </div>
 
+      {/* Статистика */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Активные ошибки</p>
+                <p className="text-2xl font-bold mt-1">
+                  {errorGroups.filter(g => g.isActive).length}
+                </p>
+              </div>
+              <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
+                <AlertCircle className="h-6 w-6 text-red-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Всего событий</p>
+                <p className="text-2xl font-bold mt-1">
+                  {errorGroups.reduce((sum, g) => sum + g.totalEvents, 0)}
+                </p>
+              </div>
+              <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center">
+                <Activity className="h-6 w-6 text-orange-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Затронуто систем</p>
+                <p className="text-2xl font-bold mt-1">{errorGroups.length}</p>
+              </div>
+              <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                <Server className="h-6 w-6 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Уникальных кодов</p>
+                <p className="text-2xl font-bold mt-1">
+                  {errorGroups.reduce((sum, g) => sum + g.uniqueCodes, 0)}
+                </p>
+              </div>
+              <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
+                <Shield className="h-6 w-6 text-purple-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Фильтры */}
       <Card className="mb-6">
         <CardContent className="p-4">
           <div className="flex items-center space-x-4">
@@ -391,7 +453,7 @@ export default function ErrorLogsPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Поиск по названию группы..."
+                  placeholder="Поиск по названию системы..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9"
@@ -424,229 +486,248 @@ export default function ErrorLogsPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Группы ошибок по системам</CardTitle>
-          <CardDescription>
-            Кликните на строку для просмотра деталей инцидентов
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Группа / Система</TableHead>
-                <TableHead>Последняя ошибка</TableHead>
-                <TableHead className="text-center">Всего событий</TableHead>
-                <TableHead className="text-center">Уникальных кодов</TableHead>
-                <TableHead>Статус</TableHead>
-                <TableHead className="text-right">Действие</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredGroups.map((group) => (
-                <TableRow 
-                  key={group.id} 
-                  className="cursor-pointer hover:bg-gray-50"
-                  onClick={() => setSelectedGroup(group)}
-                >
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      {getSystemIcon(group.system)}
-                      <div>
-                        <p className="font-medium">{group.systemName}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-1 text-sm">
-                      <Clock className="h-3 w-3 text-gray-400" />
-                      <span className={group.isActive ? 'text-red-600 font-medium' : 'text-gray-600'}>
-                        {formatLastError(group.lastErrorTime)}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <span className="font-semibold text-lg">{group.totalEvents}</span>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant="secondary">{group.uniqueCodes}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    {group.isActive ? (
-                      <div className="flex items-center space-x-1">
-                        <span className="relative flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                        </span>
-                        <span className="text-sm text-red-600 font-medium">Идут сейчас</span>
-                      </div>
-                    ) : (
-                      <span className="text-sm text-gray-500">Нет новых</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" className="text-blue-600">
-                      Открыть
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <Dialog open={!!selectedGroup} onOpenChange={() => setSelectedGroup(null)}>
-        <DialogContent className="max-w-6xl max-h-[80vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
-              <span>Детали группы:</span>
-              <span className="font-bold">{selectedGroup?.systemName}</span>
-            </DialogTitle>
-            <DialogDescription>
-              Список инцидентов с фильтрацией по классу события
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="flex items-center space-x-4 my-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Поиск по сообщению, коду или ID компании..."
-                  value={incidentSearch}
-                  onChange={(e) => setIncidentSearch(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-            </div>
-            <Select value={eventClassFilter} onValueChange={setEventClassFilter}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Все классы" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все классы событий</SelectItem>
-                <SelectItem value="connectivity">Connectivity</SelectItem>
-                <SelectItem value="auth_permission">Auth/Permission</SelectItem>
-                <SelectItem value="timeout_ratelimit">Timeout/Rate limit</SelectItem>
-                <SelectItem value="validation_schema">Validation/Schema</SelectItem>
-                <SelectItem value="request_response">Request/Response</SelectItem>
-                <SelectItem value="mapping_integration">Mapping/Integration</SelectItem>
-                <SelectItem value="other_unexpected">Other/Unexpected</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="sm" onClick={() => exportData('csv')}>
-              <Download className="h-4 w-4 mr-2" />
-              Экспорт
-            </Button>
-          </div>
-
-          <div className="flex-1 overflow-auto">
+      {/* Основная таблица или детали */}
+      {!selectedGroup ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Группы ошибок по системам</CardTitle>
+            <CardDescription>
+              Кликните на кнопку &quot;Открыть&quot; для просмотра деталей инцидентов
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Время</TableHead>
-                  <TableHead>Класс события</TableHead>
-                  <TableHead>Код ошибки</TableHead>
-                  <TableHead>Сообщение</TableHead>
-                  <TableHead>ID компании</TableHead>
-                  <TableHead>Детали</TableHead>
+                  <TableHead>Группа / Система</TableHead>
+                  <TableHead>Последняя ошибка</TableHead>
+                  <TableHead className="text-center">Всего событий</TableHead>
+                  <TableHead className="text-center">Уникальных кодов</TableHead>
+                  <TableHead>Статус</TableHead>
+                  <TableHead className="text-right">Действие</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedIncidents.map((incident) => (
-                  <TableRow key={incident.id}>
-                    <TableCell className="font-mono text-sm whitespace-nowrap">
-                      {incident.timestamp}
+                {filteredGroups.map((group) => (
+                  <TableRow key={group.id} className="hover:bg-gray-50">
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        {getSystemIcon(group.system)}
+                        <div>
+                          <p className="font-medium">{group.systemName}</p>
+                        </div>
+                      </div>
                     </TableCell>
                     <TableCell>
-                      {getEventClassBadge(incident.eventClass)}
+                      <div className="flex items-center space-x-1 text-sm">
+                        <Clock className="h-3 w-3 text-gray-400" />
+                        <span className={group.isActive ? 'text-red-600 font-medium' : 'text-gray-600'}>
+                          {formatLastError(group.lastErrorTime)}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span className="font-semibold text-lg">{group.totalEvents}</span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="secondary">{group.uniqueCodes}</Badge>
                     </TableCell>
                     <TableCell>
-                      <code className="text-sm bg-gray-100 px-2 py-1 rounded">
-                        {incident.errorCode}
-                      </code>
-                    </TableCell>
-                    <TableCell className="max-w-md">
-                      <p className="text-sm">{incident.message}</p>
-                    </TableCell>
-                    <TableCell>
-                      {incident.companyId ? (
-                        <Badge variant="outline">{incident.companyId}</Badge>
+                      {group.isActive ? (
+                        <div className="flex items-center space-x-1">
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                          </span>
+                          <span className="text-sm text-red-600 font-medium">Идут сейчас</span>
+                        </div>
                       ) : (
-                        <span className="text-gray-400">—</span>
+                        <span className="text-sm text-gray-500">Нет новых</span>
                       )}
                     </TableCell>
-                    <TableCell>
-                      <details className="cursor-pointer">
-                        <summary className="text-sm text-blue-600 hover:underline">
-                          JSON
-                        </summary>
-                        <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto max-w-xs">
-                          {JSON.stringify(incident.details, null, 2)}
-                        </pre>
-                      </details>
+                    <TableCell className="text-right">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-blue-600"
+                        onClick={() => {
+                          setSelectedGroup(group)
+                          setCurrentPage(1)
+                          setIncidentSearch('')
+                          setEventClassFilter('all')
+                        }}
+                      >
+                        Открыть
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </div>
-
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t">
-              <p className="text-sm text-gray-600">
-                Показано {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredIncidents.length)} из {filteredIncidents.length}
-              </p>
-              <div className="flex space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                >
-                  Назад
-                </Button>
-                <div className="flex items-center space-x-1">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum
-                    if (totalPages <= 5) {
-                      pageNum = i + 1
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i
-                    } else {
-                      pageNum = currentPage - 2 + i
-                    }
-                    return (
-                      <Button
-                        key={pageNum}
-                        variant={currentPage === pageNum ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setCurrentPage(pageNum)}
-                        className="w-8 h-8 p-0"
-                      >
-                        {pageNum}
-                      </Button>
-                    )
-                  })}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
-                >
-                  Вперед
-                </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center space-x-2">
+                  <span>Детали инцидентов:</span>
+                  {getSystemBadge(selectedGroup.system)}
+                </CardTitle>
+                <CardDescription className="mt-2">
+                  Список всех инцидентов в группе с возможностью фильтрации
+                </CardDescription>
               </div>
+              <Button
+                variant="outline"
+                onClick={() => setSelectedGroup(null)}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Назад к группам
+              </Button>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center space-x-4 mb-6">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Поиск по сообщению, коду или ID компании..."
+                    value={incidentSearch}
+                    onChange={(e) => setIncidentSearch(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+              </div>
+              <Select value={eventClassFilter} onValueChange={setEventClassFilter}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Все классы" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Все классы событий</SelectItem>
+                  <SelectItem value="connectivity">Connectivity</SelectItem>
+                  <SelectItem value="auth_permission">Auth/Permission</SelectItem>
+                  <SelectItem value="timeout_ratelimit">Timeout/Rate limit</SelectItem>
+                  <SelectItem value="validation_schema">Validation/Schema</SelectItem>
+                  <SelectItem value="request_response">Request/Response</SelectItem>
+                  <SelectItem value="mapping_integration">Mapping/Integration</SelectItem>
+                  <SelectItem value="other_unexpected">Other/Unexpected</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" onClick={() => exportData('csv')}>
+                <Download className="h-4 w-4 mr-2" />
+                Экспорт
+              </Button>
+            </div>
+
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Время</TableHead>
+                    <TableHead>Класс события</TableHead>
+                    <TableHead>Код ошибки</TableHead>
+                    <TableHead>Сообщение</TableHead>
+                    <TableHead>ID компании</TableHead>
+                    <TableHead>Детали</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedIncidents.map((incident) => (
+                    <TableRow key={incident.id}>
+                      <TableCell className="font-mono text-sm whitespace-nowrap">
+                        {incident.timestamp}
+                      </TableCell>
+                      <TableCell>
+                        {getEventClassBadge(incident.eventClass)}
+                      </TableCell>
+                      <TableCell>
+                        <code className="text-sm bg-gray-100 px-2 py-1 rounded">
+                          {incident.errorCode}
+                        </code>
+                      </TableCell>
+                      <TableCell className="max-w-md">
+                        <p className="text-sm">{incident.message}</p>
+                      </TableCell>
+                      <TableCell>
+                        {incident.companyId ? (
+                          <Badge variant="outline">{incident.companyId}</Badge>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <details className="cursor-pointer">
+                          <summary className="text-sm text-blue-600 hover:underline">
+                            JSON
+                          </summary>
+                          <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto max-w-xs">
+                            {JSON.stringify(incident.details, null, 2)}
+                          </pre>
+                        </details>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                <p className="text-sm text-gray-600">
+                  Показано {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredIncidents.length)} из {filteredIncidents.length}
+                </p>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Назад
+                  </Button>
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum
+                      if (totalPages <= 5) {
+                        pageNum = i + 1
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i
+                      } else {
+                        pageNum = currentPage - 2 + i
+                      }
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className="w-8 h-8 p-0"
+                        >
+                          {pageNum}
+                        </Button>
+                      )
+                    })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Вперед
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
