@@ -98,158 +98,434 @@ const eventClassInfo: Record<EventClass, string> = {
   other_unexpected: 'Other/Unexpected'
 }
 
+// Генерация реалистичных временных меток
+const getTimestamp = (hoursAgo: number, minutesAgo: number = 0) => {
+  const date = new Date()
+  date.setHours(date.getHours() - hoursAgo)
+  date.setMinutes(date.getMinutes() - minutesAgo)
+  return date.toISOString().slice(0, 19).replace('T', ' ')
+}
+
 const mockErrorGroups: ErrorGroup[] = [
+  // Asterisk errors - последние 30 минут
   {
     id: 'group-1',
     system: 'asterisk',
     systemName: 'Asterisk',
-    lastErrorTime: '2025-09-22 12:43',
+    lastErrorTime: getTimestamp(0, 30),
     totalEvents: 57,
     uniqueCodes: 3,
     isActive: true,
     incidents: [
       {
         id: 'inc-1',
-        timestamp: '2025-09-22 12:43:18',
+        timestamp: getTimestamp(0, 30),
         eventClass: 'connectivity',
         errorCode: 'AST_503',
-        message: 'Connection lost to Asterisk server at pbx.yourcompany.com',
+        message: 'Service Unavailable: Asterisk manager interface connection lost',
         companyId: 'COMP-001',
         details: {
-          server: 'pbx.yourcompany.com',
+          server: 'pbx.hantico.ru',
           port: 5038,
+          protocol: 'AMI',
           retryCount: 5,
-          lastAttempt: '12:43:18'
+          lastAttempt: getTimestamp(0, 30)
         }
       },
       {
         id: 'inc-2',
-        timestamp: '2025-09-22 12:35:22',
+        timestamp: getTimestamp(0, 45),
         eventClass: 'timeout_ratelimit',
         errorCode: 'AST_408',
-        message: 'Connection timeout after 30 seconds',
+        message: 'Request Timeout: AMI command execution exceeded 30s',
         companyId: 'COMP-002',
         details: {
-          server: 'pbx.yourcompany.com',
+          command: 'Originate',
+          channel: 'SIP/trunk-001',
           timeout: 30000,
-          attempt: 3
+          extension: '88005553535'
+        }
+      },
+      {
+        id: 'inc-3',
+        timestamp: getTimestamp(1, 0),
+        eventClass: 'validation_schema',
+        errorCode: 'AST_400',
+        message: 'Invalid channel format in Originate command',
+        companyId: 'COMP-003',
+        details: {
+          channel: 'SIP/invalid-format',
+          error: 'Channel must match pattern: SIP/trunk-XXX/number'
         }
       }
     ]
   },
+  
+  // Kafka errors - последние 2 часа
   {
     id: 'group-2',
+    system: 'kafka',
+    systemName: 'Kafka',
+    lastErrorTime: getTimestamp(0, 15),
+    totalEvents: 89,
+    uniqueCodes: 5,
+    isActive: true,
+    incidents: [
+      {
+        id: 'inc-4',
+        timestamp: getTimestamp(0, 15),
+        eventClass: 'connectivity',
+        errorCode: 'KAFKA_BROKER_UNREACHABLE',
+        message: 'Failed to connect to Kafka broker at kafka-1.hantico.local:9092',
+        companyId: 'COMP-004',
+        details: {
+          broker: 'kafka-1.hantico.local:9092',
+          topic: 'tasks-topic',
+          partition: 0,
+          error: 'java.net.ConnectException: Connection refused'
+        }
+      },
+      {
+        id: 'inc-5',
+        timestamp: getTimestamp(0, 20),
+        eventClass: 'other_unexpected',
+        errorCode: 'KAFKA_PRODUCER_ERROR',
+        message: 'Producer failed to send message to topic',
+        details: {
+          topic: 'results-topic',
+          messageSize: '2.5MB',
+          maxSize: '1MB',
+          error: 'MessageSizeTooLargeException'
+        }
+      },
+      {
+        id: 'inc-6',
+        timestamp: getTimestamp(1, 30),
+        eventClass: 'timeout_ratelimit',
+        errorCode: 'KAFKA_CONSUMER_LAG',
+        message: 'Consumer group lagging behind by 10000 messages',
+        details: {
+          consumerGroup: 'hantico-dialer-group',
+          topic: 'tasks-topic',
+          lag: 10000,
+          lastOffset: 245678,
+          currentOffset: 235678
+        }
+      }
+    ]
+  },
+  
+  // ERP API errors - последние 4 часа
+  {
+    id: 'group-3',
     system: 'erp_api',
     systemName: 'ERP API',
-    lastErrorTime: '2025-09-22 14:28',
-    totalEvents: 24,
-    uniqueCodes: 5,
+    lastErrorTime: getTimestamp(2, 0),
+    totalEvents: 34,
+    uniqueCodes: 4,
     isActive: false,
     incidents: [
       {
-        id: 'inc-3',
-        timestamp: '2025-09-22 14:28:45',
+        id: 'inc-7',
+        timestamp: getTimestamp(2, 0),
         eventClass: 'auth_permission',
         errorCode: 'ERP_401',
-        message: 'API key expired or invalid',
-        companyId: 'COMP-003',
+        message: 'Unauthorized: Invalid or expired API key for ERP system',
+        companyId: 'COMP-005',
         details: {
-          endpoint: '/api/v2/auth',
+          endpoint: 'https://erp.company.ru/api/v2/leads',
+          method: 'POST',
           statusCode: 401,
-          apiKeyLastChars: '...a4b2'
+          apiKeyLastChars: '...a4b2',
+          headers: {
+            'X-API-Key': '***hidden***',
+            'Content-Type': 'application/json'
+          }
+        }
+      },
+      {
+        id: 'inc-8',
+        timestamp: getTimestamp(3, 0),
+        eventClass: 'validation_schema',
+        errorCode: 'ERP_422',
+        message: 'Validation failed: Required field phone is missing',
+        companyId: 'COMP-006',
+        details: {
+          endpoint: 'https://erp.company.ru/api/v2/leads',
+          validationErrors: [
+            { field: 'phone', message: 'Required field' },
+            { field: 'email', message: 'Invalid format' }
+          ]
+        }
+      },
+      {
+        id: 'inc-9',
+        timestamp: getTimestamp(4, 0),
+        eventClass: 'mapping_integration',
+        errorCode: 'ERP_MAPPING_ERROR',
+        message: 'Failed to map Hantico lead to ERP format',
+        details: {
+          field: 'customField_123',
+          value: 'invalid_enum_value',
+          expectedValues: ['new', 'hot', 'cold']
         }
       }
     ]
   },
+  
+  // AMI errors - последние 6 часов
   {
-    id: 'group-3',
+    id: 'group-4',
+    system: 'ami',
+    systemName: 'AMI',
+    lastErrorTime: getTimestamp(1, 45),
+    totalEvents: 23,
+    uniqueCodes: 3,
+    isActive: true,
+    incidents: [
+      {
+        id: 'inc-10',
+        timestamp: getTimestamp(1, 45),
+        eventClass: 'connectivity',
+        errorCode: 'AMI_CONNECTION_LOST',
+        message: 'Lost connection to Asterisk Manager Interface',
+        companyId: 'COMP-007',
+        details: {
+          host: '10.0.1.50',
+          port: 5038,
+          lastPing: getTimestamp(1, 46),
+          reconnectAttempts: 3
+        }
+      },
+      {
+        id: 'inc-11',
+        timestamp: getTimestamp(3, 0),
+        eventClass: 'auth_permission',
+        errorCode: 'AMI_AUTH_FAILED',
+        message: 'Authentication failed for AMI user',
+        details: {
+          username: 'hantico_ami',
+          reason: 'Invalid secret',
+          ip: '10.0.1.50'
+        }
+      },
+      {
+        id: 'inc-12',
+        timestamp: getTimestamp(6, 0),
+        eventClass: 'request_response',
+        errorCode: 'AMI_INVALID_ACTION',
+        message: 'Invalid AMI action requested',
+        details: {
+          action: 'InvalidCommand',
+          response: 'Error: Invalid/unknown command'
+        }
+      }
+    ]
+  },
+  
+  // REST API errors - последние 8 часов
+  {
+    id: 'group-5',
+    system: 'rest_api',
+    systemName: 'REST API',
+    lastErrorTime: getTimestamp(3, 30),
+    totalEvents: 45,
+    uniqueCodes: 4,
+    isActive: false,
+    incidents: [
+      {
+        id: 'inc-13',
+        timestamp: getTimestamp(3, 30),
+        eventClass: 'timeout_ratelimit',
+        errorCode: 'REST_429',
+        message: 'Rate limit exceeded: Too many requests to /api/campaigns',
+        companyId: 'COMP-008',
+        details: {
+          endpoint: '/api/campaigns',
+          limit: 100,
+          window: '1 minute',
+          currentRate: 145,
+          resetTime: getTimestamp(3, 29)
+        }
+      },
+      {
+        id: 'inc-14',
+        timestamp: getTimestamp(5, 0),
+        eventClass: 'request_response',
+        errorCode: 'REST_500',
+        message: 'Internal Server Error in campaign creation',
+        details: {
+          endpoint: '/api/campaigns',
+          method: 'POST',
+          error: 'Database connection timeout',
+          trace: 'at CampaignController.create (line 145)'
+        }
+      },
+      {
+        id: 'inc-15',
+        timestamp: getTimestamp(8, 0),
+        eventClass: 'validation_schema',
+        errorCode: 'REST_400',
+        message: 'Bad Request: Invalid campaign configuration',
+        details: {
+          validationErrors: [
+            'concurrency must be between 1 and 100',
+            'scriptId is required'
+          ]
+        }
+      }
+    ]
+  },
+  
+  // Internal API errors - последние 12 часов
+  {
+    id: 'group-6',
     system: 'internal_api',
     systemName: 'Internal API',
-    lastErrorTime: '2025-09-21 23:45',
+    lastErrorTime: getTimestamp(5, 0),
+    totalEvents: 18,
+    uniqueCodes: 2,
+    isActive: false,
+    incidents: [
+      {
+        id: 'inc-16',
+        timestamp: getTimestamp(5, 0),
+        eventClass: 'request_response',
+        errorCode: 'INTERNAL_500',
+        message: 'Failed to sync campaign data with dialer',
+        details: {
+          service: 'CampaignSyncService',
+          campaignId: 'camp_789',
+          error: 'Connection pool exhausted'
+        }
+      },
+      {
+        id: 'inc-17',
+        timestamp: getTimestamp(12, 0),
+        eventClass: 'other_unexpected',
+        errorCode: 'INTERNAL_MEMORY',
+        message: 'Memory leak detected in worker process',
+        details: {
+          process: 'worker-3',
+          memoryUsage: '4.2GB',
+          limit: '4GB',
+          pid: 12345
+        }
+      }
+    ]
+  },
+  
+  // Queue errors - 2 дня назад
+  {
+    id: 'group-7',
+    system: 'queue',
+    systemName: 'Queue',
+    lastErrorTime: getTimestamp(48, 0),
     totalEvents: 12,
     uniqueCodes: 2,
     isActive: false,
     incidents: [
       {
-        id: 'inc-5',
-        timestamp: '2025-09-21 23:45:30',
-        eventClass: 'request_response',
-        errorCode: 'API_500',
-        message: 'Internal server error on /api/campaigns/sync',
+        id: 'inc-18',
+        timestamp: getTimestamp(48, 0),
+        eventClass: 'other_unexpected',
+        errorCode: 'QUEUE_OVERFLOW',
+        message: 'Message queue overflow, dropping messages',
         details: {
-          url: '/api/campaigns/sync',
-          statusCode: 500,
-          method: 'POST'
+          queueName: 'dialer-tasks',
+          maxSize: 10000,
+          currentSize: 10001,
+          droppedMessages: 15
+        }
+      },
+      {
+        id: 'inc-19',
+        timestamp: getTimestamp(50, 0),
+        eventClass: 'connectivity',
+        errorCode: 'RABBITMQ_DOWN',
+        message: 'RabbitMQ cluster unavailable',
+        details: {
+          nodes: ['rabbit@node1', 'rabbit@node2'],
+          lastSeen: getTimestamp(50, 5)
         }
       }
     ]
   },
+  
+  // Auth errors - 3 дня назад
   {
-    id: 'group-4',
+    id: 'group-8',
     system: 'auth',
     systemName: 'Auth',
-    lastErrorTime: '2025-09-22 10:15',
+    lastErrorTime: getTimestamp(72, 0),
     totalEvents: 8,
-    uniqueCodes: 1,
-    isActive: true,
-    incidents: [
-      {
-        id: 'inc-6',
-        timestamp: '2025-09-22 10:15:00',
-        eventClass: 'auth_permission',
-        errorCode: 'AUTH_TOKEN_EXPIRED',
-        message: 'JWT token has expired',
-        companyId: 'COMP-005',
-        details: {
-          tokenId: 'tok_abc123',
-          expiresAt: '2025-09-22 10:00:00',
-          userId: 'user_456'
-        }
-      }
-    ]
-  },
-  {
-    id: 'group-5',
-    system: 'kafka',
-    systemName: 'Kafka',
-    lastErrorTime: '2025-09-22 15:30',
-    totalEvents: 42,
-    uniqueCodes: 4,
-    isActive: true,
-    incidents: [
-      {
-        id: 'inc-7',
-        timestamp: '2025-09-22 15:30:00',
-        eventClass: 'connectivity',
-        errorCode: 'KAFKA_BROKER_DOWN',
-        message: 'Broker not available',
-        companyId: 'COMP-006',
-        details: {
-          broker: 'kafka-broker-1:9092',
-          topic: 'tasks-topic'
-        }
-      }
-    ]
-  },
-  {
-    id: 'group-6',
-    system: 'rest_api',
-    systemName: 'REST API',
-    lastErrorTime: '2025-09-22 11:20',
-    totalEvents: 15,
     uniqueCodes: 2,
     isActive: false,
     incidents: [
       {
-        id: 'inc-8',
-        timestamp: '2025-09-22 11:20:00',
-        eventClass: 'timeout_ratelimit',
-        errorCode: 'REST_429',
-        message: 'Too many requests',
+        id: 'inc-20',
+        timestamp: getTimestamp(72, 0),
+        eventClass: 'auth_permission',
+        errorCode: 'JWT_EXPIRED',
+        message: 'JWT token expired for user session',
+        companyId: 'COMP-009',
         details: {
-          endpoint: '/api/v1/leads',
-          limit: 100,
-          window: '1m'
+          userId: 'user_123',
+          tokenId: 'tok_abc456',
+          expiresAt: getTimestamp(72, 30),
+          issuedAt: getTimestamp(96, 0)
+        }
+      },
+      {
+        id: 'inc-21',
+        timestamp: getTimestamp(75, 0),
+        eventClass: 'auth_permission',
+        errorCode: 'PERMISSION_DENIED',
+        message: 'User lacks permission to access resource',
+        details: {
+          userId: 'user_456',
+          resource: '/api/admin/users',
+          requiredRole: 'admin',
+          userRole: 'operator'
+        }
+      }
+    ]
+  },
+  
+  // Storage errors - неделю назад
+  {
+    id: 'group-9',
+    system: 'storage',
+    systemName: 'Storage',
+    lastErrorTime: getTimestamp(168, 0),
+    totalEvents: 5,
+    uniqueCodes: 2,
+    isActive: false,
+    incidents: [
+      {
+        id: 'inc-22',
+        timestamp: getTimestamp(168, 0),
+        eventClass: 'other_unexpected',
+        errorCode: 'STORAGE_FULL',
+        message: 'Storage volume reached 95% capacity',
+        details: {
+          volume: '/var/recordings',
+          totalSize: '500GB',
+          usedSize: '475GB',
+          freeSpace: '25GB'
+        }
+      },
+      {
+        id: 'inc-23',
+        timestamp: getTimestamp(170, 0),
+        eventClass: 'request_response',
+        errorCode: 'S3_UPLOAD_FAILED',
+        message: 'Failed to upload recording to S3',
+        details: {
+          bucket: 'hantico-recordings',
+          key: 'recordings/2024/09/call_12345.mp3',
+          error: 'RequestTimeout',
+          size: '15MB'
         }
       }
     ]
