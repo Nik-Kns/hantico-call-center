@@ -804,6 +804,64 @@ for message in consumer:
 
         {/* Asterisk Tab */}
         <TabsContent value="asterisk" className="space-y-6">
+          {/* Asterisk Integration Card */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
+                    <Phone className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div>
+                    <CardTitle>Asterisk / Телефония</CardTitle>
+                    <CardDescription>
+                      Управление SIP/AMI подключениями к серверам Asterisk
+                    </CardDescription>
+                  </div>
+                </div>
+                <Button onClick={() => router.push('/settings/integrations/asterisk')}>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Настроить подключения
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <h4 className="font-medium mb-2">Возможности интеграции:</h4>
+                  <ul className="space-y-2 text-sm text-gray-600">
+                    <li className="flex items-start">
+                      <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-0.5" />
+                      <span>Мульти-коннекты: поддержка нескольких SIP/AMI подключений</span>
+                    </li>
+                    <li className="flex items-start">
+                      <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-0.5" />
+                      <span>Автоматическое получение списка доступных номеров с АТС</span>
+                    </li>
+                    <li className="flex items-start">
+                      <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-0.5" />
+                      <span>Выбор номеров для использования в кампаниях обзвона</span>
+                    </li>
+                    <li className="flex items-start">
+                      <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-0.5" />
+                      <span>Поддержка протоколов SIP и AMI (Asterisk Manager Interface)</span>
+                    </li>
+                  </ul>
+                </div>
+                <div className="flex justify-center">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => router.push('/settings/integrations/asterisk')}
+                    className="w-full"
+                  >
+                    Перейти к настройке подключений
+                    <ArrowLeft className="h-4 w-4 ml-2 rotate-180" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Required SIP Credentials */}
           <Card>
             <CardHeader>
