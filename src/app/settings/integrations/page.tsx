@@ -895,6 +895,67 @@ for message in consumer:
             </Button>
           </div>
 
+          {/* Статистика по номерам */}
+          {connections.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Активные подключения</p>
+                      <p className="text-2xl font-bold mt-1">
+                        {connections.filter(c => c.status === 'connected').length}
+                      </p>
+                    </div>
+                    <Server className="h-8 w-8 text-green-600 opacity-60" />
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Всего номеров</p>
+                      <p className="text-2xl font-bold mt-1">
+                        {connections.reduce((acc, c) => acc + c.numbers.length, 0)}
+                      </p>
+                    </div>
+                    <Phone className="h-8 w-8 text-blue-600 opacity-60" />
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Выбрано для обзвона</p>
+                      <p className="text-2xl font-bold mt-1">
+                        {connections.reduce((acc, c) => acc + c.selectedNumbers.length, 0)}
+                      </p>
+                    </div>
+                    <PhoneCall className="h-8 w-8 text-purple-600 opacity-60" />
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Не выбрано</p>
+                      <p className="text-2xl font-bold mt-1">
+                        {connections.reduce((acc, c) => acc + (c.numbers.length - c.selectedNumbers.length), 0)}
+                      </p>
+                    </div>
+                    <PhoneOff className="h-8 w-8 text-gray-600 opacity-60" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
           {/* Список подключений */}
           {connections.length === 0 ? (
             <Card className="p-12">
@@ -1029,6 +1090,145 @@ for message in consumer:
                 </Card>
               ))}
             </div>
+          )}
+
+          {/* Список всех подключенных номеров */}
+          {connections.some(c => c.numbers.length > 0) && (
+            <Card className="mt-6">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Подключенные номера</CardTitle>
+                    <CardDescription>
+                      Все доступные номера из активных подключений
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Badge variant="secondary" className="text-sm">
+                      Всего номеров: {connections.reduce((acc, c) => acc + c.numbers.length, 0)}
+                    </Badge>
+                    <Badge className="text-sm bg-green-100 text-green-700">
+                      Выбрано для обзвона: {connections.reduce((acc, c) => acc + c.selectedNumbers.length, 0)}
+                    </Badge>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {connections.filter(c => c.numbers.length > 0).map((connection) => (
+                    <div key={connection.id} className="space-y-2">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Badge variant="outline" className="text-xs">
+                          {connection.name}
+                        </Badge>
+                        <span className="text-xs text-gray-500">
+                          {connection.type} • {connection.host}:{connection.port}
+                        </span>
+                        {connection.status === 'connected' && (
+                          <Badge className="text-xs bg-green-100 text-green-700">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Активно
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                        {connection.numbers.map((number, index) => {
+                          const isSelected = connection.selectedNumbers.includes(number)
+                          return (
+                            <div
+                              key={index}
+                              className={`
+                                flex items-center space-x-2 p-2 rounded-lg border cursor-pointer
+                                transition-all hover:shadow-sm
+                                ${isSelected 
+                                  ? 'bg-blue-50 border-blue-300 hover:bg-blue-100' 
+                                  : 'bg-white border-gray-200 hover:bg-gray-50'
+                                }
+                              `}
+                              onClick={() => {
+                                const updatedConnection = {...connection}
+                                if (isSelected) {
+                                  updatedConnection.selectedNumbers = updatedConnection.selectedNumbers.filter(n => n !== number)
+                                } else {
+                                  updatedConnection.selectedNumbers = [...updatedConnection.selectedNumbers, number]
+                                }
+                                setConnections(connections.map(c => 
+                                  c.id === connection.id ? updatedConnection : c
+                                ))
+                                toast.success(isSelected 
+                                  ? `Номер ${number} убран из обзвона` 
+                                  : `Номер ${number} добавлен в обзвон`
+                                )
+                              }}
+                            >
+                              <Checkbox
+                                checked={isSelected}
+                                className="pointer-events-none"
+                              />
+                              <div className="flex-1">
+                                <div className="flex items-center space-x-1">
+                                  <Phone className="h-3 w-3 text-gray-400" />
+                                  <span className="text-sm font-medium">{number}</span>
+                                </div>
+                                {isSelected && (
+                                  <span className="text-xs text-blue-600">Для обзвона</span>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <Separator className="my-4" />
+
+                {/* Кнопки управления */}
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-500">
+                    Нажмите на номер, чтобы добавить или убрать его из списка для обзвона
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setConnections(connections.map(c => ({
+                          ...c,
+                          selectedNumbers: []
+                        })))
+                        toast.success('Все номера убраны из обзвона')
+                      }}
+                    >
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Снять выделение
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setConnections(connections.map(c => ({
+                          ...c,
+                          selectedNumbers: [...c.numbers]
+                        })))
+                        toast.success('Все номера добавлены в обзвон')
+                      }}
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Выбрать все
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={!connections.some(c => c.selectedNumbers.length > 0)}
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      Сохранить выбор
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </TabsContent>
       </Tabs>
