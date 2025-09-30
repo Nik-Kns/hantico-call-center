@@ -21,9 +21,6 @@ import {
   Save,
   ArrowLeft,
   CheckCircle,
-  Smartphone,
-  Monitor,
-  LogOut,
   AlertCircle
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -188,53 +185,13 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
-          {/* Роль и права доступа */}
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Shield className="h-5 w-5" />
-                <span>Роль и права</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label>Текущая роль</Label>
-                <div className="mt-2">
-                  <Badge className="text-sm py-1 px-3">Администратор</Badge>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-700">Права доступа:</p>
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span className="text-sm text-gray-600">Полный доступ ко всем функциям</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span className="text-sm text-gray-600">Создание и редактирование агентов</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span className="text-sm text-gray-600">Запуск и управление кампаниями</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span className="text-sm text-gray-600">Доступ к настройкам системы</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Правая колонка - Настройки */}
         <div className="lg:col-span-2">
           <Tabs defaultValue="security" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-1">
               <TabsTrigger value="security">Безопасность</TabsTrigger>
-              <TabsTrigger value="sessions">Сессии</TabsTrigger>
             </TabsList>
 
             {/* Безопасность */}
@@ -281,85 +238,107 @@ export default function ProfilePage() {
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
-
-            {/* Активные сессии */}
-            <TabsContent value="sessions">
-              <Card>
+              
+              {/* Роль и права доступа */}
+              <Card className="mt-6">
                 <CardHeader>
-                  <CardTitle>Активные сессии</CardTitle>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Shield className="h-5 w-5" />
+                    <span>Роль и права</span>
+                  </CardTitle>
                   <CardDescription>
-                    Управление устройствами, с которых выполнен вход в аккаунт
+                    Информация о вашей роли и доступных правах в системе
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-4">
-                    {/* Текущая сессия */}
-                    <div className="p-4 border rounded-lg bg-green-50 border-green-200">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start space-x-3">
-                          <Monitor className="h-5 w-5 text-green-600 mt-0.5" />
-                          <div>
-                            <div className="font-medium">Chrome на MacOS</div>
-                            <div className="text-sm text-gray-600">192.168.1.100 • Москва, Россия</div>
-                            <div className="text-sm text-green-600 mt-1">Текущая сессия</div>
-                          </div>
-                        </div>
-                        <Badge variant="outline" className="text-green-600 border-green-600">
-                          Активна
-                        </Badge>
-                      </div>
+                  <div>
+                    <Label>Назначенная роль</Label>
+                    <div className="mt-2 flex items-center space-x-2">
+                      <Badge className="text-sm py-1 px-3">Администратор</Badge>
+                      <span className="text-sm text-gray-500">с 01.10.2024</span>
                     </div>
-
-                    {/* Другие сессии */}
-                    <div className="p-4 border rounded-lg">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start space-x-3">
-                          <Smartphone className="h-5 w-5 text-gray-400 mt-0.5" />
-                          <div>
-                            <div className="font-medium">Safari на iPhone</div>
-                            <div className="text-sm text-gray-600">192.168.1.101 • Москва, Россия</div>
-                            <div className="text-sm text-gray-500 mt-1">Последняя активность: 2 часа назад</div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="space-y-3">
+                    <p className="text-sm font-medium text-gray-700">Ваши права в системе:</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Кампании</p>
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                            <span className="text-sm text-gray-600">Просмотр кампаний</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                            <span className="text-sm text-gray-600">Создание кампаний</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                            <span className="text-sm text-gray-600">Редактирование</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                            <span className="text-sm text-gray-600">Запуск и остановка</span>
                           </div>
                         </div>
-                        <Button variant="ghost" size="sm" className="text-red-600">
-                          <LogOut className="h-4 w-4 mr-2" />
-                          Завершить
-                        </Button>
                       </div>
-                    </div>
-
-                    <div className="p-4 border rounded-lg">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start space-x-3">
-                          <Monitor className="h-5 w-5 text-gray-400 mt-0.5" />
-                          <div>
-                            <div className="font-medium">Firefox на Windows</div>
-                            <div className="text-sm text-gray-600">192.168.1.102 • Санкт-Петербург, Россия</div>
-                            <div className="text-sm text-gray-500 mt-1">Последняя активность: 3 дня назад</div>
+                      
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Агенты</p>
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                            <span className="text-sm text-gray-600">Просмотр агентов</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                            <span className="text-sm text-gray-600">Создание агентов</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                            <span className="text-sm text-gray-600">Редактирование промптов</span>
                           </div>
                         </div>
-                        <Button variant="ghost" size="sm" className="text-red-600">
-                          <LogOut className="h-4 w-4 mr-2" />
-                          Завершить
-                        </Button>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Аналитика</p>
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                            <span className="text-sm text-gray-600">Просмотр отчетов</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                            <span className="text-sm text-gray-600">Экспорт данных</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Система</p>
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                            <span className="text-sm text-gray-600">Доступ к настройкам</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                            <span className="text-sm text-gray-600">Управление пользователями</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-
-                  <Separator />
-
-                  <div className="flex items-center justify-between p-4 bg-red-50 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <AlertCircle className="h-5 w-5 text-red-600" />
-                      <div>
-                        <p className="font-medium text-red-900">Завершить все сессии</p>
-                        <p className="text-sm text-red-700">Вы будете разлогинены на всех устройствах</p>
-                      </div>
-                    </div>
-                    <Button variant="destructive" size="sm">
-                      Завершить все
-                    </Button>
+                  
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                    <p className="text-xs text-blue-700">
+                      <AlertCircle className="inline h-3 w-3 mr-1" />
+                      Роль администратора предоставляет полный доступ ко всем функциям системы
+                    </p>
                   </div>
                 </CardContent>
               </Card>
