@@ -28,7 +28,6 @@ import {
 } from '@/components/ui/popover'
 import {
   ArrowLeft,
-  Bell,
   Search,
   Calendar,
   Download,
@@ -41,9 +40,6 @@ import {
   HardDrive,
   Zap,
   AlertCircle,
-  TrendingUp,
-  AlertTriangle,
-  CheckCircle,
   Filter,
   X,
   Wifi,
@@ -672,15 +668,10 @@ export default function ErrorLogsPage() {
     }
   }
 
-  // Подсчет статистики
-  const totalErrors = errorGroups.reduce((sum, group) => sum + group.totalEvents, 0)
-  const activeGroups = errorGroups.filter(group => group.isActive).length
-  const affectedSystems = new Set(errorGroups.map(group => group.system)).size
-
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <Button
           variant="ghost"
           onClick={() => router.push('/settings')}
@@ -691,81 +682,24 @@ export default function ErrorLogsPage() {
         </Button>
         
         <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center space-x-3 mb-2">
-              <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
-                <Bell className="h-6 w-6 text-red-600" />
-              </div>
-              <h1 className="text-3xl font-bold">Логи ошибок</h1>
-            </div>
-            <p className="text-gray-600">
-              Негативные события интеграций • Хранение 30 дней с автоочисткой
-            </p>
+          <h1 className="text-3xl font-bold">Логи ошибок</h1>
+          <div className="flex space-x-2">
+            <Button 
+              variant="outline" 
+              onClick={() => exportData('csv')}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Экспорт логов (CSV)
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => exportData('json')}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Экспорт логов (JSON)
+            </Button>
           </div>
         </div>
-      </div>
-
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Активные ошибки</p>
-                <p className="text-2xl font-bold text-red-600">{activeGroups}</p>
-                <p className="text-xs text-gray-500 mt-1">Требуют внимания</p>
-              </div>
-              <div className="p-2 bg-red-100 rounded-lg">
-                <AlertTriangle className="h-5 w-5 text-red-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Всего событий</p>
-                <p className="text-2xl font-bold">{totalErrors}</p>
-                <p className="text-xs text-gray-500 mt-1">За последние 24 часа</p>
-              </div>
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <TrendingUp className="h-5 w-5 text-orange-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Затронуто систем</p>
-                <p className="text-2xl font-bold">{affectedSystems}</p>
-                <p className="text-xs text-gray-500 mt-1">Из 6 возможных</p>
-              </div>
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Server className="h-5 w-5 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Статус системы</p>
-                <p className="text-2xl font-bold text-green-600">98.5%</p>
-                <p className="text-xs text-gray-500 mt-1">Uptime</p>
-              </div>
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Main Content */}
@@ -785,9 +719,9 @@ export default function ErrorLogsPage() {
         </CardHeader>
         <CardContent>
           {/* Filter Bar */}
-          <div className="space-y-4 mb-6">
+          <div className="mb-6">
             {/* Main filters row */}
-            <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
               <div className="flex-1">
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
