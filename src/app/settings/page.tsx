@@ -22,13 +22,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
   Plug,
   Webhook,
   Settings,
@@ -250,20 +243,12 @@ export default function SettingsPage() {
   const [errorGroups] = useState<ErrorGroup[]>(mockErrorGroups)
   const [selectedPeriod, setSelectedPeriod] = useState<string>('24h')
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedGroup, setSelectedGroup] = useState<ErrorGroup | null>(null)
-  const [incidentSearch, setIncidentSearch] = useState('')
-  const [eventClassFilter, setEventClassFilter] = useState<string>('all')
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10
 
   const getSystemIcon = (system: SystemType) => {
     const Icon = systemInfo[system].icon
     return <Icon className="h-4 w-4 text-gray-500" />
   }
 
-  const getEventClassBadge = (eventClass: EventClass) => {
-    return <Badge variant="outline">{eventClassInfo[eventClass]}</Badge>
-  }
 
   const formatLastError = (time: string) => {
     if (time.includes('сегодня')) {
@@ -288,31 +273,10 @@ export default function SettingsPage() {
     return true
   })
 
-  const filteredIncidents = selectedGroup?.incidents.filter(incident => {
-    if (eventClassFilter !== 'all' && incident.eventClass !== eventClassFilter) {
-      return false
-    }
-    if (incidentSearch) {
-      const search = incidentSearch.toLowerCase()
-      return incident.message.toLowerCase().includes(search) ||
-             incident.errorCode.toLowerCase().includes(search) ||
-             (incident.companyId && incident.companyId.toLowerCase().includes(search))
-    }
-    return true
-  }) || []
-
-  const paginatedIncidents = filteredIncidents.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  )
-
-  const totalPages = Math.ceil(filteredIncidents.length / itemsPerPage)
 
   const exportData = (format: 'csv' | 'json') => {
-    const dataToExport = selectedGroup ? filteredIncidents : filteredGroups
-    
     if (format === 'json') {
-      const json = JSON.stringify(dataToExport, null, 2)
+      const json = JSON.stringify(filteredGroups, null, 2)
       const blob = new Blob([json], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -320,18 +284,10 @@ export default function SettingsPage() {
       a.download = `error-logs-${new Date().toISOString()}.json`
       a.click()
     } else {
-      let csv = ''
-      if (selectedGroup) {
-        csv = 'Время,Класс события,Код,Сообщение,ID компании\n'
-        filteredIncidents.forEach(incident => {
-          csv += `"${incident.timestamp}","${eventClassInfo[incident.eventClass]}","${incident.errorCode}","${incident.message}","${incident.companyId || ''}"\n`
-        })
-      } else {
-        csv = 'Группа/Система,Последняя ошибка,Всего событий,Уникальных кодов,Статус\n'
-        filteredGroups.forEach(group => {
-          csv += `"${group.systemName}","${group.lastErrorTime}",${group.totalEvents},${group.uniqueCodes},"${group.isActive ? 'Идут сейчас' : 'Нет новых'}"\n`
-        })
-      }
+      let csv = 'Группа/Система,Последняя ошибка,Всего событий,Уникальных кодов,Статус\n'
+      filteredGroups.forEach(group => {
+        csv += `"${group.systemName}","${group.lastErrorTime}",${group.totalEvents},${group.uniqueCodes},"${group.isActive ? 'Идут сейчас' : 'Нет новых'}"\n`
+      })
       const blob = new Blob([csv], { type: 'text/csv' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -500,7 +456,7 @@ export default function SettingsPage() {
                 <TableRow 
                   key={group.id} 
                   className="cursor-pointer hover:bg-gray-50"
-                  onClick={() => setSelectedGroup(group)}
+                  onClick={() => router.push(`/settings/errors/${group.id}`)}
                 >
                   <TableCell>
                     <div className="flex items-center space-x-2">
@@ -538,7 +494,15 @@ export default function SettingsPage() {
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" className="text-blue-600">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-blue-600"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        router.push(`/settings/errors/${group.id}`)
+                      }}
+                    >
                       Открыть
                       <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
@@ -550,156 +514,6 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Dialog for Error Details */}
-      <Dialog open={!!selectedGroup} onOpenChange={() => setSelectedGroup(null)}>
-        <DialogContent className="max-w-6xl max-h-[80vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
-              <span>Детали группы:</span>
-              <span className="font-bold">{selectedGroup?.systemName}</span>
-            </DialogTitle>
-            <DialogDescription>
-              Список инцидентов с фильтрацией по классу события
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="flex items-center space-x-4 my-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Поиск по сообщению, коду или ID компании..."
-                  value={incidentSearch}
-                  onChange={(e) => setIncidentSearch(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-            </div>
-            <Select value={eventClassFilter} onValueChange={setEventClassFilter}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Все классы" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все классы событий</SelectItem>
-                <SelectItem value="connectivity">Connectivity</SelectItem>
-                <SelectItem value="auth_permission">Auth/Permission</SelectItem>
-                <SelectItem value="timeout_ratelimit">Timeout/Rate limit</SelectItem>
-                <SelectItem value="validation_schema">Validation/Schema</SelectItem>
-                <SelectItem value="request_response">Request/Response</SelectItem>
-                <SelectItem value="mapping_integration">Mapping/Integration</SelectItem>
-                <SelectItem value="other_unexpected">Other/Unexpected</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="sm" onClick={() => exportData('csv')}>
-              <Download className="h-4 w-4 mr-2" />
-              Экспорт
-            </Button>
-          </div>
-
-          <div className="flex-1 overflow-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Время</TableHead>
-                  <TableHead>Класс события</TableHead>
-                  <TableHead>Код ошибки</TableHead>
-                  <TableHead>Сообщение</TableHead>
-                  <TableHead>ID компании</TableHead>
-                  <TableHead>Детали</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedIncidents.map((incident) => (
-                  <TableRow key={incident.id}>
-                    <TableCell className="font-mono text-sm whitespace-nowrap">
-                      {incident.timestamp}
-                    </TableCell>
-                    <TableCell>
-                      {getEventClassBadge(incident.eventClass)}
-                    </TableCell>
-                    <TableCell>
-                      <code className="text-sm bg-gray-100 px-2 py-1 rounded">
-                        {incident.errorCode}
-                      </code>
-                    </TableCell>
-                    <TableCell className="max-w-md">
-                      <p className="text-sm">{incident.message}</p>
-                    </TableCell>
-                    <TableCell>
-                      {incident.companyId ? (
-                        <Badge variant="outline">{incident.companyId}</Badge>
-                      ) : (
-                        <span className="text-gray-400">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <details className="cursor-pointer">
-                        <summary className="text-sm text-blue-600 hover:underline">
-                          JSON
-                        </summary>
-                        <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto max-w-xs">
-                          {JSON.stringify(incident.details, null, 2)}
-                        </pre>
-                      </details>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t">
-              <p className="text-sm text-gray-600">
-                Показано {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredIncidents.length)} из {filteredIncidents.length}
-              </p>
-              <div className="flex space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                >
-                  Назад
-                </Button>
-                <div className="flex items-center space-x-1">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum
-                    if (totalPages <= 5) {
-                      pageNum = i + 1
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i
-                    } else {
-                      pageNum = currentPage - 2 + i
-                    }
-                    return (
-                      <Button
-                        key={pageNum}
-                        variant={currentPage === pageNum ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setCurrentPage(pageNum)}
-                        className="w-8 h-8 p-0"
-                      >
-                        {pageNum}
-                      </Button>
-                    )
-                  })}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
-                >
-                  Вперед
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
