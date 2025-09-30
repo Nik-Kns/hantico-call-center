@@ -22,6 +22,11 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
   ArrowLeft,
   Bell,
   Search,
@@ -38,10 +43,16 @@ import {
   AlertCircle,
   TrendingUp,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  Filter,
+  X,
+  Wifi,
+  Cloud
 } from 'lucide-react'
+import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
 
-type SystemType = 'asterisk' | 'erp_api' | 'internal_api' | 'queue' | 'auth' | 'storage'
+type SystemType = 'asterisk' | 'erp_api' | 'internal_api' | 'queue' | 'auth' | 'storage' | 'kafka' | 'rest_api' | 'ami'
 type EventClass = 'connectivity' | 'auth_permission' | 'timeout_ratelimit' | 'validation_schema' | 'request_response' | 'mapping_integration' | 'other_unexpected'
 
 interface ErrorGroup {
@@ -66,12 +77,15 @@ interface ErrorIncident {
 }
 
 const systemInfo: Record<SystemType, { name: string; icon: any; color: string }> = {
-  asterisk: { name: 'Asterisk (телефония)', icon: Zap, color: 'bg-purple-100 text-purple-800' },
-  erp_api: { name: 'ERP API / Hook', icon: Database, color: 'bg-blue-100 text-blue-800' },
-  internal_api: { name: 'Внутренний API', icon: Server, color: 'bg-green-100 text-green-800' },
-  queue: { name: 'Очередь/шина', icon: Activity, color: 'bg-orange-100 text-orange-800' },
-  auth: { name: 'Аутентификация/ключи', icon: Shield, color: 'bg-yellow-100 text-yellow-800' },
-  storage: { name: 'Хранилище/файлы', icon: HardDrive, color: 'bg-gray-100 text-gray-800' }
+  asterisk: { name: 'Asterisk', icon: Zap, color: 'bg-purple-100 text-purple-800' },
+  erp_api: { name: 'ERP API', icon: Database, color: 'bg-blue-100 text-blue-800' },
+  internal_api: { name: 'Internal API', icon: Server, color: 'bg-green-100 text-green-800' },
+  queue: { name: 'Queue', icon: Activity, color: 'bg-orange-100 text-orange-800' },
+  auth: { name: 'Auth', icon: Shield, color: 'bg-yellow-100 text-yellow-800' },
+  storage: { name: 'Storage', icon: HardDrive, color: 'bg-gray-100 text-gray-800' },
+  kafka: { name: 'Kafka', icon: Cloud, color: 'bg-indigo-100 text-indigo-800' },
+  rest_api: { name: 'REST API', icon: Wifi, color: 'bg-teal-100 text-teal-800' },
+  ami: { name: 'AMI', icon: Activity, color: 'bg-pink-100 text-pink-800' }
 }
 
 const eventClassInfo: Record<EventClass, string> = {
@@ -88,8 +102,8 @@ const mockErrorGroups: ErrorGroup[] = [
   {
     id: 'group-1',
     system: 'asterisk',
-    systemName: 'Asterisk (телефония)',
-    lastErrorTime: '12:43 сегодня',
+    systemName: 'Asterisk',
+    lastErrorTime: '2025-09-22 12:43',
     totalEvents: 57,
     uniqueCodes: 3,
     isActive: true,
@@ -126,7 +140,7 @@ const mockErrorGroups: ErrorGroup[] = [
   {
     id: 'group-2',
     system: 'erp_api',
-    systemName: 'ERP API / Hook',
+    systemName: 'ERP API',
     lastErrorTime: '2025-09-22 14:28',
     totalEvents: 24,
     uniqueCodes: 5,
@@ -150,7 +164,7 @@ const mockErrorGroups: ErrorGroup[] = [
   {
     id: 'group-3',
     system: 'internal_api',
-    systemName: 'Внутренний API',
+    systemName: 'Internal API',
     lastErrorTime: '2025-09-21 23:45',
     totalEvents: 12,
     uniqueCodes: 2,
@@ -173,7 +187,7 @@ const mockErrorGroups: ErrorGroup[] = [
   {
     id: 'group-4',
     system: 'auth',
-    systemName: 'Аутентификация/ключи',
+    systemName: 'Auth',
     lastErrorTime: '2025-09-22 10:15',
     totalEvents: 8,
     uniqueCodes: 1,
@@ -193,6 +207,52 @@ const mockErrorGroups: ErrorGroup[] = [
         }
       }
     ]
+  },
+  {
+    id: 'group-5',
+    system: 'kafka',
+    systemName: 'Kafka',
+    lastErrorTime: '2025-09-22 15:30',
+    totalEvents: 42,
+    uniqueCodes: 4,
+    isActive: true,
+    incidents: [
+      {
+        id: 'inc-7',
+        timestamp: '2025-09-22 15:30:00',
+        eventClass: 'connectivity',
+        errorCode: 'KAFKA_BROKER_DOWN',
+        message: 'Broker not available',
+        companyId: 'COMP-006',
+        details: {
+          broker: 'kafka-broker-1:9092',
+          topic: 'tasks-topic'
+        }
+      }
+    ]
+  },
+  {
+    id: 'group-6',
+    system: 'rest_api',
+    systemName: 'REST API',
+    lastErrorTime: '2025-09-22 11:20',
+    totalEvents: 15,
+    uniqueCodes: 2,
+    isActive: false,
+    incidents: [
+      {
+        id: 'inc-8',
+        timestamp: '2025-09-22 11:20:00',
+        eventClass: 'timeout_ratelimit',
+        errorCode: 'REST_429',
+        message: 'Too many requests',
+        details: {
+          endpoint: '/api/v1/leads',
+          limit: 100,
+          window: '1m'
+        }
+      }
+    ]
   }
 ]
 
@@ -201,6 +261,10 @@ export default function ErrorLogsPage() {
   const [errorGroups] = useState<ErrorGroup[]>(mockErrorGroups)
   const [selectedPeriod, setSelectedPeriod] = useState<string>('24h')
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedSystems, setSelectedSystems] = useState<SystemType[]>([])
+  const [selectedErrorTypes, setSelectedErrorTypes] = useState<EventClass[]>([])
+  const [customDateRange, setCustomDateRange] = useState<{ from: string; to: string }>({ from: '', to: '' })
+  const [showCustomDate, setShowCustomDate] = useState(false)
 
   const getSystemIcon = (system: SystemType) => {
     const Icon = systemInfo[system].icon
@@ -208,25 +272,104 @@ export default function ErrorLogsPage() {
   }
 
   const formatLastError = (time: string) => {
-    if (time.includes('сегодня')) {
-      return time
-    }
     const date = new Date(time)
     const now = new Date()
     const diffMs = now.getTime() - date.getTime()
     const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
     
     if (diffMins < 5) {
       return `${diffMins} мин назад`
+    } else if (diffHours < 1) {
+      return `${diffMins} мин назад`
+    } else if (diffHours < 24) {
+      return `${diffHours} ч назад`
+    } else if (diffDays < 7) {
+      return `${diffDays} д назад`
     }
-    return time
+    return date.toLocaleDateString('ru-RU')
+  }
+
+  const isWithinPeriod = (time: string): boolean => {
+    const date = new Date(time)
+    const now = new Date()
+    
+    if (showCustomDate && customDateRange.from && customDateRange.to) {
+      const from = new Date(customDateRange.from)
+      const to = new Date(customDateRange.to)
+      to.setHours(23, 59, 59, 999)
+      return date >= from && date <= to
+    }
+    
+    switch (selectedPeriod) {
+      case '1h':
+        return now.getTime() - date.getTime() <= 3600000
+      case '24h':
+        return now.getTime() - date.getTime() <= 86400000
+      case '7d':
+        return now.getTime() - date.getTime() <= 604800000
+      case '30d':
+        return now.getTime() - date.getTime() <= 2592000000
+      case 'custom':
+        return true
+      default:
+        return true
+    }
+  }
+
+  const toggleSystem = (system: SystemType) => {
+    setSelectedSystems(prev => 
+      prev.includes(system) 
+        ? prev.filter(s => s !== system)
+        : [...prev, system]
+    )
+  }
+
+  const toggleErrorType = (errorType: EventClass) => {
+    setSelectedErrorTypes(prev => 
+      prev.includes(errorType)
+        ? prev.filter(e => e !== errorType)
+        : [...prev, errorType]
+    )
+  }
+
+  const clearFilters = () => {
+    setSelectedSystems([])
+    setSelectedErrorTypes([])
+    setSearchQuery('')
+    setSelectedPeriod('24h')
+    setShowCustomDate(false)
+    setCustomDateRange({ from: '', to: '' })
   }
 
   const filteredGroups = errorGroups.filter(group => {
+    // Filter by search query
     if (searchQuery && 
-        !group.systemName.toLowerCase().includes(searchQuery.toLowerCase())) {
+        !group.systemName.toLowerCase().includes(searchQuery.toLowerCase()) &&
+        !group.incidents.some(inc => 
+          inc.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          inc.errorCode.toLowerCase().includes(searchQuery.toLowerCase())
+        )) {
       return false
     }
+    
+    // Filter by system
+    if (selectedSystems.length > 0 && !selectedSystems.includes(group.system)) {
+      return false
+    }
+    
+    // Filter by error type
+    if (selectedErrorTypes.length > 0 && 
+        !group.incidents.some(inc => selectedErrorTypes.includes(inc.eventClass))) {
+      return false
+    }
+    
+    // Filter by time period
+    if (!isWithinPeriod(group.lastErrorTime)) {
+      return false
+    }
+    
     return true
   })
 
@@ -366,41 +509,247 @@ export default function ErrorLogsPage() {
         </CardHeader>
         <CardContent>
           {/* Filter Bar */}
-          <div className="flex items-center space-x-4 mb-6 p-4 bg-gray-50 rounded-lg">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Поиск по названию группы..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
+          <div className="space-y-4 mb-6">
+            {/* Main filters row */}
+            <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Поиск по системе, коду ошибки или сообщению..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+              </div>
+              
+              {/* Period selector */}
+              <Select 
+                value={showCustomDate ? 'custom' : selectedPeriod} 
+                onValueChange={(value) => {
+                  if (value === 'custom') {
+                    setShowCustomDate(true)
+                    setSelectedPeriod(value)
+                  } else {
+                    setShowCustomDate(false)
+                    setSelectedPeriod(value)
+                  }
+                }}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1h">Последний час</SelectItem>
+                  <SelectItem value="24h">24 часа</SelectItem>
+                  <SelectItem value="7d">7 дней</SelectItem>
+                  <SelectItem value="30d">30 дней</SelectItem>
+                  <SelectItem value="custom">Выбрать период...</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {/* System filter */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Filter className="h-4 w-4 mr-2" />
+                    Система
+                    {selectedSystems.length > 0 && (
+                      <Badge variant="secondary" className="ml-2">
+                        {selectedSystems.length}
+                      </Badge>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Выберите системы</Label>
+                    <Separator />
+                    <div className="space-y-2 max-h-64 overflow-auto">
+                      {Object.entries(systemInfo).map(([key, info]) => (
+                        <div key={key} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`system-${key}`}
+                            checked={selectedSystems.includes(key as SystemType)}
+                            onChange={() => toggleSystem(key as SystemType)}
+                            className="h-4 w-4"
+                          />
+                          <label 
+                            htmlFor={`system-${key}`} 
+                            className="flex items-center space-x-2 cursor-pointer flex-1"
+                          >
+                            <info.icon className="h-4 w-4" />
+                            <span className="text-sm">{info.name}</span>
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                    {selectedSystems.length > 0 && (
+                      <>
+                        <Separator />
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="w-full"
+                          onClick={() => setSelectedSystems([])}
+                        >
+                          Очистить
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              
+              {/* Error type filter */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                    Тип ошибки
+                    {selectedErrorTypes.length > 0 && (
+                      <Badge variant="secondary" className="ml-2">
+                        {selectedErrorTypes.length}
+                      </Badge>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Выберите типы ошибок</Label>
+                    <Separator />
+                    <div className="space-y-2">
+                      {Object.entries(eventClassInfo).map(([key, name]) => (
+                        <div key={key} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`error-${key}`}
+                            checked={selectedErrorTypes.includes(key as EventClass)}
+                            onChange={() => toggleErrorType(key as EventClass)}
+                            className="h-4 w-4"
+                          />
+                          <label 
+                            htmlFor={`error-${key}`} 
+                            className="text-sm cursor-pointer flex-1"
+                          >
+                            {name}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                    {selectedErrorTypes.length > 0 && (
+                      <>
+                        <Separator />
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="w-full"
+                          onClick={() => setSelectedErrorTypes([])}
+                        >
+                          Очистить
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              
+              {/* Export buttons */}
+              <div className="flex space-x-2">
+                <Button variant="outline" size="sm" onClick={() => exportData('csv')}>
+                  <Download className="h-4 w-4 mr-2" />
+                  CSV
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => exportData('json')}>
+                  <Download className="h-4 w-4 mr-2" />
+                  JSON
+                </Button>
               </div>
             </div>
-            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-              <SelectTrigger className="w-[180px]">
-                <Calendar className="h-4 w-4 mr-2" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1h">Последний час</SelectItem>
-                <SelectItem value="today">Сегодня</SelectItem>
-                <SelectItem value="24h">24 часа</SelectItem>
-                <SelectItem value="7d">7 дней</SelectItem>
-                <SelectItem value="30d">30 дней</SelectItem>
-              </SelectContent>
-            </Select>
-            <div className="flex space-x-2">
-              <Button variant="outline" size="sm" onClick={() => exportData('csv')}>
-                <Download className="h-4 w-4 mr-2" />
-                CSV
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => exportData('json')}>
-                <Download className="h-4 w-4 mr-2" />
-                JSON
-              </Button>
-            </div>
+            
+            {/* Custom date range (shown when custom is selected) */}
+            {showCustomDate && (
+              <div className="flex items-center space-x-4 p-4 bg-blue-50 rounded-lg">
+                <Label className="text-sm">Период:</Label>
+                <Input
+                  type="date"
+                  value={customDateRange.from}
+                  onChange={(e) => setCustomDateRange(prev => ({ ...prev, from: e.target.value }))}
+                  className="w-40"
+                />
+                <span className="text-sm">—</span>
+                <Input
+                  type="date"
+                  value={customDateRange.to}
+                  onChange={(e) => setCustomDateRange(prev => ({ ...prev, to: e.target.value }))}
+                  className="w-40"
+                />
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
+                    setShowCustomDate(false)
+                    setSelectedPeriod('24h')
+                    setCustomDateRange({ from: '', to: '' })
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+            
+            {/* Active filters display */}
+            {(selectedSystems.length > 0 || selectedErrorTypes.length > 0 || searchQuery) && (
+              <div className="flex items-center space-x-2 p-3 bg-yellow-50 rounded-lg">
+                <span className="text-sm text-gray-600">Активные фильтры:</span>
+                <div className="flex flex-wrap gap-2">
+                  {selectedSystems.map(system => (
+                    <Badge key={system} variant="secondary" className="text-xs">
+                      {systemInfo[system].name}
+                      <button
+                        onClick={() => toggleSystem(system)}
+                        className="ml-1 hover:text-red-600"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                  {selectedErrorTypes.map(type => (
+                    <Badge key={type} variant="secondary" className="text-xs">
+                      {eventClassInfo[type]}
+                      <button
+                        onClick={() => toggleErrorType(type)}
+                        className="ml-1 hover:text-red-600"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                  {searchQuery && (
+                    <Badge variant="secondary" className="text-xs">
+                      Поиск: {searchQuery}
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="ml-1 hover:text-red-600"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="ml-auto"
+                  onClick={clearFilters}
+                >
+                  Очистить все
+                </Button>
+              </div>
+            )}
           </div>
           
           {/* Error Groups Table */}
