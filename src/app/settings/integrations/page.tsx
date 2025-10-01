@@ -957,6 +957,69 @@ for message in consumer:
           )}
 
 
+          {/* Секция логов подключений */}
+          {connections.length > 0 && (
+            <Card className="mb-6">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <CardTitle>Состояние подключений</CardTitle>
+                    <Badge variant="outline" className="text-xs">
+                      {connections.filter(c => c.status === 'connected').length} из {connections.length} активно
+                    </Badge>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => {
+                      connections.filter(c => c.status === 'disconnected').forEach(c => {
+                        handleReconnect(c.id)
+                      })
+                    }}
+                    disabled={!connections.some(c => c.status === 'disconnected')}
+                  >
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Переподключить все
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {connections.map((connection) => (
+                    <div key={connection.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-2 h-2 rounded-full ${
+                          connection.status === 'connected' ? 'bg-green-500' :
+                          connection.status === 'disconnected' ? 'bg-red-500' :
+                          connection.status === 'connecting' ? 'bg-blue-500 animate-pulse' :
+                          'bg-orange-500'
+                        }`} />
+                        <div>
+                          <p className="text-sm font-medium">{connection.name}</p>
+                          <p className="text-xs text-gray-500">
+                            {connection.type} • {connection.host}:{connection.port}
+                            {connection.lastSync && ` • Синхронизация: ${connection.lastSync}`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        {connection.numbers.length > 0 ? (
+                          <Badge className="bg-green-100 text-green-700 text-xs">
+                            {connection.numbers.length} номеров получено
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-yellow-100 text-yellow-700 text-xs">
+                            Номера не получены
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Список всех подключенных номеров */}
           {connections.length === 0 ? (
             <Card className="p-12">
@@ -993,24 +1056,86 @@ for message in consumer:
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {connections.filter(c => c.numbers.length > 0).map((connection) => (
-                    <div key={connection.id} className="space-y-2">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <Badge variant="outline" className="text-xs">
-                          {connection.name}
-                        </Badge>
-                        <span className="text-xs text-gray-500">
-                          {connection.type} • {connection.host}:{connection.port}
-                        </span>
-                        {connection.status === 'connected' && (
-                          <Badge className="text-xs bg-green-100 text-green-700">
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Активно
+                <div className="space-y-6">
+                  {connections.map((connection) => (
+                    <div key={connection.id} className="space-y-3 p-4 bg-gray-50 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <Badge variant="outline" className="text-sm">
+                            {connection.name}
                           </Badge>
+                          <span className="text-sm text-gray-600">
+                            {connection.type} • {connection.host}:{connection.port}
+                          </span>
+                          {connection.status === 'connected' ? (
+                            <Badge className="text-xs bg-green-100 text-green-700">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Подключено
+                            </Badge>
+                          ) : connection.status === 'disconnected' ? (
+                            <Badge className="text-xs bg-red-100 text-red-700">
+                              <XCircle className="h-3 w-3 mr-1" />
+                              Отключено
+                            </Badge>
+                          ) : connection.status === 'connecting' ? (
+                            <Badge className="text-xs bg-blue-100 text-blue-700">
+                              <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                              Подключение...
+                            </Badge>
+                          ) : (
+                            <Badge className="text-xs bg-orange-100 text-orange-700">
+                              <AlertCircle className="h-3 w-3 mr-1" />
+                              Ошибка
+                            </Badge>
+                          )}
+                        </div>
+                        {connection.status === 'disconnected' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleReconnect(connection.id)}
+                          >
+                            <RefreshCw className="h-3 w-3 mr-1" />
+                            Переподключить
+                          </Button>
                         )}
                       </div>
-                      <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                      
+                      {/* Логи подключения */}
+                      {connection.numbers.length === 0 ? (
+                        <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                          <div className="flex items-start space-x-2">
+                            <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5" />
+                            <div className="text-sm">
+                              <p className="font-medium text-yellow-800">Номера не получены</p>
+                              <p className="text-yellow-700 mt-1">
+                                {connection.status === 'disconnected' 
+                                  ? 'Подключение не установлено. Нажмите "Переподключить" для получения списка номеров.'
+                                  : connection.status === 'error'
+                                  ? `Ошибка подключения: проверьте параметры подключения (${connection.host}:${connection.port})`
+                                  : 'Ожидание получения списка номеров от сервера...'}
+                              </p>
+                              {connection.lastSync && (
+                                <p className="text-xs text-yellow-600 mt-1">
+                                  Последняя попытка: {connection.lastSync}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-sm text-gray-600">
+                              Получено {connection.numbers.length} номеров
+                            </p>
+                            {connection.lastSync && (
+                              <span className="text-xs text-gray-500">
+                                Синхронизировано: {connection.lastSync}
+                              </span>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                         {connection.numbers.map((number, index) => {
                           const isSelected = connection.selectedNumbers.includes(number)
                           return (
@@ -1056,7 +1181,9 @@ for message in consumer:
                             </div>
                           )
                         })}
-                      </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
