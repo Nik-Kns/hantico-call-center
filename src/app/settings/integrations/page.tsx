@@ -956,7 +956,8 @@ for message in consumer:
             </div>
           )}
 
-          {/* Список подключений */}
+
+          {/* Список всех подключенных номеров */}
           {connections.length === 0 ? (
             <Card className="p-12">
               <div className="text-center">
@@ -971,130 +972,8 @@ for message in consumer:
                 </Button>
               </div>
             </Card>
-          ) : (
-            <div className="grid gap-4">
-              {connections.map((connection) => (
-                <Card key={connection.id}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-gray-100 rounded-lg">
-                          <Phone className="h-5 w-5 text-gray-700" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-lg">{connection.name}</CardTitle>
-                          <div className="flex items-center space-x-4 mt-1">
-                            <Badge variant="outline">{connection.type}</Badge>
-                            <span className="text-sm text-gray-500">
-                              {connection.host}:{connection.port}
-                            </span>
-                            {getStatusBadge(connection.status)}
-                          </div>
-                        </div>
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem 
-                            onClick={() => {
-                              setEditingConnection(connection)
-                              setIsEditDialogOpen(true)
-                            }}
-                          >
-                            <Edit2 className="h-4 w-4 mr-2" />
-                            Редактировать
-                          </DropdownMenuItem>
-                          {connection.status === 'disconnected' && (
-                            <DropdownMenuItem onClick={() => handleReconnect(connection.id)}>
-                              <RefreshCw className="h-4 w-4 mr-2" />
-                              Переподключить
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem>
-                            <Copy className="h-4 w-4 mr-2" />
-                            Дублировать
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            className="text-red-600"
-                            onClick={() => handleDeleteConnection(connection.id)}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Удалить
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {/* Информация о подключении */}
-                      <div className="grid grid-cols-3 gap-4 text-sm">
-                        <div>
-                          <span className="text-gray-500">Логин:</span>
-                          <p className="font-medium">{connection.login}</p>
-                        </div>
-                        <div>
-                          <span className="text-gray-500">Последняя синхронизация:</span>
-                          <p className="font-medium">
-                            {connection.lastSync || 'Не выполнялась'}
-                          </p>
-                        </div>
-                        <div>
-                          <span className="text-gray-500">Создано:</span>
-                          <p className="font-medium">{connection.createdAt}</p>
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      {/* Доступные номера */}
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-sm font-medium">Доступные номера</h4>
-                          {connection.selectedNumbers.length > 0 && (
-                            <Badge variant="secondary">
-                              Выбрано: {connection.selectedNumbers.length} из {connection.numbers.length}
-                            </Badge>
-                          )}
-                        </div>
-                        
-                        {connection.numbers.length > 0 ? (
-                          <div className="flex flex-wrap gap-2">
-                            {connection.numbers.map((number, index) => {
-                              const isSelected = connection.selectedNumbers.includes(number)
-                              return (
-                                <Badge 
-                                  key={index} 
-                                  variant={isSelected ? "default" : "outline"}
-                                  className="cursor-pointer"
-                                >
-                                  {isSelected && <PhoneCall className="h-3 w-3 mr-1" />}
-                                  {number}
-                                </Badge>
-                              )
-                            })}
-                          </div>
-                        ) : (
-                          <p className="text-sm text-gray-500">
-                            Номера не загружены. Переподключитесь для получения списка.
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-
-          {/* Список всех подключенных номеров */}
-          {connections.some(c => c.numbers.length > 0) && (
-            <Card className="mt-6">
+          ) : connections.some(c => c.numbers.length > 0) ? (
+            <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
@@ -1229,7 +1108,7 @@ for message in consumer:
                 </div>
               </CardContent>
             </Card>
-          )}
+          ) : null}
         </TabsContent>
       </Tabs>
 
