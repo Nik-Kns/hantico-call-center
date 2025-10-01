@@ -394,60 +394,6 @@ export default function ErrorDetailsPage() {
         </div>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Всего событий</p>
-                <p className="text-2xl font-bold">{errorGroup.totalEvents}</p>
-              </div>
-              <Activity className="h-8 w-8 text-blue-600 opacity-60" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Уникальных кодов</p>
-                <p className="text-2xl font-bold">{errorGroup.uniqueCodes}</p>
-              </div>
-              <AlertCircle className="h-8 w-8 text-orange-600 opacity-60" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Затронуто пользователей</p>
-                <p className="text-2xl font-bold">
-                  {errorGroup.incidents.reduce((sum, inc) => sum + (inc.affectedUsers || 0), 0)}
-                </p>
-              </div>
-              <Shield className="h-8 w-8 text-red-600 opacity-60" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Частота ошибок</p>
-                <p className="text-2xl font-bold">
-                  {(errorGroup.totalEvents / 24).toFixed(1)}/час
-                </p>
-              </div>
-              <Clock className="h-8 w-8 text-green-600 opacity-60" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Main Content */}
       <Card>
