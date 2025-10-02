@@ -44,6 +44,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
+import { Checkbox } from '@/components/ui/checkbox'
 import { BaseType } from '@/lib/types'
 import { CallTestModal } from '@/components/call-test-modal'
 
@@ -112,8 +113,8 @@ interface CampaignForm {
   consentRecording?: string
   dataProcessing?: string
   disclaimerText?: string
-  // Исходящий номер
-  outgoingNumber: string
+  // Исходящие номера
+  outgoingNumbers: string[]
 }
 
 const mockAgents = [
@@ -311,7 +312,7 @@ export default function NewCompanyPage() {
     agentATestStatus: 'idle',
     agentBTestStatus: 'idle',
     testedAgent: undefined,
-    outgoingNumber: ''
+    outgoingNumbers: []
   })
 
   const [isLoading, setIsLoading] = useState(false)
@@ -468,7 +469,7 @@ export default function NewCompanyPage() {
       case 1:
         return form.name.trim() !== ''
       case 2:
-        return form.callWindow.start !== '' && form.callWindow.end !== '' && form.callWindow.timezone !== '' && form.outgoingNumber !== ''
+        return form.callWindow.start !== '' && form.callWindow.end !== '' && form.callWindow.timezone !== '' && form.outgoingNumbers.length > 0
       case 3:
         return form.agent !== '' && 
                form.voice !== '' && 
@@ -729,32 +730,47 @@ export default function NewCompanyPage() {
 
                 <Separator />
 
-                {/* Исходящий номер */}
+                {/* Исходящие номера */}
                 <div>
-                  <Label htmlFor="outgoing-number">Исходящий номер *</Label>
-                  <Select 
-                    value={form.outgoingNumber} 
-                    onValueChange={(value) => handleInputChange('outgoingNumber', value)}
-                  >
-                    <SelectTrigger id="outgoing-number" className="mt-2">
-                      <SelectValue placeholder="Выберите номер для исходящих звонков" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {mockOutgoingNumbers
-                        .filter(num => num.status === 'active')
-                        .map((num) => (
-                          <SelectItem key={num.id} value={num.id}>
-                            <div className="flex items-center justify-between w-full">
-                              <span className="font-medium">{num.number}</span>
-                              <span className="text-xs text-gray-500 ml-2">{num.description}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Номер Asterisk, с которого будут совершаться исходящие звонки
+                  <Label>Исходящие номера *</Label>
+                  <p className="text-xs text-gray-500 mb-3">
+                    Выберите номера Asterisk, с которых будут совершаться исходящие звонки
                   </p>
+                  <div className="space-y-3 mt-2">
+                    {mockOutgoingNumbers
+                      .filter(num => num.status === 'active')
+                      .map((num) => (
+                        <div key={num.id} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                          <Checkbox
+                            id={num.id}
+                            checked={form.outgoingNumbers.includes(num.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                handleInputChange('outgoingNumbers', [...form.outgoingNumbers, num.id])
+                              } else {
+                                handleInputChange('outgoingNumbers', form.outgoingNumbers.filter(id => id !== num.id))
+                              }
+                            }}
+                            className="mt-0.5"
+                          />
+                          <label htmlFor={num.id} className="flex-1 cursor-pointer">
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium text-sm">{num.number}</span>
+                              <Badge variant="outline" className="text-xs">
+                                {num.description}
+                              </Badge>
+                            </div>
+                          </label>
+                        </div>
+                      ))}
+                  </div>
+                  {form.outgoingNumbers.length > 0 && (
+                    <div className="mt-3 p-2 bg-blue-50 rounded-lg">
+                      <p className="text-xs text-blue-700">
+                        Выбрано номеров: {form.outgoingNumbers.length}. Система будет автоматически распределять звонки между выбранными номерами.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -1294,10 +1310,19 @@ export default function NewCompanyPage() {
                   </div>
                   
                   <div>
-                    <p className="text-sm text-gray-600">Исходящий номер</p>
-                    <p className="font-medium">
-                      {mockOutgoingNumbers.find(n => n.id === form.outgoingNumber)?.number || 'Не выбран'}
-                    </p>
+                    <p className="text-sm text-gray-600">Исходящие номера</p>
+                    <div className="space-y-1">
+                      {form.outgoingNumbers.length > 0 ? (
+                        form.outgoingNumbers.map(id => {
+                          const number = mockOutgoingNumbers.find(n => n.id === id)
+                          return number ? (
+                            <p key={id} className="font-medium text-sm">{number.number}</p>
+                          ) : null
+                        })
+                      ) : (
+                        <p className="text-gray-400 text-sm">Не выбраны</p>
+                      )}
+                    </div>
                   </div>
                   
                   <div>
